@@ -1,26 +1,32 @@
-import { Injectable } from '@nestjs/common';
-import { CreateFlowDto } from './dto/create-flow.dto';
-import { UpdateFlowDto } from './dto/update-flow.dto';
+import { Injectable } from '@nestjs/common'
+import { CreateFlowDto } from './dto/create-flow.dto'
+import { UpdateFlowDto } from './dto/update-flow.dto'
+import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class FlowService {
+  constructor(private readonly prismaService: PrismaService) {}
+
   create(createFlowDto: CreateFlowDto) {
-    return 'This action adds a new flow';
+    return this.prismaService.flow.create({ data: createFlowDto })
   }
 
   findAll() {
-    return `This action returns all flow`;
+    return this.prismaService.flow.findMany()
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} flow`;
+    return this.prismaService.flow.findUnique({ where: { id } })
   }
 
   update(id: number, updateFlowDto: UpdateFlowDto) {
-    return `This action updates a #${id} flow`;
+    return this.prismaService.flow.update({
+      data: updateFlowDto,
+      where: { id },
+    })
   }
 
   remove(id: number) {
-    return `This action removes a #${id} flow`;
+    return this.prismaService.flow.delete({ where: { id } })
   }
 }

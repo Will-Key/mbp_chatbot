@@ -12,3 +12,127 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum LogType {
+  IN
+  OUT
+}
+
+enum LogStatus {
+  SUCCESS
+  FAIL
+}
+
+enum CollectMethod {
+  OCR
+  CHAT
+}
+
+enum DocumentSide {
+  FRONT
+  BACK
+}
+
+enum DocumentType {
+  DRIVER_LICENSE
+  CAR_REGISTRATION
+}
+
+model Flow {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  steps     Step[]
+}
+
+model Step {
+  id                     Int            @id @default(autoincrement())
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  level                  Int
+  message                String
+  expectedResponse       String
+  expectedResponseLength Int
+  flowId                 Int
+  flow                   Flow           @relation(fields: [flowId], references: [id])
+  conversation           Conversation[]
+}
+
+model Conversation {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  whaPhoneNumber String
+  message        String
+  stepId         Int
+  step           Step     @relation(fields: [stepId], references: [id])
+}
+
+model Log {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  type      LogType
+  initiator String
+  data      String
+  response  String
+  status    LogStatus
+}
+
+model DocumentFile {
+  id             Int          @id @default(autoincrement())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  dataImageUrl   String
+  documentSide   DocumentSide
+  documentType   DocumentType
+  whaPhoneNumber String
+}
+
+model DriverPersonnalInfo {
+  id                Int                @id @default(autoincrement())
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  lastName          String
+  firstName         String
+  phoneNumber       String             @unique
+  whaPhoneNumber    String             @unique
+  address           String
+  collectMethod     CollectMethod
+  yangoProfileId    String             @unique
+  driverLicenseInfo DriverLicenseInfo?
+}
+
+model DriverLicenseInfo {
+  id                  Int                 @id @default(autoincrement())
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  number              String              @unique
+  country             String
+  expiryDate          DateTime
+  deliveryDate        DateTime
+  idDriverPersInfo    Int                 @unique
+  driverPersonnalInfo DriverPersonnalInfo @relation(fields: [idDriverPersInfo], references: [id])
+}
+
+model CarInfo {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  brand       String
+  color       String
+  year        String
+  plateNumber String   @unique
+  status      String
+  code        String
+  yangoCarId  String   @unique
+}
+
+model DriverCar {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  idDriver  Int      @unique
+  idCar     Int      @unique
+}

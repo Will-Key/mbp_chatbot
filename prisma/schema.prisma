@@ -13,14 +13,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum AuditType {
+enum RequestDirection {
   IN
   OUT
 }
 
-enum AuditStatus {
+enum RequestStatus {
   SUCCESS
   FAIL
+}
+
+enum RequestInitiator {
+  MBP
+  WHAPI
+  YANGO
+  OCR_SPACE
 }
 
 enum CollectMethod {
@@ -69,15 +76,15 @@ model Conversation {
   step           Step     @relation(fields: [stepId], references: [id])
 }
 
-model Audit {
-  id        Int         @id @default(autoincrement())
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  type      AuditType
-  initiator String
+model RequestLog {
+  id        Int              @id @default(autoincrement())
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  direction RequestDirection
+  initiator RequestInitiator
   data      String
   response  String
-  status    AuditStatus
+  status    RequestStatus
 }
 
 model DocumentFile {

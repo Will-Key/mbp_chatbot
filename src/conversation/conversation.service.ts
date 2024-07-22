@@ -1,26 +1,34 @@
-import { Injectable } from '@nestjs/common';
-import { CreateConversationDto } from './dto/create-conversation.dto';
-import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { Injectable } from '@nestjs/common'
+import { CreateConversationDto } from './dto/create-conversation.dto'
+import { UpdateConversationDto } from './dto/update-conversation.dto'
+import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class ConversationService {
+  constructor(private readonly prismaService: PrismaService) {}
+
   create(createConversationDto: CreateConversationDto) {
-    return 'This action adds a new conversation';
+    return this.prismaService.conversation.create({
+      data: createConversationDto,
+    })
   }
 
   findAll() {
-    return `This action returns all conversation`;
+    return this.prismaService.conversation.findMany()
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} conversation`;
+    return this.prismaService.conversation.findUnique({ where: { id: id } })
   }
 
   update(id: number, updateConversationDto: UpdateConversationDto) {
-    return `This action updates a #${id} conversation`;
+    return this.prismaService.conversation.update({
+      data: updateConversationDto,
+      where: { id },
+    })
   }
 
   remove(id: number) {
-    return `This action removes a #${id} conversation`;
+    return this.prismaService.conversation.delete({ where: { id } })
   }
 }

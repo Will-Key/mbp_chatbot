@@ -13,12 +13,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum LogType {
+enum AuditType {
   IN
   OUT
 }
 
-enum LogStatus {
+enum AuditStatus {
   SUCCESS
   FAIL
 }
@@ -69,15 +69,15 @@ model Conversation {
   step           Step     @relation(fields: [stepId], references: [id])
 }
 
-model Log {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  type      LogType
+model Audit {
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  type      AuditType
   initiator String
   data      String
   response  String
-  status    LogStatus
+  status    AuditStatus
 }
 
 model DocumentFile {

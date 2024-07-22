@@ -5,9 +5,10 @@ import { FlowModule } from './flow/flow.module'
 import { StepModule } from './step/step.module'
 import { ConversationModule } from './conversation/conversation.module'
 import { RequestLogModule } from './request-log/request-log.module'
+import { DocumentFileModule } from './document-file/document-file.module';
 
 @Module({
-  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule],
+  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule, DocumentFileModule],
   controllers: [AppController],
   providers: [AppService],
 })

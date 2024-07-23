@@ -45,6 +45,15 @@ enum DocumentType {
   CAR_REGISTRATION
 }
 
+enum CarStatus {
+  unknown
+  working
+  not_working
+  repairing
+  no_driver
+  pending
+}
+
 model Flow {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -124,16 +133,16 @@ model DriverLicenseInfo {
 }
 
 model CarInfo {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   brand       String
   color       String
   year        String
-  plateNumber String   @unique
-  status      String
+  plateNumber String    @unique
+  status      CarStatus
   code        String
-  yangoCarId  String   @unique
+  yangoCarId  String    @unique
 }
 
 model DriverCar {

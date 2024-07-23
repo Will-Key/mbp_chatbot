@@ -7,9 +7,10 @@ import { ConversationModule } from './conversation/conversation.module'
 import { RequestLogModule } from './request-log/request-log.module'
 import { DocumentFileModule } from './document-file/document-file.module';
 import { DriverPersonnalInfoModule } from './driver-personnal-info/driver-personnal-info.module';
+import { DriverLicenseInfoModule } from './driver-license-info/driver-license-info.module';
 
 @Module({
-  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule, DocumentFileModule, DriverPersonnalInfoModule],
+  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule, DocumentFileModule, DriverPersonnalInfoModule, DriverLicenseInfoModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,26 +1,36 @@
-import { Injectable } from '@nestjs/common';
-import { CreateDriverLicenseInfoDto } from './dto/create-driver-license-info.dto';
-import { UpdateDriverLicenseInfoDto } from './dto/update-driver-license-info.dto';
+import { Injectable } from '@nestjs/common'
+import { CreateDriverLicenseInfoDto } from './dto/create-driver-license-info.dto'
+import { UpdateDriverLicenseInfoDto } from './dto/update-driver-license-info.dto'
+import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class DriverLicenseInfoService {
+  constructor(private readonly prismaService: PrismaService) {}
+
   create(createDriverLicenseInfoDto: CreateDriverLicenseInfoDto) {
-    return 'This action adds a new driverLicenseInfo';
+    return this.prismaService.driverLicenseInfo.create({
+      data: createDriverLicenseInfoDto,
+    })
   }
 
   findAll() {
-    return `This action returns all driverLicenseInfo`;
+    return this.prismaService.driverLicenseInfo.findMany()
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} driverLicenseInfo`;
+    return this.prismaService.driverLicenseInfo.findUnique({ where: { id } })
   }
 
   update(id: number, updateDriverLicenseInfoDto: UpdateDriverLicenseInfoDto) {
-    return `This action updates a #${id} driverLicenseInfo`;
+    return this.prismaService.driverLicenseInfo.update({
+      data: updateDriverLicenseInfoDto,
+      where: { id },
+    })
   }
 
   remove(id: number) {
-    return `This action removes a #${id} driverLicenseInfo`;
+    return this.prismaService.driverLicenseInfo.delete({
+      where: { id },
+    })
   }
 }

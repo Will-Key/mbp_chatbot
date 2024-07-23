@@ -116,7 +116,7 @@ model DriverLicenseInfo {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   number              String              @unique
-  country             String
+  countryCode         String
   expiryDate          DateTime
   deliveryDate        DateTime
   idDriverPersInfo    Int                 @unique

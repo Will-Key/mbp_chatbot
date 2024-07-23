@@ -8,9 +8,10 @@ import { RequestLogModule } from './request-log/request-log.module'
 import { DocumentFileModule } from './document-file/document-file.module';
 import { DriverPersonnalInfoModule } from './driver-personnal-info/driver-personnal-info.module';
 import { DriverLicenseInfoModule } from './driver-license-info/driver-license-info.module';
+import { CarInfoModule } from './car-info/car-info.module';
 
 @Module({
-  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule, DocumentFileModule, DriverPersonnalInfoModule, DriverLicenseInfoModule],
+  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule, DocumentFileModule, DriverPersonnalInfoModule, DriverLicenseInfoModule, CarInfoModule],
   controllers: [AppController],
   providers: [AppService],
 })

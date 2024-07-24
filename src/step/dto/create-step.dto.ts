@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator'
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator'
 
 export class CreateStepDto {
   @IsNotEmpty()
@@ -17,7 +17,7 @@ export class CreateStepDto {
   @IsString()
   expectedResponseLength: number
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  flowId: number
+  flowId?: number
 }

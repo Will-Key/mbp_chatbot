@@ -70,8 +70,8 @@ model Step {
   message                String
   expectedResponse       String
   expectedResponseLength Int
-  flowId                 Int
-  flow                   Flow           @relation(fields: [flowId], references: [id])
+  flowId                 Int?
+  flow                   Flow?          @relation(fields: [flowId], references: [id])
   conversation           Conversation[]
 }
 

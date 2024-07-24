@@ -10,9 +10,10 @@ import { DriverPersonnalInfoModule } from './driver-personnal-info/driver-person
 import { DriverLicenseInfoModule } from './driver-license-info/driver-license-info.module';
 import { CarInfoModule } from './car-info/car-info.module';
 import { DriverCarModule } from './driver-car/driver-car.module';
+import { SeederModuleModule } from './seeder-module/seeder-module.module';
 
 @Module({
-  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule, DocumentFileModule, DriverPersonnalInfoModule, DriverLicenseInfoModule, CarInfoModule, DriverCarModule],
+  imports: [FlowModule, StepModule, ConversationModule, RequestLogModule, DocumentFileModule, DriverPersonnalInfoModule, DriverLicenseInfoModule, CarInfoModule, DriverCarModule, SeederModuleModule],
   controllers: [AppController],
   providers: [AppService],
 })

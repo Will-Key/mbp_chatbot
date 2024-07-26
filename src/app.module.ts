@@ -13,6 +13,7 @@ import { DriverCarModule } from './driver-car/driver-car.module'
 import { SeederModule } from './seeder/seeder.module'
 import { SeederService } from './seeder/seeder.service'
 import { PrismaService } from '../prisma/prisma.service'
+import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PrismaService } from '../prisma/prisma.service'
     DriverLicenseInfoModule,
     CarInfoModule,
     DriverCarModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

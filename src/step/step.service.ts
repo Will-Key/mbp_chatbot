@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { CreateStepDto } from './dto/create-step.dto'
 import { UpdateStepDto } from './dto/update-step.dto'
 import { PrismaService } from '../../prisma/prisma.service'
+import { Step } from '@prisma/client'
 
 @Injectable()
 export class StepService {
@@ -17,6 +18,25 @@ export class StepService {
 
   findOne(id: number) {
     return this.prismaService.step.findUnique({ where: { id } })
+  }
+
+  findOneByLevel(level: number) {
+    return this.prismaService.step.findFirst({
+      where: { level },
+    })
+  }
+
+  findOneBylevelAndFlowId(level: number, flowId: number): Promise<Step | null> {
+    return this.prismaService.step.findFirst({
+      where: {
+        AND: [
+          {
+            level,
+          },
+          { flowId },
+        ],
+      },
+    })
   }
 
   update(id: number, data: UpdateStepDto) {

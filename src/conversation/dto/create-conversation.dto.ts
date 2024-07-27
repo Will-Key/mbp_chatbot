@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsNumber, IsString, MinLength } from 'class-validator'
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator'
 
 export class CreateConversationDto {
   @IsNotEmpty()
@@ -13,4 +19,8 @@ export class CreateConversationDto {
   @IsNotEmpty()
   @IsNumber()
   stepId: number
+
+  @IsOptional()
+  @IsNumber()
+  badResponseCount?: number
 }

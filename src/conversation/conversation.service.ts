@@ -21,6 +21,16 @@ export class ConversationService {
     return this.prismaService.conversation.findUnique({ where: { id: id } })
   }
 
+  findManyByWhaPhoneNumber(whaPhoneNumber: string) {
+    return this.prismaService.conversation.findMany({
+      where: { whaPhoneNumber },
+      orderBy: { id: 'desc' },
+      include: {
+        step: true,
+      },
+    })
+  }
+
   update(id: number, updateConversationDto: UpdateConversationDto) {
     return this.prismaService.conversation.update({
       data: updateConversationDto,
@@ -30,5 +40,11 @@ export class ConversationService {
 
   remove(id: number) {
     return this.prismaService.conversation.delete({ where: { id } })
+  }
+
+  removeAllByPhoneNumber(whaPhoneNumber: string) {
+    return this.prismaService.conversation.deleteMany({
+      where: { whaPhoneNumber },
+    })
   }
 }

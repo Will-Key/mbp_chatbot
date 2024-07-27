@@ -54,6 +54,11 @@ enum CarStatus {
   pending
 }
 
+enum StepExpectedResponseType {
+  text
+  image
+}
+
 model Flow {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -63,26 +68,28 @@ model Flow {
 }
 
 model Step {
-  id                     Int            @id @default(autoincrement())
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  id                     Int                      @id @default(autoincrement())
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
   level                  Int
   message                String
   expectedResponse       String
+  expectedResponseType   StepExpectedResponseType
   expectedResponseLength Int
   flowId                 Int?
-  flow                   Flow?          @relation(fields: [flowId], references: [id])
+  flow                   Flow?                    @relation(fields: [flowId], references: [id])
   conversation           Conversation[]
 }
 
 model Conversation {
-  id             Int      @id @default(autoincrement())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  whaPhoneNumber String
-  message        String
-  stepId         Int
-  step           Step     @relation(fields: [stepId], references: [id])
+  id               Int      @id @default(autoincrement())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  whaPhoneNumber   String
+  message          String
+  badResponseCount Int      @default(0)
+  stepId           Int
+  step             Step     @relation(fields: [stepId], references: [id])
 }
 
 model RequestLog {

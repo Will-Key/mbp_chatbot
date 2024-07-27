@@ -11,12 +11,12 @@ import {
   ValidateNested,
 } from 'class-validator'
 
-enum MessageType {
+export enum MessageType {
   text = 'text',
   image = 'image',
 }
 
-enum MessageStatus {
+export enum MessageStatus {
   failed = 'failed',
   pending = 'pending',
   sent = 'sent',
@@ -26,13 +26,13 @@ enum MessageStatus {
   deleted = 'deleted',
 }
 
-class MessageTextDto {
+export class MessageTextDto {
   @IsNotEmpty()
   @IsString()
   body: string
 }
 
-class MessageImageDto {
+export class MessageImageDto {
   @IsNotEmpty()
   @IsString()
   id: string
@@ -57,11 +57,15 @@ export class NewMessageWebhookDto {
 
   @IsNotEmpty()
   @IsEnum(MessageType)
-  messageType: MessageType
+  type: MessageType
 
   @IsNotEmpty()
   @IsString()
   chat_id: string
+
+  @IsNotEmpty()
+  @IsString()
+  from: string
 
   @IsNotEmpty()
   @IsBoolean()

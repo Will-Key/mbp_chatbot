@@ -9,7 +9,9 @@ export class StepService {
   constructor(private readonly prismaService: PrismaService) {}
 
   create(createStepDto: CreateStepDto) {
-    return this.prismaService.step.create({ data: createStepDto })
+    return this.prismaService.step.create({
+      data: createStepDto,
+    })
   }
 
   findAll() {

@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator'
+import { StepExpectedResponseType } from '@prisma/client'
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator'
 
 export class CreateStepDto {
   @IsNotEmpty()
@@ -13,11 +20,15 @@ export class CreateStepDto {
   @IsString()
   expectedResponse: string
 
+  @IsOptional()
+  @IsEnum(StepExpectedResponseType)
+  expectedResponseType?: StepExpectedResponseType
+
   @IsNotEmpty()
   @IsString()
   expectedResponseLength: number
 
   @IsOptional()
   @IsNumber()
-  flowId?: number
+  flowId?: number | null
 }

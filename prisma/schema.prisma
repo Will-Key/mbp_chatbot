@@ -74,7 +74,7 @@ model Step {
   level                  Int
   message                String
   expectedResponse       String
-  expectedResponseType   StepExpectedResponseType
+  expectedResponseType   StepExpectedResponseType @default(text)
   expectedResponseLength Int
   flowId                 Int?
   flow                   Flow?                    @relation(fields: [flowId], references: [id])

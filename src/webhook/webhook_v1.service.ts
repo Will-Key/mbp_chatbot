@@ -42,56 +42,20 @@ export class WebhookService {
   }
 
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
-    const initialStep = await this.stepService.findOneByLevel(0)
-    await this.saveMessage(newMessage, initialStep.id)
-    // Push message to choose flow 1 or 2
-    //await this.sendFlowChoiceMessage(newMessage.from)
+    const nextStep = await this.stepService.findOneByLevel(0)
+    await this.saveMessage(newMessage, nextStep.id)
+    // Push next message into the conversation queue
   }
-
-  // private async sendFlowChoiceMessage(phoneNumber: string) {
-  //   // Send a message to the user to choose flow 1 or 2
-  //   // This function should send a WhatsApp message via Whapi to the user
-  // }
 
   private async handleExistingConversation(
     currentConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversations: Conversation[],
   ) {
-    if (currentConversation.step.level === 0) {
-      if (newMessage.text.body.includes('1')) {
-        await this.startFlow(currentConversation, newMessage, 1)
-      } else if (newMessage.text.body.includes('2')) {
-        await this.startFlow(currentConversation, newMessage, 2)
-      } else {
-        // Handle invalid input for flow choice
-        //await this.sendFlowChoiceMessage(newMessage.from)
-      }
-    } else {
-      if (currentConversation.step.flowId === 1) {
-        await this.getFirstFlowSteps(
-          currentConversation,
-          newMessage,
-          conversations,
-        )
-      } else if (currentConversation.step.flowId === 2) {
-        await this.getSecondFlowSteps(
-          currentConversation,
-          newMessage,
-          conversations,
-        )
-      }
-    }
-  }
-
-  private async startFlow(
-    currentConversation: ConversationType,
-    newMessage: NewMessageWebhookDto,
-    flowId: number,
-  ) {
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(1, flowId)
-    await this.saveMessage(newMessage, nextStep.id)
-    //await this.updateConversationStep(currentConversation.id, nextStep.id)
+    if (conversations.length === 1 && newMessage.text.body.includes('1'))
+      this.getFirstFlowSteps(currentConversation, newMessage, conversations)
+    if (conversations.length === 1 && newMessage.text.body.includes('2'))
+      this.getSecondFlowSteps(currentConversation, newMessage, conversations)
   }
 
   private async getFirstFlowSteps(
@@ -101,10 +65,10 @@ export class WebhookService {
   ) {
     switch (conversations.length) {
       case 1:
-        await this.handleFirstStep(currentConversation, newMessage, 1)
+        await this.handleFirstStep(currentConversation, newMessage)
         break
       case 2:
-        await this.handlePhoneNumberStep(currentConversation, newMessage, 1)
+        await this.handlePhoneNumberStep(currentConversation, newMessage)
         break
       case 3:
       case 4:
@@ -114,11 +78,10 @@ export class WebhookService {
           currentConversation,
           newMessage,
           conversations.length,
-          1,
         )
         break
       case 7:
-        await this.handleFinalStep(currentConversation, newMessage, 1)
+        await this.handleFinalStep(currentConversation, newMessage)
         break
       default:
         this.updateMessage(currentConversation, newMessage.text.body)
@@ -128,7 +91,6 @@ export class WebhookService {
   private async handleFirstStep(
     currentConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number,
   ) {
     if (
       newMessage.type === StepExpectedResponseType.text &&
@@ -136,7 +98,7 @@ export class WebhookService {
     ) {
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
         currentConversation.step.level + 1,
-        flowId,
+        1,
       )
       await this.saveMessage(newMessage, nextStep.id)
     } else {
@@ -147,7 +109,6 @@ export class WebhookService {
   private async handlePhoneNumberStep(
     currentConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number,
   ) {
     if (
       newMessage.type === StepExpectedResponseType.text &&
@@ -158,7 +119,7 @@ export class WebhookService {
     ) {
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
         currentConversation.step.level + 1,
-        flowId,
+        1,
       )
       await this.saveMessage(newMessage, nextStep.id)
     } else {
@@ -170,7 +131,6 @@ export class WebhookService {
     currentConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversationCount: number,
-    flowId: number,
   ) {
     if (
       newMessage.type === StepExpectedResponseType.image &&
@@ -196,7 +156,7 @@ export class WebhookService {
 
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
         currentConversation.step.level + 1,
-        flowId,
+        1,
       )
       await this.saveMessage(newMessage, nextStep.id)
     } else {
@@ -207,11 +167,10 @@ export class WebhookService {
   private async handleFinalStep(
     currentConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number,
   ) {
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
       currentConversation.step.level + 1,
-      flowId,
+      1,
     )
     await this.saveMessage(newMessage, nextStep.id)
   }
@@ -222,12 +181,24 @@ export class WebhookService {
     conversations: Conversation[],
   ) {
     switch (conversations.length) {
+      case 1:
+        await this.handleFirstStep(currentConversation, newMessage)
+        break
       case 2:
-        await this.handlePhoneNumberStep(currentConversation, newMessage, 2)
+        await this.handlePhoneNumberStep(currentConversation, newMessage)
         break
       case 3:
+      case 4:
+      case 5:
+      case 6:
+        await this.handleDocumentUploadStep(
+          currentConversation,
+          newMessage,
+          conversations.length,
+        )
+        break
       case 7:
-        await this.handleFinalStep(currentConversation, newMessage, 2)
+        await this.handleFinalStep(currentConversation, newMessage)
         break
       default:
         this.updateMessage(currentConversation, newMessage.text.body)
@@ -261,8 +232,4 @@ export class WebhookService {
       // Push message to whapi queue to request to retry
     }
   }
-
-  // private async updateConversationStep(conversationId: number, stepId: number) {
-  //   await this.conversationService.update(conversationId, { stepId })
-  // }
 }

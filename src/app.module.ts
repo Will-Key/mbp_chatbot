@@ -14,6 +14,7 @@ import { SeederModule } from './seeder/seeder.module'
 import { SeederService } from './seeder/seeder.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { WebhookModule } from './webhook/webhook.module'
+import { RabbitmqModule } from './rabbitmq/rabbitmq.module'
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { WebhookModule } from './webhook/webhook.module'
     CarInfoModule,
     DriverCarModule,
     WebhookModule,
+    RabbitmqModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

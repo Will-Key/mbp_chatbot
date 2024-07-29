@@ -15,7 +15,7 @@ import { SeederService } from './seeder/seeder.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { WebhookModule } from './webhook/webhook.module'
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module'
-import { ExternalApiModule } from './external-api/external-api.module';
+import { ExternalApiModule } from './external-api/external-api.module'
 
 @Module({
   imports: [

@@ -1,12 +1,8 @@
 import { Module } from '@nestjs/common'
 import { RabbitmqService } from './rabbitmq.service'
 import { RabbitmqController } from './rabbitmq.controller'
-import { ClientsModule } from '@nestjs/microservices'
-import {
-  queueConfig,
-  WHAPI_SENT_QUEUE_NAME,
-  WHAPI_RECEIVED_QUEUE_NAME,
-} from './constants'
+import { ClientsModule, Transport } from '@nestjs/microservices'
+import { WHAPI_SENT_QUEUE_NAME, WHAPI_RECEIVED_QUEUE_NAME } from './constants'
 import { ExternalApiModule } from '../external-api/external-api.module'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -17,8 +13,22 @@ import { DocumentFileService } from '../document-file/document-file.service'
 @Module({
   imports: [
     ClientsModule.register([
-      { ...queueConfig(WHAPI_SENT_QUEUE_NAME) },
-      { ...queueConfig(WHAPI_RECEIVED_QUEUE_NAME) },
+      {
+        name: 'WHAPI_RECEIVED_SERVICE',
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqp://localhost:5672'],
+          queue: WHAPI_RECEIVED_QUEUE_NAME,
+        },
+      },
+      {
+        name: 'WHAPI_SENT_SERVICE',
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqp://localhost:5672'],
+          queue: WHAPI_SENT_QUEUE_NAME,
+        },
+      },
     ]),
     ExternalApiModule,
   ],

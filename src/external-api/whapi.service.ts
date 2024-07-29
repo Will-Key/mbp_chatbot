@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { catchError, lastValueFrom, map } from 'rxjs'
 import { SendMessageDto } from '../rabbitmq/dto/send-message.dto'
 import { RequestLogService } from '../request-log/request-log.service'
@@ -7,12 +7,17 @@ import { CreateRequestLogDto } from 'src/request-log/dto/create-request-log.dto'
 
 @Injectable()
 export class WhapiService {
+  private readonly logger = new Logger(WhapiService.name)
+
   constructor(
     private readonly httpService: HttpService,
     private readonly requestLogService: RequestLogService,
   ) {}
 
   async sendMessage(message: SendMessageDto) {
+    this.logger.log(`sent message to whapiService: ${JSON.stringify(message)}`)
+    this.logger.log(`whapi url: ${process.env.WHAPI_URL}`)
+    this.logger.log(`whapi token: ${process.env.WHAPI_TOKEN}`)
     await lastValueFrom(
       this.httpService
         .post(process.env.WHAPI_URL, message, {
@@ -23,24 +28,26 @@ export class WhapiService {
           },
         })
         .pipe(
-          map((response) =>
-            this.logRequest({
+          map(async (response) => {
+            this.logger.log(`whapi response: ${response}`)
+            await this.logRequest({
               direction: 'OUT',
               status: 'SUCCESS',
               initiator: 'MBP',
               data: JSON.stringify(message),
               response: JSON.stringify(response),
-            }),
-          ),
-          catchError((err) =>
-            this.logRequest({
+            })
+          }),
+          catchError(async (err) => {
+            this.logger.log(`whapi error: ${err}`)
+            await this.logRequest({
               direction: 'OUT',
-              status: 'SUCCESS',
+              status: 'FAIL',
               initiator: 'MBP',
               data: JSON.stringify(message),
               response: JSON.stringify(err),
-            }),
-          ),
+            })
+          }),
         ),
     )
   }
@@ -53,6 +60,6 @@ export class WhapiService {
       data: dto.data,
       response: dto.response,
     }
-    this.requestLogService.create(log)
+    await this.requestLogService.create(log)
   }
 }

@@ -26,9 +26,9 @@ export class RabbitmqService {
   private readonly logger = new Logger(RabbitmqService.name)
 
   constructor(
-    @Inject(WHAPI_RECEIVED_QUEUE_NAME)
+    @Inject('WHAPI_RECEIVED_SERVICE')
     private readonly whapiReceivedQueueClient: ClientProxy,
-    @Inject(WHAPI_SENT_QUEUE_NAME)
+    @Inject('WHAPI_SENT_SERVICE')
     private readonly whapiSentQueueClient: ClientProxy,
     private readonly conversationService: ConversationService,
     private readonly stepService: StepService,
@@ -312,8 +312,8 @@ export class RabbitmqService {
       message: convMessage,
       stepId,
     }
-    await this.conversationService.create(newConv)
-
+    const conv = await this.conversationService.create(newConv)
+    this.logger.log(conv)
     await this.pushMessageToSent({
       id: whaPhoneNumber,
       body: nextMessage,
@@ -335,13 +335,13 @@ export class RabbitmqService {
       await this.conversationService.removeAllByPhoneNumber(
         conversation.whaPhoneNumber,
       )
-      this.pushMessageToSent({
+      this.handleMessageToSent({
         id: conversation.whaPhoneNumber,
         body: errorStep.message,
         typing_time: 5,
       })
     } else {
-      this.pushMessageToSent({
+      this.handleMessageToSent({
         id: conversation.whaPhoneNumber,
         body: message,
         typing_time: 5,
@@ -361,6 +361,7 @@ export class RabbitmqService {
   }
 
   async handleMessageToSent(message: SendMessageDto) {
+    this.logger.log(`sent message to whapi: ${JSON.stringify(message)}`)
     await this.whapiService.sendMessage(message)
   }
 }

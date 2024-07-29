@@ -8,6 +8,6 @@ export class WebhookController {
 
   @Post()
   newMessage(@Body() createWebhookDto: NewMessageWebhookDto) {
-    return this.webhookService.newMessage(createWebhookDto)
+    return this.webhookService.handleReceivedMessage(createWebhookDto)
   }
 }

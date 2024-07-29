@@ -114,7 +114,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 15,
-    message: `Votre inscription n'a pas pu être effectué, veuillez vous rendre dans les locaux de MBP`,
+    message: `L'opération a échoué, veuillez vous rendre dans les locaux de votre partenaire MBP.`,
     expectedResponse: '',
     expectedResponseLength: 0,
     flowId: 1,

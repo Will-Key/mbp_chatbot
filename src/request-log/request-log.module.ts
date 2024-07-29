@@ -6,5 +6,6 @@ import { PrismaService } from '../../prisma/prisma.service'
 @Module({
   //controllers: [RequestLogController],
   providers: [RequestLogService, PrismaService],
+  exports: [RequestLogService],
 })
 export class RequestLogModule {}

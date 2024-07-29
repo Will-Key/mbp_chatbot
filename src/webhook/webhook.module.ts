@@ -6,8 +6,10 @@ import { ConversationService } from '../conversation/conversation.service'
 import { StepService } from '../step/step.service'
 import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
 import { DocumentFileService } from '../document-file/document-file.service'
+import { RabbitmqModule } from 'src/rabbitmq/rabbitmq.module'
 
 @Module({
+  imports: [RabbitmqModule],
   controllers: [WebhookController],
   providers: [
     WebhookService,

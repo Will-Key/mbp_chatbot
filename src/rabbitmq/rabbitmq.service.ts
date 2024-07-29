@@ -253,6 +253,17 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
+
+      if (conversationCount === 5) {
+        // Get all documents for this conversation
+        const documents =
+          await this.documentFileService.findAllByWhaPhoneNumber(
+            newMessage.from,
+          )
+        // Push each conversation in the ocr give queue
+        for (const doc of documents) {
+        }
+      }
     } else {
       this.updateMessage(
         currentConversation,

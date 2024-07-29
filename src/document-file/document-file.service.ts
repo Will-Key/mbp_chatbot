@@ -17,6 +17,14 @@ export class DocumentFileService {
     return this.prismaService.documentFile.findMany()
   }
 
+  findAllByWhaPhoneNumber(whaPhoneNumber: string) {
+    return this.prismaService.documentFile.findMany({
+      where: {
+        whaPhoneNumber,
+      },
+    })
+  }
+
   findOne(id: number) {
     return this.prismaService.documentFile.findUnique({ where: { id } })
   }

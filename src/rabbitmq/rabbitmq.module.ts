@@ -8,6 +8,11 @@ import {
   WHAPI_RECEIVED_QUEUE_NAME,
 } from './constants'
 import { ExternalApiModule } from '../external-api/external-api.module'
+import { PrismaService } from '../../prisma/prisma.service'
+import { ConversationService } from '../conversation/conversation.service'
+import { StepService } from '../step/step.service'
+import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
+import { DocumentFileService } from '../document-file/document-file.service'
 
 @Module({
   imports: [
@@ -18,7 +23,14 @@ import { ExternalApiModule } from '../external-api/external-api.module'
     ExternalApiModule,
   ],
   controllers: [RabbitmqController],
-  providers: [RabbitmqService],
+  providers: [
+    RabbitmqService,
+    PrismaService,
+    ConversationService,
+    StepService,
+    DriverPersonnalInfoService,
+    DocumentFileService,
+  ],
   exports: [RabbitmqService],
 })
 export class RabbitmqModule {}

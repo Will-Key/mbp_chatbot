@@ -1,12 +1,19 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
-import { queueConfig, WHAPI_QUEUE_NAME } from './rabbitmq/constants'
+import {
+  queueConfig,
+  WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_QUEUE_NAME,
+} from './rabbitmq/constants'
 import { MicroserviceOptions } from '@nestjs/microservices'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   app.connectMicroservice<MicroserviceOptions>({
-    ...queueConfig(WHAPI_QUEUE_NAME),
+    ...queueConfig(WHAPI_RECEIVED_QUEUE_NAME),
+  })
+  app.connectMicroservice<MicroserviceOptions>({
+    ...queueConfig(WHAPI_SENT_QUEUE_NAME),
   })
   await app.listen(3000)
 }

@@ -2,7 +2,12 @@ import { Module } from '@nestjs/common'
 import { RabbitmqService } from './rabbitmq.service'
 import { RabbitmqController } from './rabbitmq.controller'
 import { ClientsModule, Transport } from '@nestjs/microservices'
-import { WHAPI_SENT_QUEUE_NAME, WHAPI_RECEIVED_QUEUE_NAME } from './constants'
+import {
+  WHAPI_SENT_QUEUE_NAME,
+  WHAPI_RECEIVED_QUEUE_NAME,
+  OCR_SENT_QUEUE_NAME,
+  OCR_RECEIVED_QUEUE_NAME,
+} from './constants'
 import { ExternalApiModule } from '../external-api/external-api.module'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -27,6 +32,22 @@ import { DocumentFileService } from '../document-file/document-file.service'
         options: {
           urls: ['amqp://localhost:5672'],
           queue: WHAPI_SENT_QUEUE_NAME,
+        },
+      },
+      {
+        name: 'OCR_SENT_QUEUE_NAME',
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqp://localhost:5672'],
+          queue: OCR_SENT_QUEUE_NAME,
+        },
+      },
+      {
+        name: 'OCR_RECEIVED_QUEUE_NAME',
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqp://localhost:5672'],
+          queue: OCR_RECEIVED_QUEUE_NAME,
         },
       },
     ]),

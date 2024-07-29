@@ -1,12 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
-import { WHAPI_SENT_QUEUE_NAME, WHAPI_RECEIVED_QUEUE_NAME } from './constants'
+import {
+  WHAPI_SENT_QUEUE_NAME,
+  WHAPI_RECEIVED_QUEUE_NAME,
+  OCR_SENT_QUEUE_NAME,
+} from './constants'
 import { SendMessageDto } from './dto/send-message.dto'
 import { firstValueFrom } from 'rxjs'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import { ConversationService } from '../conversation/conversation.service'
 import {
   Conversation,
+  DocumentFile,
   DocumentSide,
   DocumentType,
   Step,
@@ -262,6 +267,7 @@ export class RabbitmqService {
           )
         // Push each conversation in the ocr give queue
         for (const doc of documents) {
+          this.pushDocumentQueue(doc)
         }
       }
     } else {
@@ -375,4 +381,30 @@ export class RabbitmqService {
     this.logger.log(`sent message to whapi: ${JSON.stringify(message)}`)
     await this.whapiService.sendMessage(message)
   }
+
+  async pushDocumentQueue(doc: DocumentFile) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, doc),
+      )
+      this.logger.log(`Emitting message to queue: ${JSON.stringify(doc)}`)
+    } catch (error) {
+      this.logger.error(`Error emitting message: ${error}`)
+    }
+  }
+
+  async handleDocumentPushedQueue() {}
+
+  async pushOcrResponseToQueue(ocrResponse: OcrResponse) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, doc),
+      )
+      this.logger.log(`Emitting message to queue: ${JSON.stringify(doc)}`)
+    } catch (error) {
+      this.logger.error(`Error emitting message: ${error}`)
+    }
+  }
+
+  async handleOcrResponsePushedQueue() {}
 }

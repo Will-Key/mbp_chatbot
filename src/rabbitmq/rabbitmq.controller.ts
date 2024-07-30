@@ -13,7 +13,7 @@ export class RabbitmqController {
   @EventPattern(WHAPI_RECEIVED_QUEUE_NAME)
   async handleMessageReceived(@Payload() data: NewMessageWebhookDto) {
     try {
-      this.logger.log(`New message received: ${data}`)
+      this.logger.log(`New message received: ${JSON.stringify(data)}`)
       await this.rabbitmqService.handleMessageReceived(data)
     } catch (error) {
       this.logger.error(`Error processing message received: ${error}`)

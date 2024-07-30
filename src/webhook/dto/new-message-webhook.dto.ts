@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer'
 import {
+  IsArray,
   IsBoolean,
   IsDefined,
   IsEnum,
@@ -26,10 +27,19 @@ export enum MessageStatus {
   deleted = 'deleted',
 }
 
-export class MessageTextDto {
+export class MessageBodyDto {
   @IsNotEmpty()
   @IsString()
   body: string
+}
+
+export class MessageTextDto {
+  @IsDefined()
+  @IsNotEmptyObject()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MessageBodyDto)
+  text: MessageBodyDto
 }
 
 export class MessageImageDto {
@@ -76,11 +86,8 @@ export class NewMessageWebhookDto {
   status: MessageStatus
 
   @IsDefined()
-  @IsNotEmptyObject()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => MessageTextDto)
-  text: MessageTextDto
+  @IsArray()
+  message: MessageTextDto[]
 
   @IsDefined()
   @IsNotEmptyObject()

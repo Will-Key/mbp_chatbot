@@ -23,6 +23,7 @@ import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-pers
 import { CreateDocumentFileDto } from '../document-file/dto/create-document-file.dto'
 import { DocumentFileService } from '../document-file/document-file.service'
 import { WhapiService } from 'src/external-api/whapi.service'
+import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
 
 type ConversationType = Conversation & { step: Step }
 
@@ -89,7 +90,7 @@ export class RabbitmqService {
     const initialStep = await this.stepService.findOneByLevel(0)
     await this.saveMessage({
       whaPhoneNumber: newMessage.from,
-      convMessage: newMessage.text.body,
+      convMessage: newMessage.message[0].text.body,
       nextMessage: initialStep.message,
       stepId: initialStep.id,
     })
@@ -101,9 +102,9 @@ export class RabbitmqService {
     conversations: Conversation[],
   ) {
     if (currentConversation.step.level === 0) {
-      if (newMessage.text.body.includes('1')) {
+      if (newMessage.message[0].text.body.includes('1')) {
         await this.startFlow(newMessage, 1)
-      } else if (newMessage.text.body.includes('2')) {
+      } else if (newMessage.message[0].text.body.includes('2')) {
         await this.startFlow(newMessage, 2)
       } else {
         this.updateMessage(currentConversation, 'Veuillez choisir entre 1 ou 2')
@@ -129,7 +130,7 @@ export class RabbitmqService {
     const nextStep = await this.stepService.findOneBylevelAndFlowId(1, flowId)
     await this.saveMessage({
       whaPhoneNumber: newMessage.from,
-      convMessage: newMessage.text.body,
+      convMessage: newMessage.message[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
@@ -162,7 +163,7 @@ export class RabbitmqService {
         await this.handleFinalStep(currentConversation, newMessage, 1)
         break
       default:
-        this.updateMessage(currentConversation, newMessage.text.body)
+        this.updateMessage(currentConversation, newMessage.message[0].text.body)
     }
   }
 
@@ -173,7 +174,7 @@ export class RabbitmqService {
   // ) {
   //   if (
   //     newMessage.type === StepExpectedResponseType.text &&
-  //     newMessage.text.body.includes('1')
+  //     newMessage.message[0].text.body.includes('1')
   //   ) {
   //     const nextStep = await this.stepService.findOneBylevelAndFlowId(
   //       currentConversation.step.level + 1,
@@ -181,12 +182,12 @@ export class RabbitmqService {
   //     )
   //     await this.saveMessage({
   //       whaPhoneNumber: newMessage.from,
-  //       convMessage: newMessage.text.body,
+  //       convMessage: newMessage.message[0].text.body,
   //       nextMessage: nextStep.message,
   //       stepId: nextStep.id,
   //     })
   //   } else {
-  //     this.updateMessage(currentConversation, newMessage.text.body)
+  //     this.updateMessage(currentConversation, newMessage.message[0].text.body)
   //   }
   // }
 
@@ -197,9 +198,9 @@ export class RabbitmqService {
   ) {
     if (
       newMessage.type === StepExpectedResponseType.text &&
-      newMessage.text.body.length === 10 &&
+      newMessage.message[0].text.body.length === 10 &&
       !(await this.driverService.findDriverPersonnalInfoByPhoneNumber(
-        `225${newMessage.text.body.trim()}`,
+        `225${newMessage.message[0].text.body.trim()}`,
       ))
     ) {
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -208,7 +209,7 @@ export class RabbitmqService {
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.from,
-        convMessage: newMessage.text.body,
+        convMessage: newMessage.message[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
@@ -289,7 +290,7 @@ export class RabbitmqService {
     )
     await this.saveMessage({
       whaPhoneNumber: newMessage.from,
-      convMessage: newMessage.text.body,
+      convMessage: newMessage.message[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
@@ -309,7 +310,7 @@ export class RabbitmqService {
         await this.handleFinalStep(currentConversation, newMessage, 2)
         break
       default:
-        this.updateMessage(currentConversation, newMessage.text.body)
+        this.updateMessage(currentConversation, newMessage.message[0].text.body)
     }
   }
 
@@ -395,12 +396,14 @@ export class RabbitmqService {
 
   async handleDocumentPushedQueue() {}
 
-  async pushOcrResponseToQueue(ocrResponse: OcrResponse) {
+  async pushOcrResponseToQueue(ocrResponse: GetOcrResponseDto) {
     try {
       await firstValueFrom(
-        this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, doc),
+        this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, ocrResponse),
       )
-      this.logger.log(`Emitting message to queue: ${JSON.stringify(doc)}`)
+      this.logger.log(
+        `Emitting message to queue: ${JSON.stringify(ocrResponse)}`,
+      )
     } catch (error) {
       this.logger.error(`Error emitting message: ${error}`)
     }

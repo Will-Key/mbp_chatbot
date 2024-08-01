@@ -345,7 +345,7 @@ export class RabbitmqService {
     this.logger.log('conv', conv)
     if (conv)
       await this.pushMessageToSent({
-        id: whaPhoneNumber,
+        to: whaPhoneNumber,
         body: nextMessage,
         typing_time: 5,
       })
@@ -366,13 +366,13 @@ export class RabbitmqService {
         conversation.whaPhoneNumber,
       )
       this.handleMessageToSent({
-        id: conversation.whaPhoneNumber,
+        to: conversation.whaPhoneNumber,
         body: errorStep.message,
         typing_time: 5,
       })
     } else {
       this.handleMessageToSent({
-        id: conversation.whaPhoneNumber,
+        to: conversation.whaPhoneNumber,
         body: message,
         typing_time: 5,
       })
@@ -392,7 +392,10 @@ export class RabbitmqService {
 
   async handleMessageToSent(message: SendMessageDto) {
     this.logger.log(`sent message to whapi: ${JSON.stringify(message)}`)
-    await this.whapiService.sendMessage(message)
+    await this.whapiService.sendMessage({
+      ...message,
+      to: `${message.to}@s.whatsapp.net`,
+    })
   }
 
   async pushDocumentQueue(doc: DocumentFile) {
@@ -400,9 +403,9 @@ export class RabbitmqService {
       await firstValueFrom(
         this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, doc),
       )
-      this.logger.log(`Emitting message to queue: ${JSON.stringify(doc)}`)
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(doc)}`)
     } catch (error) {
-      this.logger.error(`Error emitting message: ${error}`)
+      this.logger.error(`Error on emitting doc: ${error}`)
     }
   }
 
@@ -413,11 +416,9 @@ export class RabbitmqService {
       await firstValueFrom(
         this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, ocrResponse),
       )
-      this.logger.log(
-        `Emitting message to queue: ${JSON.stringify(ocrResponse)}`,
-      )
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(ocrResponse)}`)
     } catch (error) {
-      this.logger.error(`Error emitting message: ${error}`)
+      this.logger.error(`Error on emitting doc: ${error}`)
     }
   }
 

@@ -99,7 +99,7 @@ model RequestLog {
   direction RequestDirection
   initiator RequestInitiator
   data      String
-  response  String
+  response  String?
   status    RequestStatus
 }
 

@@ -44,6 +44,10 @@ export class MessageImageDto {
 
   @IsNotEmpty()
   @IsString()
+  preview: string
+
+  @IsNotEmpty()
+  @IsString()
   mime_type: string
 
   @IsNotEmpty()

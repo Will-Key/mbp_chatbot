@@ -14,7 +14,8 @@ export class RabbitmqController {
   async handleMessageReceived(@Payload() data: NewMessageWebhookDto) {
     try {
       this.logger.log(`New message received: ${JSON.stringify(data)}`)
-      await this.rabbitmqService.handleMessageReceived(data)
+      if (!data.messages[0].from_me)
+        await this.rabbitmqService.handleMessageReceived(data)
     } catch (error) {
       this.logger.error(`Error processing message received: ${error}`)
     }
@@ -23,7 +24,7 @@ export class RabbitmqController {
   @EventPattern(WHAPI_SENT_QUEUE_NAME)
   async handleAlert(@Payload() data: SendMessageDto) {
     try {
-      this.logger.log(`New message to sendc: ${data}`)
+      this.logger.log(`New message to send: ${data}`)
       await this.rabbitmqService.handleMessageToSent(data)
     } catch (error) {
       this.logger.error(`Error processing message to sent: ${error}`)

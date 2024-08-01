@@ -237,8 +237,8 @@ export class RabbitmqService {
   ) {
     if (
       newMessage.messages[0].type === StepExpectedResponseType.image &&
-      (newMessage.messages[0].image.link.includes('data:image/png') ||
-        newMessage.messages[0].image.link.includes('data:image/jpeg'))
+      (newMessage.messages[0].image.preview.includes('data:image/png') ||
+        newMessage.messages[0].image.preview.includes('data:image/jpeg'))
     ) {
       const documentSide =
         conversationCount === 3 || conversationCount === 5
@@ -257,18 +257,17 @@ export class RabbitmqService {
       }
       await this.documentFileService.create(createDocumentFile)
 
-      const nextStep = await this.stepService.findOneBylevelAndFlowId(
-        currentConversation.step.level + 1,
-        flowId,
-      )
-      await this.saveMessage({
-        whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: newMessage.messages[0].image.link,
-        nextMessage: nextStep.message,
-        stepId: nextStep.id,
-      })
-
-      if (conversationCount === 5) {
+      if (currentConversation.step.level === 5) {
+        const nextStep = await this.stepService.findOneBylevelAndFlowId(
+          19,
+          flowId,
+        )
+        await this.saveMessage({
+          whaPhoneNumber: newMessage.messages[0].from,
+          convMessage: newMessage.messages[0].image.link,
+          nextMessage: nextStep.message,
+          stepId: nextStep.id,
+        })
         // Get all documents for this conversation
         const documents =
           await this.documentFileService.findAllByWhaPhoneNumber(
@@ -278,6 +277,17 @@ export class RabbitmqService {
         for (const doc of documents) {
           this.pushDocumentQueue(doc)
         }
+      } else {
+        const nextStep = await this.stepService.findOneBylevelAndFlowId(
+          currentConversation.step.level + 1,
+          flowId,
+        )
+        await this.saveMessage({
+          whaPhoneNumber: newMessage.messages[0].from,
+          convMessage: newMessage.messages[0].image.link,
+          nextMessage: nextStep.message,
+          stepId: nextStep.id,
+        })
       }
     } else {
       this.updateMessage(
@@ -292,10 +302,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
     flowId: number,
   ) {
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      currentConversation.step.level + 1,
-      flowId,
-    )
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(19, flowId)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,

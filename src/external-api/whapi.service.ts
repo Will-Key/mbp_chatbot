@@ -15,9 +15,6 @@ export class WhapiService {
   ) {}
 
   async sendMessage(message: SendMessageDto) {
-    this.logger.log(`sent message to whapiService: ${JSON.stringify(message)}`)
-    this.logger.log(`whapi url: ${process.env.WHAPI_URL}`)
-    this.logger.log(`whapi token: ${process.env.WHAPI_TOKEN}`)
     await lastValueFrom(
       this.httpService
         .post(process.env.WHAPI_URL, message, {
@@ -26,6 +23,7 @@ export class WhapiService {
             accept: 'application/json',
             'content-type': 'application/json',
           },
+          timeout: 15000,
         })
         .pipe(
           map(async (response) => {
@@ -35,7 +33,7 @@ export class WhapiService {
               status: 'SUCCESS',
               initiator: 'MBP',
               data: JSON.stringify(message),
-              response: JSON.stringify(response),
+              response: response.statusText,
             })
           }),
           catchError(async (err) => {

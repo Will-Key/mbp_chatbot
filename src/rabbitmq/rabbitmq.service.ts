@@ -67,14 +67,17 @@ export class RabbitmqService {
   }
 
   async handleMessageReceived(message: NewMessageWebhookDto) {
+    console.log('message received', message)
     await this.newMessage(message)
   }
 
   async newMessage(newMessage: NewMessageWebhookDto) {
     const conversations =
-      await this.conversationService.findManyByWhaPhoneNumber(newMessage.from)
+      await this.conversationService.findManyByWhaPhoneNumber(
+        newMessage.messages[0].from,
+      )
     const currentConversation = conversations?.[0]
-
+    console.log('current conversation', currentConversation)
     if (currentConversation) {
       await this.handleExistingConversation(
         currentConversation,
@@ -88,9 +91,11 @@ export class RabbitmqService {
 
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
     const initialStep = await this.stepService.findOneByLevel(0)
+    console.log('initial step', initialStep)
+    console.log('newMessage', newMessage)
     await this.saveMessage({
-      whaPhoneNumber: newMessage.from,
-      convMessage: newMessage.message[0].text.body,
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].text.body,
       nextMessage: initialStep.message,
       stepId: initialStep.id,
     })
@@ -102,9 +107,9 @@ export class RabbitmqService {
     conversations: Conversation[],
   ) {
     if (currentConversation.step.level === 0) {
-      if (newMessage.message[0].text.body.includes('1')) {
+      if (newMessage.messages[0].text.body.includes('1')) {
         await this.startFlow(newMessage, 1)
-      } else if (newMessage.message[0].text.body.includes('2')) {
+      } else if (newMessage.messages[0].text.body.includes('2')) {
         await this.startFlow(newMessage, 2)
       } else {
         this.updateMessage(currentConversation, 'Veuillez choisir entre 1 ou 2')
@@ -129,8 +134,8 @@ export class RabbitmqService {
   private async startFlow(newMessage: NewMessageWebhookDto, flowId: number) {
     const nextStep = await this.stepService.findOneBylevelAndFlowId(1, flowId)
     await this.saveMessage({
-      whaPhoneNumber: newMessage.from,
-      convMessage: newMessage.message[0].text.body,
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
@@ -163,7 +168,10 @@ export class RabbitmqService {
         await this.handleFinalStep(currentConversation, newMessage, 1)
         break
       default:
-        this.updateMessage(currentConversation, newMessage.message[0].text.body)
+        this.updateMessage(
+          currentConversation,
+          newMessage.messages[0].text.body,
+        )
     }
   }
 
@@ -173,21 +181,21 @@ export class RabbitmqService {
   //   flowId: number,
   // ) {
   //   if (
-  //     newMessage.type === StepExpectedResponseType.text &&
-  //     newMessage.message[0].text.body.includes('1')
+  //     newMessage.messages[0].type === StepExpectedResponseType.text &&
+  //     newMessage.messages[0].messages[0].text.body.includes('1')
   //   ) {
   //     const nextStep = await this.stepService.findOneBylevelAndFlowId(
   //       currentConversation.step.level + 1,
   //       flowId,
   //     )
   //     await this.saveMessage({
-  //       whaPhoneNumber: newMessage.from,
-  //       convMessage: newMessage.message[0].text.body,
+  //       whaPhoneNumber: newMessage.messages[0].from,
+  //       convMessage: newMessage.messages[0].messages[0].text.body,
   //       nextMessage: nextStep.message,
   //       stepId: nextStep.id,
   //     })
   //   } else {
-  //     this.updateMessage(currentConversation, newMessage.message[0].text.body)
+  //     this.updateMessage(currentConversation, newMessage.messages[0].messages[0].text.body)
   //   }
   // }
 
@@ -197,10 +205,10 @@ export class RabbitmqService {
     flowId: number,
   ) {
     if (
-      newMessage.type === StepExpectedResponseType.text &&
-      newMessage.message[0].text.body.length === 10 &&
+      newMessage.messages[0].type === StepExpectedResponseType.text &&
+      newMessage.messages[0].text.body.length === 10 &&
       !(await this.driverService.findDriverPersonnalInfoByPhoneNumber(
-        `225${newMessage.message[0].text.body.trim()}`,
+        `225${newMessage.messages[0].text.body.trim()}`,
       ))
     ) {
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -208,8 +216,8 @@ export class RabbitmqService {
         flowId,
       )
       await this.saveMessage({
-        whaPhoneNumber: newMessage.from,
-        convMessage: newMessage.message[0].text.body,
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
@@ -228,9 +236,9 @@ export class RabbitmqService {
     flowId: number,
   ) {
     if (
-      newMessage.type === StepExpectedResponseType.image &&
-      (newMessage.image.link.includes('data:image/png') ||
-        newMessage.image.link.includes('data:image/jpeg'))
+      newMessage.messages[0].type === StepExpectedResponseType.image &&
+      (newMessage.messages[0].image.link.includes('data:image/png') ||
+        newMessage.messages[0].image.link.includes('data:image/jpeg'))
     ) {
       const documentSide =
         conversationCount === 3 || conversationCount === 5
@@ -242,10 +250,10 @@ export class RabbitmqService {
           : DocumentType.CAR_REGISTRATION
 
       const createDocumentFile: CreateDocumentFileDto = {
-        dataImageUrl: newMessage.image.link,
+        dataImageUrl: newMessage.messages[0].image.link,
         documentSide,
         documentType,
-        whaPhoneNumber: newMessage.from,
+        whaPhoneNumber: newMessage.messages[0].from,
       }
       await this.documentFileService.create(createDocumentFile)
 
@@ -254,8 +262,8 @@ export class RabbitmqService {
         flowId,
       )
       await this.saveMessage({
-        whaPhoneNumber: newMessage.from,
-        convMessage: newMessage.image.link,
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: newMessage.messages[0].image.link,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
@@ -264,7 +272,7 @@ export class RabbitmqService {
         // Get all documents for this conversation
         const documents =
           await this.documentFileService.findAllByWhaPhoneNumber(
-            newMessage.from,
+            newMessage.messages[0].from,
           )
         // Push each conversation in the ocr give queue
         for (const doc of documents) {
@@ -289,8 +297,8 @@ export class RabbitmqService {
       flowId,
     )
     await this.saveMessage({
-      whaPhoneNumber: newMessage.from,
-      convMessage: newMessage.message[0].text.body,
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
@@ -310,7 +318,10 @@ export class RabbitmqService {
         await this.handleFinalStep(currentConversation, newMessage, 2)
         break
       default:
-        this.updateMessage(currentConversation, newMessage.message[0].text.body)
+        this.updateMessage(
+          currentConversation,
+          newMessage.messages[0].text.body,
+        )
     }
   }
 
@@ -331,12 +342,13 @@ export class RabbitmqService {
       stepId,
     }
     const conv = await this.conversationService.create(newConv)
-    this.logger.log(conv)
-    await this.pushMessageToSent({
-      id: whaPhoneNumber,
-      body: nextMessage,
-      typing_time: 5,
-    })
+    this.logger.log('conv', conv)
+    if (conv)
+      await this.pushMessageToSent({
+        id: whaPhoneNumber,
+        body: nextMessage,
+        typing_time: 5,
+      })
   }
 
   private async updateMessage(conversation: Conversation, message: string) {

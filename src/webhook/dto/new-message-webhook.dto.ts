@@ -33,15 +33,6 @@ export class MessageBodyDto {
   body: string
 }
 
-export class MessageTextDto {
-  @IsDefined()
-  @IsNotEmptyObject()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => MessageBodyDto)
-  text: MessageBodyDto
-}
-
 export class MessageImageDto {
   @IsNotEmpty()
   @IsString()
@@ -60,14 +51,10 @@ export class MessageImageDto {
   file_size: number
 }
 
-export class NewMessageWebhookDto {
+export class MessageTextDto {
   @IsNotEmpty()
   @IsString()
   id: string
-
-  @IsNotEmpty()
-  @IsEnum(MessageType)
-  type: MessageType
 
   @IsNotEmpty()
   @IsString()
@@ -82,12 +69,8 @@ export class NewMessageWebhookDto {
   from_me: boolean
 
   @IsNotEmpty()
-  @IsEnum(MessageStatus)
-  status: MessageStatus
-
-  @IsDefined()
-  @IsArray()
-  message: MessageTextDto[]
+  @IsEnum(MessageType)
+  type: MessageType
 
   @IsDefined()
   @IsNotEmptyObject()
@@ -95,4 +78,21 @@ export class NewMessageWebhookDto {
   @ValidateNested()
   @Type(() => MessageImageDto)
   image: MessageImageDto
+
+  @IsDefined()
+  @IsNotEmptyObject()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MessageBodyDto)
+  text: MessageBodyDto
+}
+
+export class NewMessageWebhookDto {
+  @IsNotEmpty()
+  @IsEnum(MessageStatus)
+  status: MessageStatus
+
+  @IsDefined()
+  @IsArray()
+  messages: MessageTextDto[]
 }

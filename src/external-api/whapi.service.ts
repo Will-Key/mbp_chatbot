@@ -3,7 +3,6 @@ import { Injectable, Logger } from '@nestjs/common'
 import { catchError, lastValueFrom, map } from 'rxjs'
 import { SendMessageDto } from '../rabbitmq/dto/send-message.dto'
 import { RequestLogService } from '../request-log/request-log.service'
-import { CreateRequestLogDto } from 'src/request-log/dto/create-request-log.dto'
 
 @Injectable()
 export class WhapiService {
@@ -28,7 +27,7 @@ export class WhapiService {
         .pipe(
           map(async (response) => {
             this.logger.log(`whapi response: ${response}`)
-            await this.logRequest({
+            await this.requestLogService.create({
               direction: 'OUT',
               status: 'SUCCESS',
               initiator: 'MBP',
@@ -38,7 +37,7 @@ export class WhapiService {
           }),
           catchError(async (err) => {
             this.logger.log(`whapi error: ${err}`)
-            await this.logRequest({
+            await this.requestLogService.create({
               direction: 'OUT',
               status: 'FAIL',
               initiator: 'MBP',
@@ -48,16 +47,5 @@ export class WhapiService {
           }),
         ),
     )
-  }
-
-  private async logRequest(dto: CreateRequestLogDto) {
-    const log: CreateRequestLogDto = {
-      direction: dto.direction,
-      status: dto.status,
-      initiator: dto.initiator,
-      data: dto.data,
-      response: dto.response,
-    }
-    await this.requestLogService.create(log)
   }
 }

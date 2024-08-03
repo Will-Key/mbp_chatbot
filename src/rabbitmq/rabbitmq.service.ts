@@ -255,7 +255,7 @@ export class RabbitmqService {
         documentType,
         whaPhoneNumber: newMessage.messages[0].from,
       }
-      await this.documentFileService.create(createDocumentFile)
+      const doc = await this.documentFileService.create(createDocumentFile)
 
       if (currentConversation.step.level === 5) {
         const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -268,15 +268,15 @@ export class RabbitmqService {
           nextMessage: nextStep.message,
           stepId: nextStep.id,
         })
-        // Get all documents for this conversation
-        const documents =
-          await this.documentFileService.findAllByWhaPhoneNumber(
-            newMessage.messages[0].from,
-          )
-        // Push each conversation in the ocr give queue
-        for (const doc of documents) {
-          this.pushDocument(doc)
-        }
+        // // Get all documents for this conversation
+        // const documents =
+        //   await this.documentFileService.findAllByWhaPhoneNumber(
+        //     newMessage.messages[0].from,
+        //   )
+        // // Push each conversation in the ocr give queue
+        // for (const doc of documents) {
+        //   this.pushDocument(doc)
+        // }
       } else {
         const nextStep = await this.stepService.findOneBylevelAndFlowId(
           currentConversation.step.level + 1,
@@ -289,6 +289,7 @@ export class RabbitmqService {
           stepId: nextStep.id,
         })
       }
+      this.pushDocument(doc)
     } else {
       this.updateMessage(
         currentConversation,

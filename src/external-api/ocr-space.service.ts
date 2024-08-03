@@ -85,22 +85,24 @@ export class OcrSpaceService {
     }[],
     whaPhoneNumber: string,
   ) {
-    const phoneNumber = (
-      await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
-    ).find((conv) => conv.step.level === 1 && conv.step.flowId === 1).message
+    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
 
     const lastName = responseLines[5].LineText
     const firstName = responseLines[7].LineText
     const licenseNumber = responseLines[13].LineText
 
-    this.driverPersonnalInfoService.create({
-      lastName,
-      firstName,
-      phoneNumber,
-      whaPhoneNumber,
-      licenseNumber,
-      collectMethod: 'OCR',
-    })
+    try {
+      await this.driverPersonnalInfoService.create({
+        lastName,
+        firstName,
+        phoneNumber,
+        whaPhoneNumber,
+        licenseNumber,
+        collectMethod: 'OCR',
+      })
+    } catch (error) {
+      this.logger.error(error)
+    }
   }
 
   private async getDriverLicenseBackData(
@@ -109,40 +111,52 @@ export class OcrSpaceService {
     }[],
     whaPhoneNumber: string,
   ) {
-    const phoneNumber = (
-      await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
-    ).find((conv) => conv.step.level === 1 && conv.step.flowId === 1).message
-    const licenseDeliveryDate = responseLines[2].LineText
-    const licenseExpiryDate = responseLines[8].LineText
+    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
 
-    this.driverLicenseInfoService.create({
-      countryCode: 'CIV',
-      expiryDate: licenseExpiryDate,
-      deliveryDate: licenseDeliveryDate,
-      driverPhoneNumber: phoneNumber,
-    })
+    try {
+      const licenseDeliveryDate = responseLines[2].LineText
+
+      const licenseExpiryDate = responseLines[8].LineText
+
+      await this.driverLicenseInfoService.create({
+        countryCode: 'CIV',
+        expiryDate: licenseExpiryDate,
+        deliveryDate: licenseDeliveryDate,
+        driverPhoneNumber: phoneNumber,
+      })
+    } catch (error) {
+      this.logger.error(error)
+    }
   }
 
   private async getCarRegistrationData(
     responseLines: { LineText: string }[],
     whaPhoneNumber: string,
   ) {
-    const phoneNumber = (
-      await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
-    ).find((conv) => conv.step.level === 1 && conv.step.flowId === 1).message
+    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
     const plateNumber = responseLines[1].LineText
-    const brand = responseLines[8].LineText
-    const color = responseLines[9].LineText
-    const year = responseLines[10].LineText
+    const brand = responseLines[15].LineText
+    const color = responseLines[19].LineText
+    const year = responseLines[6].LineText.split('-')[2]
 
-    this.carInfoService.create({
-      brand,
-      color,
-      year,
-      plateNumber,
-      status: 'unknown',
-      code: '',
-      driverPhoneNumber: phoneNumber,
-    })
+    try {
+      await this.carInfoService.create({
+        brand,
+        color,
+        year,
+        plateNumber,
+        status: 'unknown',
+        code: '',
+        driverPhoneNumber: phoneNumber,
+      })
+    } catch (error) {
+      this.logger.error(error)
+    }
+  }
+
+  private async getDriverPhoneNumber(whaPhoneNumber: string): Promise<string> {
+    return (
+      await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
+    ).find((conv) => conv.step.level === 2 && conv.step.flowId === 1).message
   }
 }

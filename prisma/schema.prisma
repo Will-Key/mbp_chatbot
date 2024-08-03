@@ -134,8 +134,8 @@ model DriverLicenseInfo {
   updatedAt           DateTime             @updatedAt
   driverPhoneNumber   String               @unique
   countryCode         String
-  expiryDate          DateTime
-  deliveryDate        DateTime
+  expiryDate          String
+  deliveryDate        String
   idDriverPersInfo    Int?                 @unique
   driverPersonnalInfo DriverPersonnalInfo? @relation(fields: [idDriverPersInfo], references: [id])
 }

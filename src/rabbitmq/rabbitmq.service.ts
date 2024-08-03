@@ -257,7 +257,7 @@ export class RabbitmqService {
       }
       const doc = await this.documentFileService.create(createDocumentFile)
 
-      if (currentConversation.step.level === 5) {
+      if (currentConversation.step.level === 4) {
         const nextStep = await this.stepService.findOneBylevelAndFlowId(
           19,
           flowId,

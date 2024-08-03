@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer'
 import {
+  IsArray,
   IsBoolean,
   IsDefined,
   IsEnum,
@@ -26,7 +27,7 @@ export enum MessageStatus {
   deleted = 'deleted',
 }
 
-export class MessageTextDto {
+export class MessageBodyDto {
   @IsNotEmpty()
   @IsString()
   body: string
@@ -43,6 +44,10 @@ export class MessageImageDto {
 
   @IsNotEmpty()
   @IsString()
+  preview: string
+
+  @IsNotEmpty()
+  @IsString()
   mime_type: string
 
   @IsNotEmpty()
@@ -50,14 +55,10 @@ export class MessageImageDto {
   file_size: number
 }
 
-export class NewMessageWebhookDto {
+export class MessageTextDto {
   @IsNotEmpty()
   @IsString()
   id: string
-
-  @IsNotEmpty()
-  @IsEnum(MessageType)
-  type: MessageType
 
   @IsNotEmpty()
   @IsString()
@@ -72,15 +73,8 @@ export class NewMessageWebhookDto {
   from_me: boolean
 
   @IsNotEmpty()
-  @IsEnum(MessageStatus)
-  status: MessageStatus
-
-  @IsDefined()
-  @IsNotEmptyObject()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => MessageTextDto)
-  text: MessageTextDto
+  @IsEnum(MessageType)
+  type: MessageType
 
   @IsDefined()
   @IsNotEmptyObject()
@@ -88,4 +82,21 @@ export class NewMessageWebhookDto {
   @ValidateNested()
   @Type(() => MessageImageDto)
   image: MessageImageDto
+
+  @IsDefined()
+  @IsNotEmptyObject()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MessageBodyDto)
+  text: MessageBodyDto
+}
+
+export class NewMessageWebhookDto {
+  @IsNotEmpty()
+  @IsEnum(MessageStatus)
+  status: MessageStatus
+
+  @IsDefined()
+  @IsArray()
+  messages: MessageTextDto[]
 }

@@ -1,5 +1,5 @@
 export class SendMessageDto {
-  id: string
+  to: string
   body: string
   typing_time: number
 }

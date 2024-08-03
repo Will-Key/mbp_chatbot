@@ -3,7 +3,7 @@ import {
   RequestStatus,
   RequestInitiator,
 } from '@prisma/client'
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator'
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class CreateRequestLogDto {
   @IsNotEmpty()
@@ -22,7 +22,7 @@ export class CreateRequestLogDto {
   @IsString()
   data: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  response: string
+  response?: string
 }

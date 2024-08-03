@@ -24,6 +24,9 @@ import { DocumentFileService } from '../document-file/document-file.service'
         options: {
           urls: ['amqp://localhost:5672'],
           queue: WHAPI_RECEIVED_QUEUE_NAME,
+          queueOptions: {
+            durable: true,
+          },
         },
       },
       {
@@ -32,6 +35,9 @@ import { DocumentFileService } from '../document-file/document-file.service'
         options: {
           urls: ['amqp://localhost:5672'],
           queue: WHAPI_SENT_QUEUE_NAME,
+          queueOptions: {
+            durable: true,
+          },
         },
       },
       {
@@ -40,6 +46,9 @@ import { DocumentFileService } from '../document-file/document-file.service'
         options: {
           urls: ['amqp://localhost:5672'],
           queue: OCR_SENT_QUEUE_NAME,
+          queueOptions: {
+            durable: true,
+          },
         },
       },
       {
@@ -48,6 +57,9 @@ import { DocumentFileService } from '../document-file/document-file.service'
         options: {
           urls: ['amqp://localhost:5672'],
           queue: OCR_RECEIVED_QUEUE_NAME,
+          queueOptions: {
+            durable: true,
+          },
         },
       },
     ]),

@@ -99,7 +99,7 @@ model RequestLog {
   direction RequestDirection
   initiator RequestInitiator
   data      String
-  response  String
+  response  String?
   status    RequestStatus
 }
 
@@ -119,37 +119,39 @@ model DriverPersonnalInfo {
   updatedAt         DateTime           @updatedAt
   lastName          String
   firstName         String
+  licenseNumber     String             @unique
   phoneNumber       String             @unique
   whaPhoneNumber    String             @unique
-  address           String
-  collectMethod     CollectMethod
-  yangoProfileId    String             @unique
+  address           String?
+  collectMethod     CollectMethod?
+  yangoProfileId    String?            @unique
   driverLicenseInfo DriverLicenseInfo?
 }
 
 model DriverLicenseInfo {
-  id                  Int                 @id @default(autoincrement())
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  number              String              @unique
+  id                  Int                  @id @default(autoincrement())
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  driverPhoneNumber   String               @unique
   countryCode         String
   expiryDate          DateTime
   deliveryDate        DateTime
-  idDriverPersInfo    Int                 @unique
-  driverPersonnalInfo DriverPersonnalInfo @relation(fields: [idDriverPersInfo], references: [id])
+  idDriverPersInfo    Int?                 @unique
+  driverPersonnalInfo DriverPersonnalInfo? @relation(fields: [idDriverPersInfo], references: [id])
 }
 
 model CarInfo {
-  id          Int       @id @default(autoincrement())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  brand       String
-  color       String
-  year        String
-  plateNumber String    @unique
-  status      CarStatus
-  code        String
-  yangoCarId  String    @unique
+  id                Int       @id @default(autoincrement())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  brand             String
+  color             String
+  year              String
+  plateNumber       String    @unique
+  status            CarStatus
+  code              String
+  driverPhoneNumber String    @unique
+  yangoCarId        String?   @unique
 }
 
 model DriverCar {

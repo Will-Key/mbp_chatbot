@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common'
 import { WhapiService } from './whapi.service'
 import { HttpModule } from '@nestjs/axios'
 import { RequestLogModule } from '../request-log/request-log.module'
+import { OcrSpaceService } from './ocr-space.service'
+import { ConversationService } from '../conversation/conversation.service'
+import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
+import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
+import { CarInfoService } from '../car-info/car-info.service'
+import { PrismaService } from '../../prisma/prisma.service'
 
 @Module({
   imports: [
@@ -11,7 +17,15 @@ import { RequestLogModule } from '../request-log/request-log.module'
     }),
     RequestLogModule,
   ],
-  providers: [WhapiService],
-  exports: [WhapiService],
+  providers: [
+    WhapiService,
+    OcrSpaceService,
+    ConversationService,
+    DriverPersonnalInfoService,
+    DriverLicenseInfoService,
+    CarInfoService,
+    PrismaService,
+  ],
+  exports: [WhapiService, OcrSpaceService],
 })
 export class ExternalApiModule {}

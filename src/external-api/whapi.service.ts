@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { catchError, lastValueFrom, map } from 'rxjs'
-import { SendMessageDto } from '../rabbitmq/dto/send-message.dto'
+import { SendMessageDto } from './dto/send-message.dto'
 import { RequestLogService } from '../request-log/request-log.service'
 
 @Injectable()

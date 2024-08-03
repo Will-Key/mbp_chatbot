@@ -5,7 +5,7 @@ import {
   WHAPI_RECEIVED_QUEUE_NAME,
   OCR_SENT_QUEUE_NAME,
 } from './constants'
-import { SendMessageDto } from './dto/send-message.dto'
+import { SendMessageDto } from '../external-api/dto/send-message.dto'
 import { firstValueFrom } from 'rxjs'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import { ConversationService } from '../conversation/conversation.service'
@@ -14,7 +14,6 @@ import {
   DocumentFile,
   DocumentSide,
   DocumentType,
-  Step,
   StepExpectedResponseType,
 } from '@prisma/client'
 import { StepService } from '../step/step.service'
@@ -22,10 +21,10 @@ import { CreateConversationDto } from '../conversation/dto/create-conversation.d
 import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
 import { CreateDocumentFileDto } from '../document-file/dto/create-document-file.dto'
 import { DocumentFileService } from '../document-file/document-file.service'
-import { WhapiService } from 'src/external-api/whapi.service'
-import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
-
-type ConversationType = Conversation & { step: Step }
+import { WhapiService } from '../external-api/whapi.service'
+import { GetOcrResponseDto } from '../external-api/dto/get-ocr-response.dto'
+import { OcrSpaceService } from '../external-api/ocr-space.service'
+import { ConversationType } from '../shared/types'
 
 @Injectable()
 export class RabbitmqService {
@@ -41,6 +40,7 @@ export class RabbitmqService {
     private readonly driverService: DriverPersonnalInfoService,
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
+    private readonly ocrSpaceService: OcrSpaceService,
   ) {}
 
   onModuleInit() {
@@ -77,7 +77,7 @@ export class RabbitmqService {
         newMessage.messages[0].from,
       )
     const currentConversation = conversations?.[0]
-    console.log('current conversation', currentConversation)
+
     if (currentConversation) {
       await this.handleExistingConversation(
         currentConversation,
@@ -165,7 +165,7 @@ export class RabbitmqService {
         )
         break
       case 7:
-        await this.handleFinalStep(currentConversation, newMessage, 1)
+        await this.handleFinalStep(newMessage, 1)
         break
       default:
         this.updateMessage(
@@ -206,7 +206,7 @@ export class RabbitmqService {
   ) {
     if (
       newMessage.messages[0].type === StepExpectedResponseType.text &&
-      newMessage.messages[0].text.body.length === 10 &&
+      newMessage.messages[0].text.body.trim().length === 10 &&
       !(await this.driverService.findDriverPersonnalInfoByPhoneNumber(
         `225${newMessage.messages[0].text.body.trim()}`,
       ))
@@ -275,7 +275,7 @@ export class RabbitmqService {
           )
         // Push each conversation in the ocr give queue
         for (const doc of documents) {
-          this.pushDocumentQueue(doc)
+          this.pushDocument(doc)
         }
       } else {
         const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -298,7 +298,6 @@ export class RabbitmqService {
   }
 
   private async handleFinalStep(
-    currentConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     flowId: number,
   ) {
@@ -322,7 +321,7 @@ export class RabbitmqService {
         break
       case 3:
       case 7:
-        await this.handleFinalStep(currentConversation, newMessage, 2)
+        await this.handleFinalStep(newMessage, 2)
         break
       default:
         this.updateMessage(
@@ -377,13 +376,13 @@ export class RabbitmqService {
         body: errorStep.message,
         typing_time: 5,
       })
-    } else {
-      this.handleMessageToSent({
-        to: conversation.whaPhoneNumber,
-        body: message,
-        typing_time: 5,
-      })
+      return
     }
+    this.handleMessageToSent({
+      to: conversation.whaPhoneNumber,
+      body: message,
+      typing_time: 5,
+    })
   }
 
   async pushMessageToSent(message: SendMessageDto) {
@@ -405,7 +404,7 @@ export class RabbitmqService {
     })
   }
 
-  async pushDocumentQueue(doc: DocumentFile) {
+  async pushDocument(doc: DocumentFile) {
     try {
       await firstValueFrom(
         this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, doc),
@@ -416,7 +415,9 @@ export class RabbitmqService {
     }
   }
 
-  async handleDocumentPushedQueue() {}
+  async handleDocumentPushed(data: DocumentFile) {
+    await this.ocrSpaceService.sendFile(data)
+  }
 
   async pushOcrResponseToQueue(ocrResponse: GetOcrResponseDto) {
     try {

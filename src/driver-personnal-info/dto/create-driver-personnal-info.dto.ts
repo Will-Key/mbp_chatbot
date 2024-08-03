@@ -1,5 +1,11 @@
 import { CollectMethod } from '@prisma/client'
-import { IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator'
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator'
 
 export class CreateDriverPersonnalInfoDto {
   @IsNotEmpty()
@@ -22,14 +28,19 @@ export class CreateDriverPersonnalInfoDto {
   @MinLength(11)
   whaPhoneNumber: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  address: string
+  address?: string
 
   @IsNotEmpty()
   @IsEnum(CollectMethod)
   collectMethod: CollectMethod
 
+  @IsNotEmpty()
   @IsString()
-  yangoProfileId: string
+  licenseNumber: string
+
+  @IsOptional()
+  @IsString()
+  yangoProfileId?: string
 }

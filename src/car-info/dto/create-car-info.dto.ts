@@ -26,6 +26,10 @@ export class CreateCarInfoDto {
   @IsString()
   code: string
 
+  @IsNotEmpty()
   @IsString()
-  yangoCarId: string
+  driverPhoneNumber: string
+
+  @IsString()
+  yangoCarId?: string
 }

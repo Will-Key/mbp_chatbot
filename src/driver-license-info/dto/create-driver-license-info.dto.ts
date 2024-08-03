@@ -10,10 +10,6 @@ import {
 export class CreateDriverLicenseInfoDto {
   @IsNotEmpty()
   @IsString()
-  number: string
-
-  @IsNotEmpty()
-  @IsString()
   @MinLength(3)
   @MaxLength(3)
   countryCode: string
@@ -28,5 +24,5 @@ export class CreateDriverLicenseInfoDto {
 
   @IsNotEmpty()
   @IsNumber()
-  idDriverPersInfo: number
+  driverPhoneNumber: string
 }

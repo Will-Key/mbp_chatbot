@@ -21,8 +21,17 @@ export const INITIAL_STEPS: CreateStepDto[] = [
               \n3-	Réclamation et autres questions.
             `,
     expectedResponseType: StepExpectedResponseType.text,
-    expectedResponse: '1,2,3',
-    expectedResponseLength: 1,
+    badResponseMessage: [
+      {
+        message: 'Veuillez choisir un nombre correspondant au service.',
+        errorType: 'incorrectChoice',
+      },
+      {
+        message:
+          "La longueur de la valeur du service renseignée n'est pas égale à celle attendue",
+        errorType: 'equalLength',
+      },
+    ],
   },
   {
     level: 1,
@@ -30,9 +39,17 @@ export const INITIAL_STEPS: CreateStepDto[] = [
               \nVous devriez entrez aux différentes étapes, les informations demandées.
               \nVeuillez entrer votre numéro de téléphone. 
             `,
-    expectedResponse: '',
     expectedResponseType: StepExpectedResponseType.text,
-    expectedResponseLength: 10,
+    badResponseMessage: [
+      {
+        message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
+        errorType: 'equalLength',
+      },
+      {
+        message: 'Ce numéro de téléphone est déjà associé à un chauffeur',
+        errorType: 'isExist',
+      },
+    ],
     flowId: 1,
   },
   {
@@ -40,143 +57,197 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     message: `Partager une photo lisible de votre permis en resto et verso.
             \nPartager d'abord la photo recto de votre permis.
             `,
-    expectedResponse: 'data:image/png;base64',
-    expectedResponseType: 'image',
-    expectedResponseLength: 1,
+    expectedResponseType: StepExpectedResponseType.url,
+    badResponseMessage: [
+      {
+        message: 'Veuillez envoyer la photo recto de votre permis',
+        errorType: 'incorrectChoice',
+      },
+      {
+        message: 'La taille de la photo envoyer trop grande',
+        errorType: 'maxSize',
+      },
+    ],
     flowId: 1,
   },
   {
     level: 3,
     message: `Partager Ensuite le verso du permis`,
-    expectedResponse: 'data:image/png;base64',
-    expectedResponseType: 'image',
-    expectedResponseLength: 100,
+    expectedResponseType: StepExpectedResponseType.image,
+    badResponseMessage: [
+      {
+        message: 'Veuillez envoyer la photo verso de votre permis',
+        errorType: 'incorrectChoice',
+      },
+      {
+        message: 'La taille de la photo envoyer trop grande',
+        errorType: 'maxSize',
+      },
+    ],
     flowId: 1,
   },
   {
     level: 4,
     message: `Partager également une photo lisible en recto uniquement de la carte grise du véhicule auquel vous souhaitez être associé.`,
-    expectedResponse: 'data:image/png;base64,',
-    expectedResponseType: 'image',
-    expectedResponseLength: 100,
+    expectedResponseType: StepExpectedResponseType.image,
+    badResponseMessage: [
+      {
+        message:
+          'Veuillez envoyer la photo recto de la carte grise du véhicule',
+        errorType: 'incorrectChoice',
+      },
+      {
+        message: 'La taille de la photo envoyer trop grande',
+        errorType: 'maxSize',
+      },
+    ],
     flowId: 1,
   },
-  // {
-  //   level: 5,
-  //   message: `Partager Ensuite la photo verso de la carte grise.`,
-  //   expectedResponse: 'data:image/png;base64,',
-  //   expectedResponseType: 'image',
-  //   expectedResponseLength: 100,
-  //   flowId: 1,
-  // },
   {
     level: 5,
     message: `Veuillez entrer votre nom`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 2,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
+    ],
     flowId: 1,
   },
   {
     level: 6,
     message: `Veuillez entrer votre prénom`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 2,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
+    ],
     flowId: 1,
   },
   {
     level: 7,
     message: `Veuillez entrer le numero de votre permis`,
-    expectedResponse: 'number',
-    expectedResponseLength: 15,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Veuillez entrer le numéro de votre permis',
+        errorType: 'minLength',
+      },
+    ],
     flowId: 1,
   },
   {
     level: 8,
     message: `Veuillez entrer la date d'expiration`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 8,
+    expectedResponseType: StepExpectedResponseType.date,
+    badResponseMessage: [
+      { message: "Veuillez entrer la date d'expiration", errorType: 'isDate' },
+    ],
     flowId: 1,
   },
   {
     level: 9,
     message: `Veuillez entrer la date de délivrance`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 8,
+    expectedResponseType: StepExpectedResponseType.date,
+    badResponseMessage: [
+      { message: 'Veuillez entrer la date de délivrance', errorType: 'isDate' },
+    ],
     flowId: 1,
   },
   {
     level: 14,
     message: `L'information renseignée n'est pas celle attendue.`,
-    expectedResponse: '',
-    expectedResponseLength: 0,
+    expectedResponseType: 'text',
+    badResponseMessage: [],
     flowId: 1,
   },
   {
     level: 15,
     message: `L'opération a échoué, veuillez vous rendre dans les locaux de votre partenaire MBP.`,
-    expectedResponse: '',
-    expectedResponseLength: 0,
+    expectedResponseType: 'text',
+    badResponseMessage: [],
     flowId: 1,
   },
   {
     level: 19,
     message: `Votre demande d'inscription à la plateforme MBP est terminée. Un message de confirmation suivi des instructions vous sera partagé dans moins de Cinq (05) mins.`,
-    expectedResponse: '',
-    expectedResponseLength: 0,
+    expectedResponseType: 'text',
+    badResponseMessage: [
+      { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
+    ],
     flowId: 1,
   },
-  {
-    level: 1,
-    message: `D'accord, nous allons mettre à jour l'association de votre véhicule. 
-            \nVeuillez fournir le nom du chauffeur.`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 2,
-    flowId: 2,
-  },
-  {
-    level: 2,
-    message: `Merci ! Quelle est la plaque d'immatriculation du véhicule que vous souhaitez associer ?`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 6,
-    flowId: 2,
-  },
-  {
-    level: 3,
-    message: `Avez-vous déjà un véhicule associé ?
-            \n1- Oui
-            \n2- Non`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 1,
-    flowId: 2,
-  },
-  {
-    level: 4,
-    message: `Quelle est la plaque d'immatriculation de l'ancien véhicule ?`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 6,
-    flowId: 2,
-  },
-  {
-    level: 5,
-    message: `Voulez-vous vraiment vous dissocier de votre ancien véhicule pour vous associer à ce nouveau véhicule ?.
-            \n1- Oui
-            \n2- Non`,
-    expectedResponse: StepExpectedResponseType.text,
-    expectedResponseLength: 1,
-    flowId: 2,
-  },
-  {
-    level: 6,
-    message: `Merci ! Nous traitons maintenant votre demande...`,
-    expectedResponse: '',
-    expectedResponseLength: 0,
-    flowId: 2,
-  },
-  {
-    level: 7,
-    message: `Opération effectué avec succès.`,
-    expectedResponse: '',
-    expectedResponseLength: 0,
-    flowId: 2,
-  },
+  // {
+  //   level: 1,
+  //   message: `D'accord, nous allons mettre à jour l'association de votre véhicule.
+  //           \nVeuillez saisir votre numéro de téléphone.`,
+  //   expectedResponseType: StepExpectedResponseType.text,
+  //   badResponseMessage: [
+  //     {
+  //       message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
+  //       errorType: 'equalLength',
+  //     },
+  //     {
+  //       message: "Ce numéro de téléphone n'est pas associé à un chauffeur",
+  //       errorType: 'isNotExist',
+  //     },
+  //   ],
+  //   flowId: 2,
+  // },
+  // {
+  //   level: 2,
+  //   message: `Merci ! Quelle est la plaque d'immatriculation du véhicule que vous souhaitez associer ?`,
+  //   expectedResponseType: StepExpectedResponseType.text,
+  //   badResponseMessage: [
+  //     {
+  //       message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
+  //       errorType: 'equalLength',
+  //     },
+  //     {
+  //       message: 'Ce numéro de téléphone est déjà associé à un chauffeur',
+  //       errorType: 'isExist',
+  //     },
+  //   ],
+  //   flowId: 2,
+  // },
+  // {
+  //   level: 3,
+  //   message: `Avez-vous déjà un véhicule associé ?
+  //           \n1- Oui
+  //           \n2- Non`,
+  //   expectedResponseType: StepExpectedResponseType.text,
+  //   expectedResponseLength: 1,
+  //   flowId: 2,
+  // },
+  // {
+  //   level: 4,
+  //   message: `Quelle est la plaque d'immatriculation de l'ancien véhicule ?`,
+  //   expectedResponseType: StepExpectedResponseType.text,
+  //   expectedResponseLength: 6,
+  //   flowId: 2,
+  // },
+  // {
+  //   level: 5,
+  //   message: `Voulez-vous vraiment vous dissocier de votre ancien véhicule pour vous associer à ce nouveau véhicule ?.
+  //           \n1- Oui
+  //           \n2- Non`,
+  //   expectedResponseType: StepExpectedResponseType.text,
+  //   expectedResponseLength: 1,
+  //   flowId: 2,
+  // },
+  // {
+  //   level: 6,
+  //   message: `Merci ! Nous traitons maintenant votre demande...`,
+  //   expectedResponseType: '',
+  //   badResponseMessage: [
+  //     { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
+  //   ],
+  //   flowId: 2,
+  // },
+  // {
+  //   level: 7,
+  //   message: `Opération effectué avec succès.`,
+  //   expectedResponseType: '',
+  //   badResponseMessage: [
+  //     { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
+  //   ],
+  //   flowId: 2,
+  // },
 ]

@@ -1,11 +1,14 @@
 import { StepExpectedResponseType } from '@prisma/client'
 import {
+  IsArray,
   IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator'
+import { StepBadResponseMessageDto } from '../../step-bad-response-message/dto/step-bad-response-message.dto'
 
 export class CreateStepDto {
   @IsNotEmpty()
@@ -16,17 +19,17 @@ export class CreateStepDto {
   @IsString()
   message: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  expectedResponse: string
+  expectedResponse?: string
 
   @IsOptional()
   @IsEnum(StepExpectedResponseType)
   expectedResponseType?: StepExpectedResponseType
 
-  @IsNotEmpty()
-  @IsString()
-  expectedResponseLength: number
+  @IsArray()
+  @ValidateNested({ each: true })
+  badResponseMessage?: StepBadResponseMessageDto[]
 
   @IsOptional()
   @IsNumber()

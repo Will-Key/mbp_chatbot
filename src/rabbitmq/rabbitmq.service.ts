@@ -91,8 +91,6 @@ export class RabbitmqService {
 
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
     const initialStep = await this.stepService.findOneByLevel(0)
-    console.log('initial step', initialStep)
-    console.log('newMessage', newMessage)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
@@ -112,7 +110,11 @@ export class RabbitmqService {
       } else if (newMessage.messages[0].text.body.includes('2')) {
         await this.startFlow(newMessage, 2)
       } else {
-        this.updateMessage(currentConversation, 'Veuillez choisir entre 1 ou 2')
+        const errorMessage =
+          currentConversation.step.stepBadResponseMessage.find(
+            (sbrm) => sbrm.errorType === 'incorrectChoice',
+          ).message
+        this.updateMessage(currentConversation, errorMessage)
       }
     } else {
       if (currentConversation.step.flowId === 1) {
@@ -146,16 +148,19 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
     conversations: Conversation[],
   ) {
-    switch (conversations.length) {
-      // case 1:
-      //   await this.handleFirstStep(currentConversation, newMessage, 1)
-      //   break
-      case 2:
+    switch (currentConversation.step.level) {
+      case 1:
         await this.handlePhoneNumberStep(currentConversation, newMessage, 1)
         break
       case 3:
+        await this.handleDriverLicenseFrontUpload()
+        break
       case 4:
+        await this.handleDriverLicenseBackUpload()
+        break
       case 5:
+        await this.handleCarRegistrationUpload()
+        break
       case 6:
         await this.handleDocumentUploadStep(
           currentConversation,
@@ -175,35 +180,12 @@ export class RabbitmqService {
     }
   }
 
-  // private async handleFirstStep(
-  //   currentConversation: ConversationType,
-  //   newMessage: NewMessageWebhookDto,
-  //   flowId: number,
-  // ) {
-  //   if (
-  //     newMessage.messages[0].type === StepExpectedResponseType.text &&
-  //     newMessage.messages[0].messages[0].text.body.includes('1')
-  //   ) {
-  //     const nextStep = await this.stepService.findOneBylevelAndFlowId(
-  //       currentConversation.step.level + 1,
-  //       flowId,
-  //     )
-  //     await this.saveMessage({
-  //       whaPhoneNumber: newMessage.messages[0].from,
-  //       convMessage: newMessage.messages[0].messages[0].text.body,
-  //       nextMessage: nextStep.message,
-  //       stepId: nextStep.id,
-  //     })
-  //   } else {
-  //     this.updateMessage(currentConversation, newMessage.messages[0].messages[0].text.body)
-  //   }
-  // }
-
   private async handlePhoneNumberStep(
     currentConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     flowId: number,
   ) {
+    // TODO: check if
     if (
       newMessage.messages[0].type === StepExpectedResponseType.text &&
       newMessage.messages[0].text.body.trim().length === 10 &&
@@ -297,6 +279,12 @@ export class RabbitmqService {
       )
     }
   }
+
+  private async handleDriverLicenseFrontUpload() {}
+
+  private async handleDriverLicenseBackUpload() {}
+
+  private async handleCarRegistrationUpload() {}
 
   private async handleFinalStep(
     newMessage: NewMessageWebhookDto,

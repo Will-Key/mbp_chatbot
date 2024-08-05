@@ -16,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { WebhookModule } from './webhook/webhook.module'
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module'
 import { ExternalApiModule } from './external-api/external-api.module'
+import { StepBadResponseMessageModule } from './step-bad-response-message/step-bad-response-message.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ExternalApiModule } from './external-api/external-api.module'
     WebhookModule,
     RabbitmqModule,
     ExternalApiModule,
+    StepBadResponseMessageModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

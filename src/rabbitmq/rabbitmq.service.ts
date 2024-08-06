@@ -14,6 +14,7 @@ import {
   DocumentFile,
   DocumentSide,
   DocumentType,
+  StepBadResponseMessageErrorType,
   StepExpectedResponseType,
 } from '@prisma/client'
 import { StepService } from '../step/step.service'
@@ -76,11 +77,11 @@ export class RabbitmqService {
       await this.conversationService.findManyByWhaPhoneNumber(
         newMessage.messages[0].from,
       )
-    const currentConversation = conversations?.[0]
+    const lastConversation = conversations?.[0]
 
-    if (currentConversation) {
+    if (lastConversation) {
       await this.handleExistingConversation(
-        currentConversation,
+        lastConversation,
         newMessage,
         conversations,
       )
@@ -100,36 +101,26 @@ export class RabbitmqService {
   }
 
   private async handleExistingConversation(
-    currentConversation: ConversationType,
+    lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversations: Conversation[],
   ) {
-    if (currentConversation.step.level === 0) {
+    if (lastConversation.step.level === 0) {
       if (newMessage.messages[0].text.body.includes('1')) {
         await this.startFlow(newMessage, 1)
       } else if (newMessage.messages[0].text.body.includes('2')) {
         await this.startFlow(newMessage, 2)
       } else {
-        const errorMessage =
-          currentConversation.step.stepBadResponseMessage.find(
-            (sbrm) => sbrm.errorType === 'incorrectChoice',
-          ).message
-        this.updateMessage(currentConversation, errorMessage)
-      }
-    } else {
-      if (currentConversation.step.flowId === 1) {
-        await this.getFirstFlowSteps(
-          currentConversation,
-          newMessage,
-          conversations,
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'incorrectChoice',
         )
-      } else if (currentConversation.step.flowId === 2) {
-        await this.getSecondFlowSteps(
-          currentConversation,
-          newMessage,
-          conversations,
-        )
+        await this.updateMessage(lastConversation, errorMessage)
       }
+    } else if (lastConversation.step.flowId === 1) {
+      await this.getFirstFlowSteps(lastConversation, newMessage, conversations)
+    } else if (lastConversation.step.flowId === 2) {
+      await this.getSecondFlowSteps(lastConversation, newMessage, conversations)
     }
   }
 
@@ -144,13 +135,13 @@ export class RabbitmqService {
   }
 
   private async getFirstFlowSteps(
-    currentConversation: ConversationType,
+    lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversations: Conversation[],
   ) {
-    switch (currentConversation.step.level) {
+    switch (lastConversation.step.level) {
       case 1:
-        await this.handlePhoneNumberStep(currentConversation, newMessage, 1)
+        await this.handlePhoneNumberStep(lastConversation, newMessage, 1)
         break
       case 3:
         await this.handleDriverLicenseFrontUpload()
@@ -163,7 +154,7 @@ export class RabbitmqService {
         break
       case 6:
         await this.handleDocumentUploadStep(
-          currentConversation,
+          lastConversation,
           newMessage,
           conversations.length,
           1,
@@ -173,46 +164,48 @@ export class RabbitmqService {
         await this.handleFinalStep(newMessage, 1)
         break
       default:
-        this.updateMessage(
-          currentConversation,
-          newMessage.messages[0].text.body,
-        )
+        this.updateMessage(lastConversation, newMessage.messages[0].text.body)
     }
   }
 
   private async handlePhoneNumberStep(
-    currentConversation: ConversationType,
+    lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     flowId: number,
   ) {
-    // TODO: check if
-    if (
-      newMessage.messages[0].type === StepExpectedResponseType.text &&
-      newMessage.messages[0].text.body.trim().length === 10 &&
-      !(await this.driverService.findDriverPersonnalInfoByPhoneNumber(
-        `225${newMessage.messages[0].text.body.trim()}`,
-      ))
-    ) {
-      const nextStep = await this.stepService.findOneBylevelAndFlowId(
-        currentConversation.step.level + 1,
-        flowId,
+    const incomingMessage = newMessage.messages[0].text.body.trim()
+
+    if (incomingMessage.length !== 10) {
+      const errorMessage = this.getErrorMessage(
+        lastConversation,
+        'incorrectChoice',
       )
-      await this.saveMessage({
-        whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: newMessage.messages[0].text.body,
-        nextMessage: nextStep.message,
-        stepId: nextStep.id,
-      })
-    } else {
-      this.updateMessage(
-        currentConversation,
-        'Veuillez entrer votre numéro de téléphone sans caractères ajouté',
-      )
+      await this.updateMessage(lastConversation, errorMessage)
     }
+    const driver =
+      await this.driverService.findDriverPersonnalInfoByPhoneNumber(
+        `225${incomingMessage}`,
+      )
+    if (driver) {
+      const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
+      await this.updateMessage(lastConversation, errorMessage)
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      lastConversation.step.level + 1,
+      flowId,
+    )
+
+    await this.saveMessage({
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].text.body,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
   }
 
   private async handleDocumentUploadStep(
-    currentConversation: ConversationType,
+    lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversationCount: number,
     flowId: number,
@@ -239,7 +232,7 @@ export class RabbitmqService {
       }
       const doc = await this.documentFileService.create(createDocumentFile)
 
-      if (currentConversation.step.level === 4) {
+      if (lastConversation.step.level === 4) {
         const nextStep = await this.stepService.findOneBylevelAndFlowId(
           19,
           flowId,
@@ -261,7 +254,7 @@ export class RabbitmqService {
         // }
       } else {
         const nextStep = await this.stepService.findOneBylevelAndFlowId(
-          currentConversation.step.level + 1,
+          lastConversation.step.level + 1,
           flowId,
         )
         await this.saveMessage({
@@ -274,7 +267,7 @@ export class RabbitmqService {
       this.pushDocument(doc)
     } else {
       this.updateMessage(
-        currentConversation,
+        lastConversation,
         'Veuillez télécharger votre pièce comme demandé',
       )
     }
@@ -300,23 +293,20 @@ export class RabbitmqService {
   }
 
   private async getSecondFlowSteps(
-    currentConversation: ConversationType,
+    lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversations: Conversation[],
   ) {
     switch (conversations.length) {
       case 2:
-        await this.handlePhoneNumberStep(currentConversation, newMessage, 2)
+        await this.handlePhoneNumberStep(lastConversation, newMessage, 2)
         break
       case 3:
       case 7:
         await this.handleFinalStep(newMessage, 2)
         break
       default:
-        this.updateMessage(
-          currentConversation,
-          newMessage.messages[0].text.body,
-        )
+        this.updateMessage(lastConversation, newMessage.messages[0].text.body)
     }
   }
 
@@ -372,6 +362,15 @@ export class RabbitmqService {
       body: message,
       typing_time: 5,
     })
+  }
+
+  private getErrorMessage(
+    lastConversation: ConversationType,
+    errorType: StepBadResponseMessageErrorType,
+  ): string {
+    return lastConversation.step.stepBadResponseMessage.find(
+      (sbrm) => sbrm.errorType === errorType,
+    ).message
   }
 
   async pushMessageToSent(message: SendMessageDto) {

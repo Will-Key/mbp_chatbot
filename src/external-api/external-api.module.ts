@@ -8,11 +8,12 @@ import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-pers
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { CarInfoService } from '../car-info/car-info.service'
 import { PrismaService } from '../../prisma/prisma.service'
+import { YangoService } from './yango.service'
 
 @Module({
   imports: [
     HttpModule.register({
-      timeout: 5000,
+      timeout: 10000,
       maxRedirects: 5,
     }),
     RequestLogModule,
@@ -20,6 +21,7 @@ import { PrismaService } from '../../prisma/prisma.service'
   providers: [
     WhapiService,
     OcrSpaceService,
+    YangoService,
     ConversationService,
     DriverPersonnalInfoService,
     DriverLicenseInfoService,
@@ -28,4 +30,4 @@ import { PrismaService } from '../../prisma/prisma.service'
   ],
   exports: [WhapiService, OcrSpaceService],
 })
-export class ExternalApiModule {}
+export class ExternalApiModule { }

@@ -9,7 +9,7 @@ export class SeederService {
   constructor(
     private readonly flowService: FlowService,
     private readonly stepService: StepService,
-  ) {}
+  ) { }
 
   async seed() {
     await this.createFlowsSeed()
@@ -33,7 +33,7 @@ export class SeederService {
     const seeds = await this.stepService.findAll()
     if (!seeds.length) {
       for (const step of INITIAL_STEPS) {
-        await this.stepService.create(step)
+        await this.stepService.createWithBadResponseMessage(step)
       }
       return
     }

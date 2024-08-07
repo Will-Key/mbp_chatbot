@@ -6,11 +6,22 @@ import { Step } from '@prisma/client'
 
 @Injectable()
 export class StepService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   create(createStepDto: CreateStepDto) {
     return this.prismaService.step.create({
       data: createStepDto,
+    })
+  }
+
+  createWithBadResponseMessage({ badResponseMessage, ...createStepDto }: CreateStepDto) {
+    return this.prismaService.step.create({
+      data: {
+        ...createStepDto,
+        stepBadResponseMessage: {
+          create: badResponseMessage
+        }
+      }
     })
   }
 

@@ -68,7 +68,6 @@ export class RabbitmqService {
   }
 
   async handleMessageReceived(message: NewMessageWebhookDto) {
-    console.log('message received', message)
     await this.newMessage(message)
   }
 

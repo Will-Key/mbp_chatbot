@@ -19,7 +19,7 @@ export class OcrSpaceService {
     private readonly driverPersonnalInfoService: DriverPersonnalInfoService,
     private readonly driverLicenseInfoService: DriverLicenseInfoService,
     private readonly carInfoService: CarInfoService,
-  ) {}
+  ) { }
 
   async sendFile(file: DocumentFile) {
     const params: SendDocDto = {
@@ -34,7 +34,7 @@ export class OcrSpaceService {
     try {
       const response = await ocrSpace(file.dataImageUrl, params)
       this.logger.log(`whapi response: ${response}`)
-      this.processOcrResponse(response, file)
+      const ocrResponse = await this.processOcrResponse(response, file)
       await this.requestLogService.create({
         direction: 'OUT',
         status: 'SUCCESS',
@@ -42,6 +42,7 @@ export class OcrSpaceService {
         data: JSON.stringify(response.ParsedResults),
         response: response.ErrorMessage,
       })
+      return ocrResponse
     } catch (error) {
       this.logger.log(`whapi error: ${error}`)
       await this.requestLogService.create({
@@ -51,6 +52,7 @@ export class OcrSpaceService {
         data: JSON.stringify(file),
         response: JSON.stringify(error),
       })
+      return 0
     }
   }
 
@@ -64,8 +66,8 @@ export class OcrSpaceService {
       LineText: string
     }>
     if (file.documentType === 'DRIVER_LICENSE')
-      await this.getDriverLicenseData(responseLines, file)
-    else this.getCarRegistrationData(responseLines, file.whaPhoneNumber)
+      return await this.getDriverLicenseData(responseLines, file)
+    else return await this.getCarRegistrationData(responseLines, file.whaPhoneNumber)
   }
 
   private async getDriverLicenseData(
@@ -75,8 +77,8 @@ export class OcrSpaceService {
     file: DocumentFile,
   ) {
     if (file.documentSide === 'FRONT')
-      await this.getDriverLicenseFrontData(responseLines, file.whaPhoneNumber)
-    else this.getDriverLicenseBackData(responseLines, file.whaPhoneNumber)
+      return await this.getDriverLicenseFrontData(responseLines, file.whaPhoneNumber)
+    else return await this.getDriverLicenseBackData(responseLines, file.whaPhoneNumber)
   }
 
   private async getDriverLicenseFrontData(
@@ -87,12 +89,18 @@ export class OcrSpaceService {
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
 
-    const lastName = responseLines[5].LineText
-    const firstName = responseLines[7].LineText
-    const licenseNumber = responseLines[13].LineText
+    const lastNameIndex = responseLines.findIndex(line => line.LineText.includes('1.')) + 1
+    const firstNameIndex = responseLines.findIndex(line => line.LineText.includes('2.')) + 1
+    const licenseNumberIndex = responseLines.findIndex(line => line.LineText.includes('5.')) + 1
+
+    const lastName = responseLines[lastNameIndex].LineText
+    const firstName = responseLines[firstNameIndex].LineText
+    const licenseNumber = responseLines[licenseNumberIndex].LineText
+
+    if (licenseNumber.length !== 20) return 0
 
     try {
-      await this.driverPersonnalInfoService.create({
+      const driverPersonnalInfo = await this.driverPersonnalInfoService.create({
         lastName,
         firstName,
         phoneNumber,
@@ -100,8 +108,10 @@ export class OcrSpaceService {
         licenseNumber,
         collectMethod: 'OCR',
       })
+      return driverPersonnalInfo.id
     } catch (error) {
       this.logger.error(error)
+      return 0
     }
   }
 
@@ -113,19 +123,23 @@ export class OcrSpaceService {
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
 
+    const licenseDeliveryDateIndex = responseLines.findIndex(line => line.LineText.includes('8.')) + 2
+    const licenseExpiryDateIndex = responseLines.findIndex(line => line.LineText.includes('9.')) + 2
+
     try {
-      const licenseDeliveryDate = responseLines[2].LineText
+      const licenseDeliveryDate = responseLines[licenseDeliveryDateIndex].LineText
+      const licenseExpiryDate = responseLines[licenseExpiryDateIndex].LineText
 
-      const licenseExpiryDate = responseLines[8].LineText
-
-      await this.driverLicenseInfoService.create({
+      const driverLicenseInfo = await this.driverLicenseInfoService.create({
         countryCode: 'CIV',
-        expiryDate: licenseExpiryDate,
-        deliveryDate: licenseDeliveryDate,
+        expiryDate: this.convertToISOString(licenseExpiryDate),
+        deliveryDate: this.convertToISOString(licenseDeliveryDate),
         driverPhoneNumber: phoneNumber,
       })
+      return driverLicenseInfo.id
     } catch (error) {
       this.logger.error(error)
+      return 0
     }
   }
 
@@ -133,14 +147,21 @@ export class OcrSpaceService {
     responseLines: { LineText: string }[],
     whaPhoneNumber: string,
   ) {
+    const plateNumberIndex = responseLines.findIndex(line => line.LineText.includes('immatriculation')) + 1
+    const brandIndex = responseLines.findIndex(line => line.LineText.includes('Marque')) + 1
+    const colorIndex = responseLines.findIndex(line => line.LineText.includes('Couleur')) + 1
+    const yearIndex = responseLines.findIndex(line => line.LineText.includes('edition')) + 1
+
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
-    const plateNumber = responseLines[1].LineText
-    const brand = responseLines[15].LineText
-    const color = responseLines[19].LineText
-    const year = responseLines[6].LineText.split('-')[2]
+    const plateNumber = responseLines[plateNumberIndex].LineText
+    const brand = responseLines[brandIndex].LineText
+    const color = responseLines[colorIndex].LineText
+    const year = responseLines[yearIndex].LineText.split('-')[2]
+
+    if (plateNumber.length < 6) return 0
 
     try {
-      await this.carInfoService.create({
+      const carInfo = await this.carInfoService.create({
         brand,
         color,
         year,
@@ -149,8 +170,10 @@ export class OcrSpaceService {
         code: '',
         driverPhoneNumber: phoneNumber,
       })
+      return carInfo.id
     } catch (error) {
       this.logger.error(error)
+      return 0
     }
   }
 
@@ -158,5 +181,13 @@ export class OcrSpaceService {
     return (
       await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
     ).find((conv) => conv.step.level === 2 && conv.step.flowId === 1).message
+  }
+
+  private convertToISOString(dateString: string): string {
+    const [day, month, year] = dateString.split('-').map(part => parseInt(part, 10))
+
+    const date = new Date(year, month - 1, day)
+
+    return date.toISOString();
   }
 }

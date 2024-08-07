@@ -142,24 +142,16 @@ export class RabbitmqService {
       case 1:
         await this.handlePhoneNumberStep(lastConversation, newMessage, 1)
         break
+      case 2:
+        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage, 1)
+        break
       case 3:
-        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage, conversations.length, 1)
+        await this.handleDriverLicenseBackUpload(lastConversation, newMessage, 1)
         break
       case 4:
-        await this.handleDriverLicenseBackUpload()
+        await this.handleCarRegistrationUpload(lastConversation, newMessage, 1)
         break
       case 5:
-        await this.handleCarRegistrationUpload()
-        break
-      case 6:
-        await this.handleDocumentUploadStep(
-          lastConversation,
-          newMessage,
-          conversations.length,
-          1,
-        )
-        break
-      case 7:
         await this.handleFinalStep(newMessage, 1)
         break
       default:
@@ -180,6 +172,7 @@ export class RabbitmqService {
         'incorrectChoice',
       )
       await this.updateMessage(lastConversation, errorMessage)
+      return
     }
     const driver =
       await this.driverService.findDriverPersonnalInfoByPhoneNumber(
@@ -188,6 +181,7 @@ export class RabbitmqService {
     if (driver) {
       const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
       await this.updateMessage(lastConversation, errorMessage)
+      return
     }
 
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -203,94 +197,120 @@ export class RabbitmqService {
     })
   }
 
-  private async handleDocumentUploadStep(
+  private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    conversationCount: number,
-    flowId: number,
-  ) {
-    if (
-      newMessage.messages[0].type === StepExpectedResponseType.image &&
-      (newMessage.messages[0].image.preview.includes('data:image/png') ||
-        newMessage.messages[0].image.preview.includes('data:image/jpeg'))
-    ) {
-      const documentSide =
-        conversationCount === 3 || conversationCount === 5
-          ? DocumentSide.FRONT
-          : DocumentSide.BACK
-      const documentType =
-        conversationCount === 3 || conversationCount === 4
-          ? DocumentType.DRIVER_LICENSE
-          : DocumentType.CAR_REGISTRATION
+    flowId: number) {
+    const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
+    if (!checkingResponse) return
 
-      const createDocumentFile: CreateDocumentFileDto = {
-        dataImageUrl: newMessage.messages[0].image.link,
-        documentSide,
-        documentType,
-        whaPhoneNumber: newMessage.messages[0].from,
-      }
-      const doc = await this.documentFileService.create(createDocumentFile)
-
-      if (lastConversation.step.level === 4) {
-        const nextStep = await this.stepService.findOneBylevelAndFlowId(
-          19,
-          flowId,
-        )
-        await this.saveMessage({
-          whaPhoneNumber: newMessage.messages[0].from,
-          convMessage: newMessage.messages[0].image.link,
-          nextMessage: nextStep.message,
-          stepId: nextStep.id,
-        })
-        // // Get all documents for this conversation
-        // const documents =
-        //   await this.documentFileService.findAllByWhaPhoneNumber(
-        //     newMessage.messages[0].from,
-        //   )
-        // // Push each conversation in the ocr give queue
-        // for (const doc of documents) {
-        //   this.pushDocument(doc)
-        // }
-      } else {
-        const nextStep = await this.stepService.findOneBylevelAndFlowId(
-          lastConversation.step.level + 1,
-          flowId,
-        )
-        await this.saveMessage({
-          whaPhoneNumber: newMessage.messages[0].from,
-          convMessage: newMessage.messages[0].image.link,
-          nextMessage: nextStep.message,
-          stepId: nextStep.id,
-        })
-      }
-      this.pushDocument(doc)
-    } else {
-      this.updateMessage(
-        lastConversation,
-        'Veuillez télécharger votre pièce comme demandé',
-      )
+    const createDocumentFile: CreateDocumentFileDto = {
+      dataImageUrl: newMessage.messages[0].image.link,
+      documentSide: 'FRONT',
+      documentType: 'DRIVER_LICENSE',
+      whaPhoneNumber: newMessage.messages[0].from,
     }
+    const doc = await this.documentFileService.create(createDocumentFile)
+    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
+
+    if (ocrResponse === 0) {
+      const errorMessage = "Le numéro n'a pas pu être récupérer."
+      await this.updateMessage(lastConversation, errorMessage)
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      lastConversation.step.level + 1,
+      flowId,
+    )
+    await this.saveMessage({
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].image.link,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
   }
 
-  private async handleDriverLicenseFrontUpload(lastConversation: ConversationType,
+  private async handleDriverLicenseBackUpload(
+    lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    conversationCount: number,
-    flowId: number) {
+    flowId: number
+  ) {
+    const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
+    if (!checkingResponse) return
+
+    const createDocumentFile: CreateDocumentFileDto = {
+      dataImageUrl: newMessage.messages[0].image.link,
+      documentSide: 'BACK',
+      documentType: 'DRIVER_LICENSE',
+      whaPhoneNumber: newMessage.messages[0].from,
+    }
+    const doc = await this.documentFileService.create(createDocumentFile)
+    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
+
+    if (ocrResponse === 0) {
+      const errorMessage = "Une erreur s'est produite lors de la récupération."
+      await this.updateMessage(lastConversation, errorMessage)
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      lastConversation.step.level + 1,
+      flowId,
+    )
+    await this.saveMessage({
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].image.link,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
+  }
+
+  private async handleCarRegistrationUpload(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+    flowId: number
+  ) {
+    const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
+    if (!checkingResponse) return
+
+    const createDocumentFile: CreateDocumentFileDto = {
+      dataImageUrl: newMessage.messages[0].image.link,
+      documentSide: 'FRONT',
+      documentType: 'CAR_REGISTRATION',
+      whaPhoneNumber: newMessage.messages[0].from,
+    }
+    const doc = await this.documentFileService.create(createDocumentFile)
+    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
+    if (ocrResponse === 0) {
+      const errorMessage = "Une erreur s'est produite lors de la récupération."
+      await this.updateMessage(lastConversation, errorMessage)
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      lastConversation.step.level + 1,
+      flowId,
+    )
+    await this.saveMessage({
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].image.link,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
+  }
+
+  private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
     if (newMessage.messages[0].type !== StepExpectedResponseType.image ||
       newMessage.messages[0].image.preview.includes('data:image')) {
       const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
       await this.updateMessage(lastConversation, errorMessage)
+      return 0
     }
 
     if (newMessage.messages[0].image) {
-      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
+      const errorMessage = this.getErrorMessage(lastConversation, 'maxSize')
       await this.updateMessage(lastConversation, errorMessage)
+      return 0
     }
   }
-
-  private async handleDriverLicenseBackUpload() { }
-
-  private async handleCarRegistrationUpload() { }
 
   private async handleFinalStep(
     newMessage: NewMessageWebhookDto,

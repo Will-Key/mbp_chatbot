@@ -26,6 +26,7 @@ import { WhapiService } from '../external-api/whapi.service'
 import { GetOcrResponseDto } from '../external-api/dto/get-ocr-response.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
 import { ConversationType } from '../shared/types'
+import { CreateYangoProfileDto } from 'src/external-api/dto/create-yango-profile.dto'
 
 @Injectable()
 export class RabbitmqService {
@@ -117,7 +118,7 @@ export class RabbitmqService {
         await this.updateMessage(lastConversation, errorMessage)
       }
     } else if (lastConversation.step.flowId === 1) {
-      await this.getFirstFlowSteps(lastConversation, newMessage, conversations)
+      await this.getFirstFlowSteps(lastConversation, newMessage)
     } else if (lastConversation.step.flowId === 2) {
       await this.getSecondFlowSteps(lastConversation, newMessage, conversations)
     }
@@ -136,23 +137,22 @@ export class RabbitmqService {
   private async getFirstFlowSteps(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    conversations: Conversation[],
   ) {
     switch (lastConversation.step.level) {
       case 1:
-        await this.handlePhoneNumberStep(lastConversation, newMessage, 1)
+        await this.handlePhoneNumberStep(lastConversation, newMessage)
         break
       case 2:
-        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage, 1)
+        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
         break
       case 3:
-        await this.handleDriverLicenseBackUpload(lastConversation, newMessage, 1)
+        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
         break
       case 4:
-        await this.handleCarRegistrationUpload(lastConversation, newMessage, 1)
+        await this.handleCarRegistrationUpload(lastConversation, newMessage)
         break
       case 5:
-        await this.handleFinalStep(newMessage, 1)
+        await this.handleFirstFlowFinalStep(newMessage)
         break
       default:
         this.updateMessage(lastConversation, newMessage.messages[0].text.body)
@@ -162,8 +162,8 @@ export class RabbitmqService {
   private async handlePhoneNumberStep(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number,
   ) {
+    const flowId = 1
     const incomingMessage = newMessage.messages[0].text.body.trim()
 
     if (incomingMessage.length !== 10) {
@@ -199,8 +199,9 @@ export class RabbitmqService {
 
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto,
-    flowId: number) {
+    newMessage: NewMessageWebhookDto
+  ) {
+    const flowId = 1
     const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
     if (!checkingResponse) return
 
@@ -233,8 +234,8 @@ export class RabbitmqService {
   private async handleDriverLicenseBackUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number
   ) {
+    const flowId = 1
     const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
     if (!checkingResponse) return
 
@@ -267,8 +268,8 @@ export class RabbitmqService {
   private async handleCarRegistrationUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number
   ) {
+    const flowId = 1
     const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
     if (!checkingResponse) return
 
@@ -312,13 +313,42 @@ export class RabbitmqService {
     }
   }
 
-  private async handleFinalStep(
+  private async handleFirstFlowFinalStep(
     newMessage: NewMessageWebhookDto,
-    flowId: number,
   ) {
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(19, flowId)
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(19, 1)
+    const whaPhoneNumber = newMessage.messages[0].from
+
+    const phoneNumber = (await this.conversationService.findOneByStepLevelAndWhaPhoneNumber(1, 1, whaPhoneNumber)).message
+
+    // Push conversation to yango queue for 
+    const createYangoDto: CreateYangoProfileDto = {
+      order_provider: {
+        partner: true,
+        platform: true
+      },
+      person: {
+        contact_info: {
+          phone: phoneNumber
+        }
+      },
+      driver_license: {
+        country: 'civ',
+        expiry_date: '',
+        issue_date: '',
+        number: ''
+      },
+      full_name: {
+        first_name: '',
+        last_name: ''
+      },
+      profile: {
+        hire_date: ''
+      }
+    }
+
     await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
+      whaPhoneNumber,
       convMessage: newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
@@ -332,15 +362,28 @@ export class RabbitmqService {
   ) {
     switch (conversations.length) {
       case 2:
-        await this.handlePhoneNumberStep(lastConversation, newMessage, 2)
+        await this.handlePhoneNumberStep(lastConversation, newMessage)
         break
       case 3:
       case 7:
-        await this.handleFinalStep(newMessage, 2)
+        await this.handleSecondFlowFinalStep(newMessage, 2)
         break
       default:
         this.updateMessage(lastConversation, newMessage.messages[0].text.body)
     }
+  }
+
+  private async handleSecondFlowFinalStep(
+    newMessage: NewMessageWebhookDto,
+    flowId: number,
+  ) {
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(19, flowId)
+    await this.saveMessage({
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].text.body,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
   }
 
   private async saveMessage({

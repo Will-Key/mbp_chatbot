@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class ConversationService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   create(createConversationDto: CreateConversationDto) {
     return this.prismaService.conversation.create({
@@ -19,6 +19,18 @@ export class ConversationService {
 
   findOne(id: number) {
     return this.prismaService.conversation.findUnique({ where: { id: id } })
+  }
+
+  findOneByStepLevelAndWhaPhoneNumber(level: number, flowId: number, whaPhoneNumber: string) {
+    return this.prismaService.conversation.findFirst({
+      where: {
+        step: {
+          level,
+          flowId
+        },
+        whaPhoneNumber
+      }
+    })
   }
 
   findManyByWhaPhoneNumber(whaPhoneNumber: string) {

@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class DriverPersonnalInfoService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   create(createDriverPersonnalInfoDto: CreateDriverPersonnalInfoDto) {
     return this.prismaService.driverPersonnalInfo.create({

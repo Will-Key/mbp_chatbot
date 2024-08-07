@@ -42,7 +42,7 @@ export class RabbitmqService {
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
-  ) {}
+  ) { }
 
   onModuleInit() {
     this.whapiReceivedQueueClient.connect()
@@ -144,7 +144,7 @@ export class RabbitmqService {
         await this.handlePhoneNumberStep(lastConversation, newMessage, 1)
         break
       case 3:
-        await this.handleDriverLicenseFrontUpload()
+        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage, conversations.length, 1)
         break
       case 4:
         await this.handleDriverLicenseBackUpload()
@@ -199,7 +199,7 @@ export class RabbitmqService {
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
-      nextMessage: nextStep.message,
+      nextMessage: `225${incomingMessage}`,
       stepId: nextStep.id,
     })
   }
@@ -273,11 +273,25 @@ export class RabbitmqService {
     }
   }
 
-  private async handleDriverLicenseFrontUpload() {}
+  private async handleDriverLicenseFrontUpload(lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+    conversationCount: number,
+    flowId: number) {
+    if (newMessage.messages[0].type !== StepExpectedResponseType.image ||
+      newMessage.messages[0].image.preview.includes('data:image')) {
+      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
+      await this.updateMessage(lastConversation, errorMessage)
+    }
 
-  private async handleDriverLicenseBackUpload() {}
+    if (newMessage.messages[0].image) {
+      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
+      await this.updateMessage(lastConversation, errorMessage)
+    }
+  }
 
-  private async handleCarRegistrationUpload() {}
+  private async handleDriverLicenseBackUpload() { }
+
+  private async handleCarRegistrationUpload() { }
 
   private async handleFinalStep(
     newMessage: NewMessageWebhookDto,
@@ -418,5 +432,5 @@ export class RabbitmqService {
     }
   }
 
-  async handleOcrResponsePushedQueue() {}
+  async handleOcrResponsePushedQueue() { }
 }

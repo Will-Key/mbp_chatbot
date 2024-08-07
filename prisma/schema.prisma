@@ -57,6 +57,20 @@ enum CarStatus {
 enum StepExpectedResponseType {
   text
   image
+  date
+  url
+}
+
+enum StepBadResponseMessageErrorType {
+  minSize
+  maxSize
+  minLength
+  maxLength
+  equalLength
+  isExist
+  isNotExist
+  incorrectChoice
+  isDate
 }
 
 model Flow {
@@ -73,12 +87,23 @@ model Step {
   updatedAt              DateTime                 @updatedAt
   level                  Int
   message                String
-  expectedResponse       String
+  expectedResponse       String?
   expectedResponseType   StepExpectedResponseType @default(text)
-  expectedResponseLength Int
+  timeDelay              Int                      @default(2)
   flowId                 Int?
   flow                   Flow?                    @relation(fields: [flowId], references: [id])
   conversation           Conversation[]
+  stepBadResponseMessage StepBadResponseMessage[]
+}
+
+model StepBadResponseMessage {
+  id        Int                             @id @default(autoincrement())
+  createdAt DateTime                        @default(now())
+  updatedAt DateTime                        @updatedAt
+  message   String
+  errorType StepBadResponseMessageErrorType
+  stepId    Int
+  step      Step                            @relation(fields: [stepId], references: [id])
 }
 
 model Conversation {

@@ -26,7 +26,21 @@ export class ConversationService {
       where: { whaPhoneNumber },
       orderBy: { id: 'desc' },
       include: {
-        step: true,
+        step: {
+          select: {
+            id: true,
+            createdAt: true,
+            updatedAt: true,
+            level: true,
+            message: true,
+            expectedResponse: true,
+            expectedResponseType: true,
+            timeDelay: true,
+            flowId: true,
+            flow: true,
+            stepBadResponseMessage: true,
+          },
+        },
       },
     })
   }

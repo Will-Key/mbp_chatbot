@@ -1,7 +1,9 @@
 import { HistoryConversationReasonForEnding, HistoryConversationStatus } from "@prisma/client"
 
 export class UpdateHistoryConversationDto {
-    status: HistoryConversationStatus
+    stepId?: number
 
-    reason: HistoryConversationReasonForEnding
+    status?: HistoryConversationStatus
+
+    reason?: HistoryConversationReasonForEnding
 }

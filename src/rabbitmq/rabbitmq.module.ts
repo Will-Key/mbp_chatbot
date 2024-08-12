@@ -15,7 +15,7 @@ import { StepService } from '../step/step.service'
 import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
 import { DocumentFileService } from '../document-file/document-file.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
-import { YangoService } from '../external-api/yango.service'
+import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 
 @Module({
   imports: [
@@ -76,6 +76,7 @@ import { YangoService } from '../external-api/yango.service'
     DriverPersonnalInfoService,
     DriverLicenseInfoService,
     DocumentFileService,
+    HistoryConversationService
   ],
   exports: [RabbitmqService],
 })

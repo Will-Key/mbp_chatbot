@@ -12,6 +12,8 @@ import { ConversationService } from '../conversation/conversation.service'
 import {
   Conversation,
   DocumentFile,
+  HistoryConversationReasonForEnding,
+  HistoryConversationStatus,
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
 } from '@prisma/client'
@@ -27,6 +29,7 @@ import { ConversationType } from '../shared/types'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { YangoService } from '../external-api/yango.service'
+import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 
 @Injectable()
 export class RabbitmqService {
@@ -44,7 +47,8 @@ export class RabbitmqService {
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
-    private readonly yangoService: YangoService
+    private readonly yangoService: YangoService,
+    private readonly historyConversationService: HistoryConversationService
   ) { }
 
   onModuleInit() {
@@ -88,8 +92,17 @@ export class RabbitmqService {
         conversations,
       )
     } else {
+      await this.initConversationHistory(newMessage)
       await this.handleNewConversation(newMessage)
     }
+  }
+
+  private async initConversationHistory(newMessage: NewMessageWebhookDto) {
+    await this.historyConversationService.create({
+      whaPhoneNumber: newMessage.messages[0].from,
+      status: HistoryConversationStatus.IN_PROGRESS,
+      reason: HistoryConversationReasonForEnding.IN_PROGRESS
+    })
   }
 
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
@@ -128,12 +141,22 @@ export class RabbitmqService {
 
   private async startFlow(newMessage: NewMessageWebhookDto, flowId: number) {
     const nextStep = await this.stepService.findOneBylevelAndFlowId(1, flowId)
+    await this.setFlowChoosenConversationHistory(newMessage, nextStep.id)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+  }
+
+  private async setFlowChoosenConversationHistory(newMessage: NewMessageWebhookDto, stepId: number) {
+    const history = await this.historyConversationService.findOneByWhaPhoneNumber(newMessage.messages[0].from)
+    if (history) {
+      await this.historyConversationService.update(history.id, { stepId })
+    } else {
+      this.logger.error(`History not found for this phone number ${newMessage.messages[0].from}`)
+    }
   }
 
   private async getFirstFlowSteps(
@@ -163,6 +186,8 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     const flowId = 1
+    const whaPhoneNumber = newMessage.messages[0].from
+    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 2)
     const incomingMessage = newMessage.messages[0].text.body.trim()
     if (incomingMessage.length !== 10) {
       const errorMessage = this.getErrorMessage(
@@ -187,7 +212,7 @@ export class RabbitmqService {
       flowId,
     )
     await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
+      whaPhoneNumber,
       convMessage: `225${incomingMessage}`,//newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
@@ -199,6 +224,8 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto
   ) {
     const flowId = 1
+    const whaPhoneNumber = newMessage.messages[0].from
+    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 2)
     const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
     if (checkImageValidityResponse === 0) return
 
@@ -206,7 +233,7 @@ export class RabbitmqService {
       dataImageUrl: newMessage.messages[0].image.link,
       documentSide: 'FRONT',
       documentType: 'DRIVER_LICENSE',
-      whaPhoneNumber: newMessage.messages[0].from,
+      whaPhoneNumber,
     }
     const doc = await this.documentFileService.create(createDocumentFile)
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
@@ -222,7 +249,7 @@ export class RabbitmqService {
       flowId,
     )
     await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
+      whaPhoneNumber,
       convMessage: newMessage.messages[0].image.link,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
@@ -234,6 +261,8 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     const flowId = 1
+    const whaPhoneNumber = newMessage.messages[0].from
+    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 3)
     const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
     console.log('checkingImageValidityResponse', checkImageValidityResponse)
     if (checkImageValidityResponse === 0) return
@@ -242,7 +271,7 @@ export class RabbitmqService {
       dataImageUrl: newMessage.messages[0].image.link,
       documentSide: 'BACK',
       documentType: 'DRIVER_LICENSE',
-      whaPhoneNumber: newMessage.messages[0].from,
+      whaPhoneNumber,
     }
     const doc = await this.documentFileService.create(createDocumentFile)
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
@@ -257,7 +286,7 @@ export class RabbitmqService {
       flowId,
     )
     await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
+      whaPhoneNumber,
       convMessage: newMessage.messages[0].image.link,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
@@ -268,6 +297,8 @@ export class RabbitmqService {
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
   ) {
+    const whaPhoneNumber = newMessage.messages[0].from
+    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 4)
     const flowId = 1
     const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
     console.log('checkingImageValidityResponse', checkImageValidityResponse)
@@ -277,7 +308,7 @@ export class RabbitmqService {
       dataImageUrl: newMessage.messages[0].image.link,
       documentSide: 'FRONT',
       documentType: 'CAR_REGISTRATION',
-      whaPhoneNumber: newMessage.messages[0].from,
+      whaPhoneNumber,
     }
     const doc = await this.documentFileService.create(createDocumentFile)
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
@@ -300,6 +331,15 @@ export class RabbitmqService {
     // TODO: Add a cron for send data to yango 
     // Or do it when we are on the last step
     //await this.sendDataToYango(newMessage)
+  }
+
+  private async updateHistoryConversationUpdateTime(whaPhoneNumber: string, stepId: number) {
+    await this.updateConversationHistoryStatusAndReason(
+      whaPhoneNumber,
+      stepId,
+      HistoryConversationStatus.IN_PROGRESS,
+      HistoryConversationReasonForEnding.IN_PROGRESS
+    )
   }
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
@@ -442,13 +482,21 @@ export class RabbitmqService {
       },
     )
     if (updatedConversation.badResponseCount >= 2) {
+      await this.conversationService.removeAllByPhoneNumber(
+        conversation.whaPhoneNumber,
+      )
       const errorStep = await this.stepService.findOneByLevel(15)
-      // Push message to whapi queue to demand to driver to go on MBP local
       this.handleMessageToSent({
         to: conversation.whaPhoneNumber,
         body: errorStep.message,
         typing_time: 5,
       })
+      await this.updateConversationHistoryStatusAndReason(
+        conversation.whaPhoneNumber,
+        conversation.stepId,
+        HistoryConversationStatus.FAIL,
+        HistoryConversationReasonForEnding.ERROR
+      )
       return
     }
     this.handleMessageToSent({
@@ -458,10 +506,19 @@ export class RabbitmqService {
     })
   }
 
-  private async deleteAllConversation(conversation: Conversation) {
-    await this.conversationService.removeAllByPhoneNumber(
-      conversation.whaPhoneNumber,
-    )
+  private async updateConversationHistoryStatusAndReason(
+    whaPhoneNumber: string,
+    stepId: number,
+    status: HistoryConversationStatus,
+    reason: HistoryConversationReasonForEnding
+  ) {
+    const history =
+      await this.historyConversationService.findOneByWhaPhoneNumberAndFlowId(whaPhoneNumber, stepId)
+    if (history) {
+      await this.historyConversationService.update(history.id, { status, reason })
+    } else {
+      this.logger.error(`History not found for this phone number ${whaPhoneNumber} and flow id ${stepId}`)
+    }
   }
 
   private getErrorMessage(

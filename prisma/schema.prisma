@@ -80,18 +80,18 @@ enum HistoryConversationStatus {
 }
 
 enum HistoryConversationReasonForEnding {
+  IN_PROGRESS
   ERROR
   TIME_LIMIT_REACHED
   NORMAL_FINISH
 }
 
 model Flow {
-  id                  Int                   @id @default(autoincrement())
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  name                String
-  steps               Step[]
-  HistoryConversation HistoryConversation[]
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  steps     Step[]
 }
 
 model Step {
@@ -107,6 +107,7 @@ model Step {
   flow                   Flow?                    @relation(fields: [flowId], references: [id])
   conversation           Conversation[]
   stepBadResponseMessage StepBadResponseMessage[]
+  HistoryConversation    HistoryConversation[]
 }
 
 model StepBadResponseMessage {
@@ -205,8 +206,8 @@ model HistoryConversation {
   createdAt      DateTime                           @default(now())
   updatedAt      DateTime                           @updatedAt
   whaPhoneNumber String
-  flowId         Int?
-  flow           Flow?                              @relation(fields: [flowId], references: [id])
+  stepId         Int?
+  step           Step?                              @relation(fields: [stepId], references: [id])
   status         HistoryConversationStatus
   reason         HistoryConversationReasonForEnding
 }

@@ -3,7 +3,7 @@ import { HistoryConversationReasonForEnding, HistoryConversationStatus } from "@
 export class CreateHistoryConversationDto {
     whaPhoneNumber: string
 
-    flowId: number
+    stepId?: number
 
     status: HistoryConversationStatus
 

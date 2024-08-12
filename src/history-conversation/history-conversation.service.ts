@@ -22,9 +22,17 @@ export class HistoryConversationService {
         })
     }
 
-    findOne(whaPhoneNumber: string, flowId: number) {
+    findOneByWhaPhoneNumber(whaPhoneNumber: string) {
         return this.prismaService.historyConversation.findFirst({
-            where: { whaPhoneNumber, flowId }
+            where: { whaPhoneNumber },
+            orderBy: { createdAt: 'desc' }
+        })
+    }
+
+    findOneByWhaPhoneNumberAndFlowId(whaPhoneNumber: string, stepId: number) {
+        return this.prismaService.historyConversation.findFirst({
+            where: { whaPhoneNumber, stepId },
+            orderBy: { createdAt: 'desc' }
         })
     }
 }

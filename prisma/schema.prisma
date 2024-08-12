@@ -79,7 +79,7 @@ enum HistoryConversationStatus {
   SUCCEEDED
 }
 
-enum ConversationReasonForEnding {
+enum HistoryConversationReasonForEnding {
   ERROR
   TIME_LIMIT_REACHED
   NORMAL_FINISH
@@ -201,12 +201,12 @@ model DriverCar {
 }
 
 model HistoryConversation {
-  id             Int                         @id @default(autoincrement())
-  createdAt      DateTime                    @default(now())
-  updatedAt      DateTime                    @updatedAt
+  id             Int                                @id @default(autoincrement())
+  createdAt      DateTime                           @default(now())
+  updatedAt      DateTime                           @updatedAt
   whaPhoneNumber String
   flowId         Int?
-  flow           Flow?                       @relation(fields: [flowId], references: [id])
+  flow           Flow?                              @relation(fields: [flowId], references: [id])
   status         HistoryConversationStatus
-  reason         ConversationReasonForEnding
+  reason         HistoryConversationReasonForEnding
 }

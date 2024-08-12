@@ -12,8 +12,6 @@ import { ConversationService } from '../conversation/conversation.service'
 import {
   Conversation,
   DocumentFile,
-  DocumentSide,
-  DocumentType,
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
 } from '@prisma/client'
@@ -26,7 +24,9 @@ import { WhapiService } from '../external-api/whapi.service'
 import { GetOcrResponseDto } from '../external-api/dto/get-ocr-response.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
 import { ConversationType } from '../shared/types'
-import { CreateYangoProfileDto } from 'src/external-api/dto/create-yango-profile.dto'
+import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
+import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
+import { YangoService } from '../external-api/yango.service'
 
 @Injectable()
 export class RabbitmqService {
@@ -39,10 +39,12 @@ export class RabbitmqService {
     private readonly whapiSentQueueClient: ClientProxy,
     private readonly conversationService: ConversationService,
     private readonly stepService: StepService,
-    private readonly driverService: DriverPersonnalInfoService,
+    private readonly driverPersonnalInfoService: DriverPersonnalInfoService,
+    private readonly driverLicenseInfoService: DriverLicenseInfoService,
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
+    private readonly yangoService: YangoService
   ) { }
 
   onModuleInit() {
@@ -151,9 +153,6 @@ export class RabbitmqService {
       case 4:
         await this.handleCarRegistrationUpload(lastConversation, newMessage)
         break
-      case 5:
-        await this.handleFirstFlowFinalStep(newMessage)
-        break
       default:
         this.updateMessage(lastConversation, newMessage.messages[0].text.body)
     }
@@ -165,7 +164,6 @@ export class RabbitmqService {
   ) {
     const flowId = 1
     const incomingMessage = newMessage.messages[0].text.body.trim()
-
     if (incomingMessage.length !== 10) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
@@ -175,7 +173,7 @@ export class RabbitmqService {
       return
     }
     const driver =
-      await this.driverService.findDriverPersonnalInfoByPhoneNumber(
+      await this.driverPersonnalInfoService.findDriverPersonnalInfoByPhoneNumber(
         `225${incomingMessage}`,
       )
     if (driver) {
@@ -188,11 +186,10 @@ export class RabbitmqService {
       lastConversation.step.level + 1,
       flowId,
     )
-
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].text.body,
-      nextMessage: `225${incomingMessage}`,
+      convMessage: `225${incomingMessage}`,//newMessage.messages[0].text.body,
+      nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
   }
@@ -202,8 +199,8 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto
   ) {
     const flowId = 1
-    const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
-    if (!checkingResponse) return
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
+    if (checkImageValidityResponse === 0) return
 
     const createDocumentFile: CreateDocumentFileDto = {
       dataImageUrl: newMessage.messages[0].image.link,
@@ -213,10 +210,11 @@ export class RabbitmqService {
     }
     const doc = await this.documentFileService.create(createDocumentFile)
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
-
     if (ocrResponse === 0) {
-      const errorMessage = "Le numéro n'a pas pu être récupérer."
+      const errorMessage = "Le numéro n'a pas pu être récupérer.\nRéessayer."
+      //{...lastConversation, badResponseCount: 5}
       await this.updateMessage(lastConversation, errorMessage)
+      return
     }
 
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -236,8 +234,9 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     const flowId = 1
-    const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
-    if (!checkingResponse) return
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
+    console.log('checkingImageValidityResponse', checkImageValidityResponse)
+    if (checkImageValidityResponse === 0) return
 
     const createDocumentFile: CreateDocumentFileDto = {
       dataImageUrl: newMessage.messages[0].image.link,
@@ -270,8 +269,9 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     const flowId = 1
-    const checkingResponse = await this.checkImageValidity(lastConversation, newMessage)
-    if (!checkingResponse) return
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
+    console.log('checkingImageValidityResponse', checkImageValidityResponse)
+    if (checkImageValidityResponse === 0) return
 
     const createDocumentFile: CreateDocumentFileDto = {
       dataImageUrl: newMessage.messages[0].image.link,
@@ -287,7 +287,7 @@ export class RabbitmqService {
     }
 
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      lastConversation.step.level + 1,
+      19,
       flowId,
     )
     await this.saveMessage({
@@ -296,30 +296,42 @@ export class RabbitmqService {
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+
+    // TODO: Add a cron for send data to yango 
+    // Or do it when we are on the last step
+    //await this.sendDataToYango(newMessage)
   }
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
+
+    const regex = /^(http|https):\/\/[^ "]+$/
     if (newMessage.messages[0].type !== StepExpectedResponseType.image ||
-      newMessage.messages[0].image.preview.includes('data:image')) {
+      !newMessage.messages[0].image.link || !regex.test(newMessage.messages[0].image.link) ||
+      !newMessage.messages[0].image.preview.includes('data:image')) {
       const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
       await this.updateMessage(lastConversation, errorMessage)
       return 0
     }
 
-    if (newMessage.messages[0].image) {
+    if (newMessage.messages[0].image.file_size > 1000000) {
       const errorMessage = this.getErrorMessage(lastConversation, 'maxSize')
       await this.updateMessage(lastConversation, errorMessage)
       return 0
     }
+
+    return 1
   }
 
-  private async handleFirstFlowFinalStep(
+  private async sendDataToYango(
     newMessage: NewMessageWebhookDto,
   ) {
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(19, 1)
+    //const nextStep = await this.stepService.findOneBylevelAndFlowId(19, 1)
     const whaPhoneNumber = newMessage.messages[0].from
 
     const phoneNumber = (await this.conversationService.findOneByStepLevelAndWhaPhoneNumber(1, 1, whaPhoneNumber)).message
+
+    const driverPersonnalInfo = await this.driverPersonnalInfoService.findDriverPersonnalInfoByPhoneNumber(phoneNumber)
+    const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
 
     // Push conversation to yango queue for 
     const createYangoDto: CreateYangoProfileDto = {
@@ -334,24 +346,33 @@ export class RabbitmqService {
       },
       driver_license: {
         country: 'civ',
-        expiry_date: '',
-        issue_date: '',
-        number: ''
+        expiry_date: driverLicenseInfo.expiryDate.toISOString(),
+        issue_date: driverLicenseInfo.deliveryDate.toISOString(),
+        number: driverPersonnalInfo.licenseNumber,
       },
       full_name: {
-        first_name: '',
-        last_name: ''
+        first_name: driverPersonnalInfo.firstName,
+        last_name: driverPersonnalInfo.lastName
       },
       profile: {
-        hire_date: ''
+        hire_date: new Date().toISOString()
       }
     }
 
+    const createYangoP = await this.yangoService.createProfile(createYangoDto)
+
+    const { nextMessage, stepId } = createYangoP === 1 ? {
+      nextMessage: 'Votre inscription a été effectué avec succès.',
+      stepId: 20
+    } : {
+      nextMessage: 'Votre inscription a échoué.',
+      stepId: 24
+    }
     await this.saveMessage({
       whaPhoneNumber,
       convMessage: newMessage.messages[0].text.body,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
+      nextMessage,
+      stepId,
     })
   }
 
@@ -423,9 +444,6 @@ export class RabbitmqService {
     if (updatedConversation.badResponseCount >= 2) {
       const errorStep = await this.stepService.findOneByLevel(15)
       // Push message to whapi queue to demand to driver to go on MBP local
-      await this.conversationService.removeAllByPhoneNumber(
-        conversation.whaPhoneNumber,
-      )
       this.handleMessageToSent({
         to: conversation.whaPhoneNumber,
         body: errorStep.message,
@@ -438,6 +456,12 @@ export class RabbitmqService {
       body: message,
       typing_time: 5,
     })
+  }
+
+  private async deleteAllConversation(conversation: Conversation) {
+    await this.conversationService.removeAllByPhoneNumber(
+      conversation.whaPhoneNumber,
+    )
   }
 
   private getErrorMessage(

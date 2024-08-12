@@ -33,7 +33,7 @@ export class OcrSpaceService {
 
     try {
       const response = await ocrSpace(file.dataImageUrl, params)
-      this.logger.log(`whapi response: ${response}`)
+      this.logger.log(`whapi response:`, response)
       const ocrResponse = await this.processOcrResponse(response, file)
       await this.requestLogService.create({
         direction: 'OUT',
@@ -42,6 +42,7 @@ export class OcrSpaceService {
         data: JSON.stringify(response.ParsedResults),
         response: response.ErrorMessage,
       })
+      console.log('ocrResponse', ocrResponse)
       return ocrResponse
     } catch (error) {
       this.logger.log(`whapi error: ${error}`)
@@ -96,7 +97,14 @@ export class OcrSpaceService {
     const lastName = responseLines[lastNameIndex].LineText
     const firstName = responseLines[firstNameIndex].LineText
     const licenseNumber = responseLines[licenseNumberIndex].LineText
-
+    console.log('create driver license:', {
+      lastName,
+      firstName,
+      phoneNumber,
+      whaPhoneNumber,
+      licenseNumber,
+      collectMethod: 'OCR',
+    })
     if (licenseNumber.length !== 20) return 0
 
     try {

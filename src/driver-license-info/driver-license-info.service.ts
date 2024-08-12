@@ -21,6 +21,12 @@ export class DriverLicenseInfoService {
     return this.prismaService.driverLicenseInfo.findUnique({ where: { id } })
   }
 
+  findLicenseInfoByPhoneNumber(phoneNumber: string) {
+    return this.prismaService.driverLicenseInfo.findUnique({
+      where: { driverPhoneNumber: phoneNumber }
+    })
+  }
+
   update(id: number, updateDriverLicenseInfoDto: UpdateDriverLicenseInfoDto) {
     return this.prismaService.driverLicenseInfo.update({
       data: updateDriverLicenseInfoDto,

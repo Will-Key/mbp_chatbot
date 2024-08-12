@@ -187,7 +187,7 @@ export class RabbitmqService {
   ) {
     const flowId = 1
     const whaPhoneNumber = newMessage.messages[0].from
-    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 2)
+    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 1)
     const incomingMessage = newMessage.messages[0].text.body.trim()
     if (incomingMessage.length !== 10) {
       const errorMessage = this.getErrorMessage(

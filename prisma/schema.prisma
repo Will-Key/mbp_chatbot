@@ -74,6 +74,7 @@ enum StepBadResponseMessageErrorType {
 }
 
 enum HistoryConversationStatus {
+  IN_PROGRESS
   FAIL
   SUCCEEDED
 }

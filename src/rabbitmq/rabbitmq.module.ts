@@ -14,6 +14,8 @@ import { ConversationService } from '../conversation/conversation.service'
 import { StepService } from '../step/step.service'
 import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
 import { DocumentFileService } from '../document-file/document-file.service'
+import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
+import { YangoService } from '../external-api/yango.service'
 
 @Module({
   imports: [
@@ -72,8 +74,9 @@ import { DocumentFileService } from '../document-file/document-file.service'
     ConversationService,
     StepService,
     DriverPersonnalInfoService,
+    DriverLicenseInfoService,
     DocumentFileService,
   ],
   exports: [RabbitmqService],
 })
-export class RabbitmqModule {}
+export class RabbitmqModule { }

@@ -28,6 +28,6 @@ import { YangoService } from './yango.service'
     CarInfoService,
     PrismaService,
   ],
-  exports: [WhapiService, OcrSpaceService],
+  exports: [WhapiService, OcrSpaceService, YangoService],
 })
 export class ExternalApiModule { }

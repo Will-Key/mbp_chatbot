@@ -13,7 +13,7 @@ import { YangoService } from './yango.service'
 @Module({
   imports: [
     HttpModule.register({
-      timeout: 10000,
+      timeout: 20000,
       maxRedirects: 5,
     }),
     RequestLogModule,
@@ -28,6 +28,6 @@ import { YangoService } from './yango.service'
     CarInfoService,
     PrismaService,
   ],
-  exports: [WhapiService, OcrSpaceService],
+  exports: [WhapiService, OcrSpaceService, YangoService],
 })
 export class ExternalApiModule { }

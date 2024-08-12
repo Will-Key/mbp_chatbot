@@ -160,7 +160,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 15,
-    message: `L'opération a échoué, veuillez vous rendre dans les locaux de votre partenaire MBP.`,
+    message: `L'opération a échoué, vous pouvez vous rendre dans les locaux de MBP GROUP ou réessayer de vous inscrire en passant par chat.\n1- Je me rends chez mon partenaire.\n2- Je m'inscris par chat.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
     flowId: 1,
@@ -169,9 +169,21 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     level: 19,
     message: `Votre demande d'inscription à la plateforme MBP est terminée. Un message de confirmation suivi des instructions vous sera partagé dans moins de Cinq (05) mins.`,
     expectedResponseType: 'text',
-    badResponseMessage: [
-      { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
-    ],
+    badResponseMessage: [],
+    flowId: 1,
+  },
+  {
+    level: 20,
+    message: `Votre inscription à la plateforme a été effectué avec succès.`,
+    expectedResponseType: 'text',
+    badResponseMessage: [],
+    flowId: 1,
+  },
+  {
+    level: 24,
+    message: `Votre inscription à la plateforme a échoué`,
+    expectedResponseType: 'text',
+    badResponseMessage: [],
     flowId: 1,
   },
   // {

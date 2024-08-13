@@ -344,9 +344,8 @@ export class RabbitmqService {
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
 
-    const regex = /^(http|https):\/\/[^ "]+$/
     if (newMessage.messages[0].type !== StepExpectedResponseType.image ||
-      !newMessage.messages[0].image.link || !regex.test(newMessage.messages[0].image.link) ||
+      !newMessage.messages[0].image.id ||
       !newMessage.messages[0].image.preview.includes('data:image')) {
       const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
       await this.updateMessage(lastConversation, errorMessage)

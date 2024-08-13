@@ -229,13 +229,22 @@ export class RabbitmqService {
     const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
     if (checkImageValidityResponse === 0) return
 
+    const imageUrl =
+      `${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH.replace('{id}', newMessage.messages[0].image.id)}`
     const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
+      dataImageUrl: imageUrl,
       documentSide: 'FRONT',
       documentType: 'DRIVER_LICENSE',
       whaPhoneNumber,
     }
     const doc = await this.documentFileService.create(createDocumentFile)
+    if (!doc) {
+      const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
+      //{...lastConversation, badResponseCount: 5}
+      await this.updateMessage(lastConversation, errorMessage)
+      return
+    }
+
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
     if (ocrResponse === 0) {
       const errorMessage = "Le numéro n'a pas pu être récupérer.\nRéessayer."
@@ -264,18 +273,25 @@ export class RabbitmqService {
     const whaPhoneNumber = newMessage.messages[0].from
     await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 3)
     const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    console.log('checkingImageValidityResponse', checkImageValidityResponse)
     if (checkImageValidityResponse === 0) return
 
+    const imageUrl =
+      `${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH.replace('{id}', newMessage.messages[0].image.id)}`
     const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
+      dataImageUrl: imageUrl,
       documentSide: 'BACK',
       documentType: 'DRIVER_LICENSE',
       whaPhoneNumber,
     }
     const doc = await this.documentFileService.create(createDocumentFile)
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
+    if (!doc) {
+      const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
+      //{...lastConversation, badResponseCount: 5}
+      await this.updateMessage(lastConversation, errorMessage)
+      return
+    }
 
+    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
     if (ocrResponse === 0) {
       const errorMessage = "Une erreur s'est produite lors de la récupération."
       await this.updateMessage(lastConversation, errorMessage)
@@ -301,16 +317,24 @@ export class RabbitmqService {
     await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 4)
     const flowId = 1
     const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    console.log('checkingImageValidityResponse', checkImageValidityResponse)
     if (checkImageValidityResponse === 0) return
 
+    const imageUrl =
+      `${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH.replace('{id}', newMessage.messages[0].image.id)}`
     const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
+      dataImageUrl: imageUrl,
       documentSide: 'FRONT',
       documentType: 'CAR_REGISTRATION',
       whaPhoneNumber,
     }
     const doc = await this.documentFileService.create(createDocumentFile)
+    if (!doc) {
+      const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
+      //{...lastConversation, badResponseCount: 5}
+      await this.updateMessage(lastConversation, errorMessage)
+      return
+    }
+
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
     if (ocrResponse === 0) {
       const errorMessage = "Une erreur s'est produite lors de la récupération."

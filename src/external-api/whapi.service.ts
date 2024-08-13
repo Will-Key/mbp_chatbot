@@ -11,12 +11,12 @@ export class WhapiService {
   constructor(
     private readonly httpService: HttpService,
     private readonly requestLogService: RequestLogService,
-  ) {}
+  ) { }
 
   async sendMessage(message: SendMessageDto) {
     await lastValueFrom(
       this.httpService
-        .post(process.env.WHAPI_URL, message, {
+        .post(`${process.env.WHAPI_URL}/${process.env.WHAPI_SEND_MESSAGE_PATH}`, message, {
           headers: {
             Authorization: `Bearer ${process.env.WHAPI_TOKEN}`,
             accept: 'application/json',

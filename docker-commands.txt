@@ -1,0 +1,2 @@
+Access to a container: docker exec -it <container_name> /bin/bash
+Purge rabbitmq: rabbitmqadmin purge queue name=<queue_name>

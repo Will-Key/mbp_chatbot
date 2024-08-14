@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { ClientProxy } from '@nestjs/microservices'
+import { ClientProxy, RmqContext } from '@nestjs/microservices'
 import {
   WHAPI_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
@@ -64,7 +64,7 @@ export class RabbitmqService {
   async pushMessageReceived(message: NewMessageWebhookDto) {
     try {
       await firstValueFrom(
-        this.whapiReceivedQueueClient.emit(WHAPI_RECEIVED_QUEUE_NAME, message),
+        this.whapiReceivedQueueClient.send(WHAPI_RECEIVED_QUEUE_NAME, message),
       )
       this.logger.log(
         `Push received message to queue: ${JSON.stringify(message)}`,
@@ -74,11 +74,12 @@ export class RabbitmqService {
     }
   }
 
-  async handleMessageReceived(message: NewMessageWebhookDto) {
-    await this.newMessage(message)
+  async handleMessageReceived(message: NewMessageWebhookDto, ctx: RmqContext) {
+    this.logger.log('handle new message', message.messages[0].text.body)
+    await this.newMessage(message, ctx)
   }
 
-  async newMessage(newMessage: NewMessageWebhookDto) {
+  async newMessage(newMessage: NewMessageWebhookDto, ctx: RmqContext) {
     const conversations =
       await this.conversationService.findManyByWhaPhoneNumber(
         newMessage.messages[0].from,
@@ -90,10 +91,11 @@ export class RabbitmqService {
         lastConversation,
         newMessage,
         conversations,
+        ctx
       )
     } else {
-      await this.initConversationHistory(newMessage)
-      await this.handleNewConversation(newMessage)
+      //await this.initConversationHistory(newMessage)
+      await this.handleNewConversation(newMessage, ctx)
     }
   }
 
@@ -105,49 +107,51 @@ export class RabbitmqService {
     })
   }
 
-  private async handleNewConversation(newMessage: NewMessageWebhookDto) {
+  private async handleNewConversation(newMessage: NewMessageWebhookDto, ctx: RmqContext) {
+    this.ackMessage(ctx)
     const initialStep = await this.stepService.findOneByLevel(0)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
       nextMessage: initialStep.message,
       stepId: initialStep.id,
-    })
+    }, ctx)
   }
 
   private async handleExistingConversation(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversations: Conversation[],
+    ctx: RmqContext
   ) {
     if (lastConversation.step.level === 0) {
       if (newMessage.messages[0].text.body.includes('1')) {
-        await this.startFlow(newMessage, 1)
+        await this.startFlow(newMessage, 1, ctx)
       } else if (newMessage.messages[0].text.body.includes('2')) {
-        await this.startFlow(newMessage, 2)
+        await this.startFlow(newMessage, 2, ctx)
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'incorrectChoice',
         )
-        await this.updateMessage(lastConversation, errorMessage)
+        await this.updateMessage(lastConversation, errorMessage, ctx)
       }
     } else if (lastConversation.step.flowId === 1) {
-      await this.getFirstFlowSteps(lastConversation, newMessage)
+      await this.getFirstFlowSteps(lastConversation, newMessage, ctx)
     } else if (lastConversation.step.flowId === 2) {
-      await this.getSecondFlowSteps(lastConversation, newMessage, conversations)
+      await this.getSecondFlowSteps(lastConversation, newMessage, conversations, ctx)
     }
   }
 
-  private async startFlow(newMessage: NewMessageWebhookDto, flowId: number) {
+  private async startFlow(newMessage: NewMessageWebhookDto, flowId: number, ctx: RmqContext) {
     const nextStep = await this.stepService.findOneBylevelAndFlowId(1, flowId)
-    await this.setFlowChoosenConversationHistory(newMessage, nextStep.id)
+    //await this.setFlowChoosenConversationHistory(newMessage, nextStep.id)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
-    })
+    }, ctx)
   }
 
   private async setFlowChoosenConversationHistory(newMessage: NewMessageWebhookDto, stepId: number) {
@@ -162,39 +166,41 @@ export class RabbitmqService {
   private async getFirstFlowSteps(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
+    ctx: RmqContext
   ) {
     switch (lastConversation.step.level) {
       case 1:
-        await this.handlePhoneNumberStep(lastConversation, newMessage)
+        await this.handlePhoneNumberStep(lastConversation, newMessage, ctx)
         break
       case 2:
-        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
+        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage, ctx)
         break
       case 3:
-        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+        await this.handleDriverLicenseBackUpload(lastConversation, newMessage, ctx)
         break
       case 4:
-        await this.handleCarRegistrationUpload(lastConversation, newMessage)
+        await this.handleCarRegistrationUpload(lastConversation, newMessage, ctx)
         break
       default:
-        this.updateMessage(lastConversation, newMessage.messages[0].text.body)
+        this.updateMessage(lastConversation, newMessage.messages[0].text.body, ctx)
     }
   }
 
   private async handlePhoneNumberStep(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
+    ctx: RmqContext
   ) {
     const flowId = 1
     const whaPhoneNumber = newMessage.messages[0].from
-    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 1)
+    //await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 1)
     const incomingMessage = newMessage.messages[0].text.body.trim()
     if (incomingMessage.length !== 10) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
         'incorrectChoice',
       )
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return
     }
     const driver =
@@ -203,7 +209,7 @@ export class RabbitmqService {
       )
     if (driver) {
       const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return
     }
 
@@ -216,23 +222,24 @@ export class RabbitmqService {
       convMessage: `225${incomingMessage}`,//newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
-    })
+    }, ctx)
   }
 
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto
+    newMessage: NewMessageWebhookDto,
+    ctx: RmqContext
   ) {
     const flowId = 1
     const whaPhoneNumber = newMessage.messages[0].from
-    await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 2)
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
+    //await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 2)
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage, ctx)
     if (checkImageValidityResponse === 0) return
 
-    const imageUrl =
-      `${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH.replace('{id}', newMessage.messages[0].image.id)}`
+    const link = await this.getImageLink(newMessage.messages[0].image.id)
+    console.log('front license link', link)
     const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: imageUrl,
+      dataImageUrl: link,
       documentSide: 'FRONT',
       documentType: 'DRIVER_LICENSE',
       whaPhoneNumber,
@@ -241,15 +248,15 @@ export class RabbitmqService {
     if (!doc) {
       const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
       //{...lastConversation, badResponseCount: 5}
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return
     }
 
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
     if (ocrResponse === 0) {
-      const errorMessage = "Le numéro n'a pas pu être récupérer.\nRéessayer."
+      const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
       //{...lastConversation, badResponseCount: 5}
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return
     }
 
@@ -262,23 +269,24 @@ export class RabbitmqService {
       convMessage: newMessage.messages[0].image.link,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
-    })
+    }, ctx)
   }
 
   private async handleDriverLicenseBackUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
+    ctx: RmqContext
   ) {
     const flowId = 1
     const whaPhoneNumber = newMessage.messages[0].from
     await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 3)
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage, ctx)
     if (checkImageValidityResponse === 0) return
 
-    const imageUrl =
-      `${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH.replace('{id}', newMessage.messages[0].image.id)}`
+    const link = await this.getImageLink(newMessage.messages[0].image.id)
+    console.log('back license link', link)
     const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: imageUrl,
+      dataImageUrl: link,
       documentSide: 'BACK',
       documentType: 'DRIVER_LICENSE',
       whaPhoneNumber,
@@ -287,14 +295,14 @@ export class RabbitmqService {
     if (!doc) {
       const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
       //{...lastConversation, badResponseCount: 5}
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return
     }
 
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
     if (ocrResponse === 0) {
-      const errorMessage = "Une erreur s'est produite lors de la récupération."
-      await this.updateMessage(lastConversation, errorMessage)
+      const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
+      await this.updateMessage(lastConversation, errorMessage, ctx)
     }
 
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -306,23 +314,24 @@ export class RabbitmqService {
       convMessage: newMessage.messages[0].image.link,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
-    })
+    }, ctx)
   }
 
   private async handleCarRegistrationUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
+    ctx: RmqContext
   ) {
     const whaPhoneNumber = newMessage.messages[0].from
     await this.updateHistoryConversationUpdateTime(whaPhoneNumber, 4)
     const flowId = 1
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage, ctx)
     if (checkImageValidityResponse === 0) return
 
-    const imageUrl =
-      `${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH.replace('{id}', newMessage.messages[0].image.id)}`
+    const link = await this.getImageLink(newMessage.messages[0].image.id)
+    console.log('car registration link', link)
     const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: imageUrl,
+      dataImageUrl: link,
       documentSide: 'FRONT',
       documentType: 'CAR_REGISTRATION',
       whaPhoneNumber,
@@ -331,14 +340,14 @@ export class RabbitmqService {
     if (!doc) {
       const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
       //{...lastConversation, badResponseCount: 5}
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return
     }
 
     const ocrResponse = await this.ocrSpaceService.sendFile(doc)
     if (ocrResponse === 0) {
-      const errorMessage = "Une erreur s'est produite lors de la récupération."
-      await this.updateMessage(lastConversation, errorMessage)
+      const errorMessage = "L'image n'a pas pu être traiter.\nRéessayer."
+      await this.updateMessage(lastConversation, errorMessage, ctx)
     }
 
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -350,11 +359,17 @@ export class RabbitmqService {
       convMessage: newMessage.messages[0].image.link,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
-    })
+    }, ctx)
 
     // TODO: Add a cron for send data to yango 
     // Or do it when we are on the last step
     //await this.sendDataToYango(newMessage)
+  }
+
+  private async getImageLink(imageId: string): Promise<string> {
+    const medias = await this.whapiService.getMedias()
+    console.log('medias', medias)
+    return medias.find(media => media.id === imageId).link
   }
 
   private async updateHistoryConversationUpdateTime(whaPhoneNumber: string, stepId: number) {
@@ -366,19 +381,23 @@ export class RabbitmqService {
     )
   }
 
-  private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
+  private async checkImageValidity(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+    ctx: RmqContext
+  ) {
 
     if (newMessage.messages[0].type !== StepExpectedResponseType.image ||
       !newMessage.messages[0].image.id ||
       !newMessage.messages[0].image.preview.includes('data:image')) {
       const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return 0
     }
 
     if (newMessage.messages[0].image.file_size > 1000000) {
       const errorMessage = this.getErrorMessage(lastConversation, 'maxSize')
-      await this.updateMessage(lastConversation, errorMessage)
+      await this.updateMessage(lastConversation, errorMessage, ctx)
       return 0
     }
 
@@ -387,6 +406,7 @@ export class RabbitmqService {
 
   private async sendDataToYango(
     newMessage: NewMessageWebhookDto,
+    ctx: RmqContext
   ) {
     //const nextStep = await this.stepService.findOneBylevelAndFlowId(19, 1)
     const whaPhoneNumber = newMessage.messages[0].from
@@ -436,30 +456,32 @@ export class RabbitmqService {
       convMessage: newMessage.messages[0].text.body,
       nextMessage,
       stepId,
-    })
+    }, ctx)
   }
 
   private async getSecondFlowSteps(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
     conversations: Conversation[],
+    ctx: RmqContext
   ) {
     switch (conversations.length) {
       case 2:
-        await this.handlePhoneNumberStep(lastConversation, newMessage)
+        await this.handlePhoneNumberStep(lastConversation, newMessage, ctx)
         break
       case 3:
       case 7:
-        await this.handleSecondFlowFinalStep(newMessage, 2)
+        await this.handleSecondFlowFinalStep(newMessage, 2, ctx)
         break
       default:
-        this.updateMessage(lastConversation, newMessage.messages[0].text.body)
+        this.updateMessage(lastConversation, newMessage.messages[0].text.body, ctx)
     }
   }
 
   private async handleSecondFlowFinalStep(
     newMessage: NewMessageWebhookDto,
     flowId: number,
+    ctx: RmqContext
   ) {
     const nextStep = await this.stepService.findOneBylevelAndFlowId(19, flowId)
     await this.saveMessage({
@@ -467,7 +489,7 @@ export class RabbitmqService {
       convMessage: newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
-    })
+    }, ctx)
   }
 
   private async saveMessage({
@@ -480,7 +502,7 @@ export class RabbitmqService {
     convMessage: string
     nextMessage: string
     stepId: number
-  }) {
+  }, ctx: RmqContext) {
     const newConv: CreateConversationDto = {
       whaPhoneNumber,
       message: convMessage,
@@ -488,15 +510,18 @@ export class RabbitmqService {
     }
     const conv = await this.conversationService.create(newConv)
     this.logger.log('conv', conv)
-    if (conv)
+    if (conv) {
       await this.pushMessageToSent({
         to: whaPhoneNumber,
         body: nextMessage,
         typing_time: 5,
       })
+      this.ackMessage(ctx)
+    }
+    this.ackMessage(ctx)
   }
 
-  private async updateMessage(conversation: Conversation, message: string) {
+  private async updateMessage(conversation: Conversation, message: string, ctx: RmqContext) {
     const updatedConversation = await this.conversationService.update(
       conversation.id,
       {
@@ -520,6 +545,7 @@ export class RabbitmqService {
         HistoryConversationStatus.FAIL,
         HistoryConversationReasonForEnding.ERROR
       )
+      this.ackMessage(ctx)
       return
     }
     this.handleMessageToSent({
@@ -527,6 +553,14 @@ export class RabbitmqService {
       body: message,
       typing_time: 5,
     })
+    this.ackMessage(ctx)
+  }
+
+  private ackMessage(ctx: RmqContext) {
+    const channel = ctx.getChannelRef()
+    const originaMsg = ctx.getMessage()
+
+    channel.ack(originaMsg)
   }
 
   private async updateConversationHistoryStatusAndReason(
@@ -556,7 +590,7 @@ export class RabbitmqService {
   async pushMessageToSent(message: SendMessageDto) {
     try {
       await firstValueFrom(
-        this.whapiSentQueueClient.emit(WHAPI_SENT_QUEUE_NAME, message),
+        this.whapiSentQueueClient.send(WHAPI_SENT_QUEUE_NAME, message),
       )
       this.logger.log(`Emitting message to queue: ${JSON.stringify(message)}`)
     } catch (error) {
@@ -575,7 +609,7 @@ export class RabbitmqService {
   async pushDocument(doc: DocumentFile) {
     try {
       await firstValueFrom(
-        this.whapiSentQueueClient.emit(OCR_SENT_QUEUE_NAME, doc),
+        this.whapiSentQueueClient.send(OCR_SENT_QUEUE_NAME, doc),
       )
       this.logger.log(`Emitting doc to queue: ${JSON.stringify(doc)}`)
     } catch (error) {

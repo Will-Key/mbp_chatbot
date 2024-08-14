@@ -25,6 +25,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         transport: Transport.RMQ,
         options: {
           urls: ['amqp://localhost:5672'],
+          noAck: false,
           queue: WHAPI_RECEIVED_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -36,6 +37,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         transport: Transport.RMQ,
         options: {
           urls: ['amqp://localhost:5672'],
+          noAck: false,
           queue: WHAPI_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -47,6 +49,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         transport: Transport.RMQ,
         options: {
           urls: ['amqp://localhost:5672'],
+          noAck: false,
           queue: OCR_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -58,6 +61,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         transport: Transport.RMQ,
         options: {
           urls: ['amqp://localhost:5672'],
+          noAck: false,
           queue: OCR_RECEIVED_QUEUE_NAME,
           queueOptions: {
             durable: true,

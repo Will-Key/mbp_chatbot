@@ -5,7 +5,7 @@ import {
   WHAPI_RECEIVED_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
-import { EventPattern, Payload } from '@nestjs/microservices'
+import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices'
 import { SendMessageDto } from '../external-api/dto/send-message.dto'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import { DocumentFile } from '@prisma/client'
@@ -13,21 +13,22 @@ import { DocumentFile } from '@prisma/client'
 @Controller()
 export class RabbitmqController {
   private readonly logger = new Logger(RabbitmqController.name)
-  constructor(private readonly rabbitmqService: RabbitmqService) {}
+  constructor(private readonly rabbitmqService: RabbitmqService) { }
 
-  @EventPattern(WHAPI_RECEIVED_QUEUE_NAME)
-  async handleMessageReceived(@Payload() data: NewMessageWebhookDto) {
+  @MessagePattern(WHAPI_RECEIVED_QUEUE_NAME)
+  async handleMessageReceived(@Payload() data: NewMessageWebhookDto, @Ctx() ctx: RmqContext) {
     try {
-      //this.logger.log(`New message received: ${JSON.stringify(data)}`)
+      this.logger.log(`New message received: ${!data.messages[0].from_me}`)
       if (!data.messages[0].from_me)
-        await this.rabbitmqService.handleMessageReceived(data)
+        await this.rabbitmqService.handleMessageReceived(data, ctx)
+      else this.logger.error('Message sent by the bot')
     } catch (error) {
       this.logger.error(`Error processing message received: ${error}`)
     }
   }
 
-  @EventPattern(WHAPI_SENT_QUEUE_NAME)
-  async handleAlert(@Payload() data: SendMessageDto) {
+  @MessagePattern(WHAPI_SENT_QUEUE_NAME)
+  async handleMessageToSent(@Payload() data: SendMessageDto) {
     try {
       this.logger.log(`New message to send: ${data}`)
       await this.rabbitmqService.handleMessageToSent(data)
@@ -36,7 +37,7 @@ export class RabbitmqController {
     }
   }
 
-  @EventPattern(OCR_SENT_QUEUE_NAME)
+  @MessagePattern(OCR_SENT_QUEUE_NAME)
   async handleToFile(@Payload() data: DocumentFile) {
     try {
       this.logger.log(`New message to send: ${data}`)

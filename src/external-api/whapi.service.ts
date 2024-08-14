@@ -2,6 +2,7 @@ import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { catchError, lastValueFrom, map } from 'rxjs'
 import { SendMessageDto } from './dto/send-message.dto'
+import { FileDto, GetMediaResponseDto } from './dto/get-media-response.dto'
 import { RequestLogService } from '../request-log/request-log.service'
 
 @Injectable()
@@ -17,16 +18,12 @@ export class WhapiService {
     await lastValueFrom(
       this.httpService
         .post(`${process.env.WHAPI_URL}/${process.env.WHAPI_SEND_MESSAGE_PATH}`, message, {
-          headers: {
-            Authorization: `Bearer ${process.env.WHAPI_TOKEN}`,
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
+          headers: this.getHeaders,
           timeout: 15000,
         })
         .pipe(
           map(async (response) => {
-            this.logger.log(`whapi response: ${response}`)
+            this.logger.log(`whapi response: ${JSON.stringify(response)}`)
             await this.requestLogService.create({
               direction: 'OUT',
               status: 'SUCCESS',
@@ -47,5 +44,47 @@ export class WhapiService {
           }),
         ),
     )
+  }
+
+  async getMedias(): Promise<FileDto[]> {
+    return await lastValueFrom(
+      this.httpService
+        .get<GetMediaResponseDto>(`${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH}`, {
+          headers: this.getHeaders,
+          timeout: 15000,
+        })
+        .pipe(
+          map(async (response) => {
+            this.logger.log(`whapi gey response: ${response}`)
+            await this.requestLogService.create({
+              direction: 'OUT',
+              status: 'SUCCESS',
+              initiator: 'MBP',
+              data: '',
+              response: response.statusText,
+            })
+            return response.data.files
+          }),
+          catchError(async (err) => {
+            this.logger.log(`whapi get error: ${err}`)
+            await this.requestLogService.create({
+              direction: 'OUT',
+              status: 'FAIL',
+              initiator: 'MBP',
+              data: '',
+              response: JSON.stringify(err),
+            })
+            return []
+          }),
+        ),
+    )
+  }
+
+  private get getHeaders() {
+    return {
+      Authorization: `Bearer ${process.env.WHAPI_TOKEN}`,
+      accept: 'application/json',
+      'content-type': 'application/json',
+    }
   }
 }

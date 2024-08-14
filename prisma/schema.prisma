@@ -211,3 +211,10 @@ model HistoryConversation {
   status         HistoryConversationStatus
   reason         HistoryConversationReasonForEnding
 }
+
+model ManualQueue {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  message   String
+}

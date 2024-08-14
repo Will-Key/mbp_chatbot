@@ -38,7 +38,7 @@ async function bootstrap() {
       queue: OCR_RECEIVED_QUEUE_NAME,
     },
   })
-  await app.startAllMicroservices()
+  //await app.startAllMicroservices()
   await app.listen(3000)
 }
 bootstrap()

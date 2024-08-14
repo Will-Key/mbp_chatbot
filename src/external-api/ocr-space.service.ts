@@ -166,7 +166,7 @@ export class OcrSpaceService {
     const color = responseLines[colorIndex].LineText
     const year = responseLines[yearIndex].LineText.split('-')[2]
 
-    if (plateNumber.length < 6) return 0
+    if (plateNumber.length < 6 && !plateNumber.split('').some(v => typeof v === 'number')) return 0
 
     try {
       const carInfo = await this.carInfoService.create({

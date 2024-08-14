@@ -23,7 +23,7 @@ export class WhapiService {
         })
         .pipe(
           map(async (response) => {
-            this.logger.log(`whapi response: ${JSON.stringify(response)}`)
+            this.logger.log(`whapi response: `)
             await this.requestLogService.create({
               direction: 'OUT',
               status: 'SUCCESS',
@@ -33,7 +33,7 @@ export class WhapiService {
             })
           }),
           catchError(async (err) => {
-            this.logger.log(`whapi error: ${err}`)
+            this.logger.log(`whapi error:`, JSON.stringify(err))
             await this.requestLogService.create({
               direction: 'OUT',
               status: 'FAIL',
@@ -49,7 +49,7 @@ export class WhapiService {
   async getMedias(): Promise<FileDto[]> {
     return await lastValueFrom(
       this.httpService
-        .get<GetMediaResponseDto>(`${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAHE_PATH}`, {
+        .get<GetMediaResponseDto>(`${process.env.WHAPI_URL}/${process.env.WHAPI_GET_IMAGE_PATH}`, {
           headers: this.getHeaders,
           timeout: 15000,
         })
@@ -75,6 +75,38 @@ export class WhapiService {
               response: JSON.stringify(err),
             })
             return []
+          }),
+        ),
+    )
+  }
+
+  async deleteMessage(id: string) {
+    await lastValueFrom(
+      this.httpService
+        .delete(`${process.env.WHAPI_URL}/messages/${id}`, {
+          headers: this.getHeaders,
+          timeout: 15000,
+        })
+        .pipe(
+          map(async (response) => {
+            this.logger.log(`whapi delete response: ${response}`)
+            await this.requestLogService.create({
+              direction: 'OUT',
+              status: 'SUCCESS',
+              initiator: 'MBP',
+              data: '',
+              response: response.statusText,
+            })
+          }),
+          catchError(async (err) => {
+            this.logger.log(`whapi get error: ${err}`)
+            await this.requestLogService.create({
+              direction: 'OUT',
+              status: 'FAIL',
+              initiator: 'MBP',
+              data: '',
+              response: JSON.stringify(err),
+            })
           }),
         ),
     )

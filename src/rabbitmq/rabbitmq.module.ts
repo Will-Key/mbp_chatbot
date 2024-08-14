@@ -19,56 +19,52 @@ import { HistoryConversationService } from '../history-conversation/history-conv
 
 @Module({
   imports: [
-    ClientsModule.register([
-      {
-        name: 'WHAPI_RECEIVED_SERVICE',
-        transport: Transport.RMQ,
-        options: {
-          urls: ['amqp://localhost:5672'],
-          noAck: false,
-          queue: WHAPI_RECEIVED_QUEUE_NAME,
-          queueOptions: {
-            durable: true,
-          },
-        },
-      },
-      {
-        name: 'WHAPI_SENT_SERVICE',
-        transport: Transport.RMQ,
-        options: {
-          urls: ['amqp://localhost:5672'],
-          noAck: false,
-          queue: WHAPI_SENT_QUEUE_NAME,
-          queueOptions: {
-            durable: true,
-          },
-        },
-      },
-      {
-        name: 'OCR_SENT_QUEUE_NAME',
-        transport: Transport.RMQ,
-        options: {
-          urls: ['amqp://localhost:5672'],
-          noAck: false,
-          queue: OCR_SENT_QUEUE_NAME,
-          queueOptions: {
-            durable: true,
-          },
-        },
-      },
-      {
-        name: 'OCR_RECEIVED_QUEUE_NAME',
-        transport: Transport.RMQ,
-        options: {
-          urls: ['amqp://localhost:5672'],
-          noAck: false,
-          queue: OCR_RECEIVED_QUEUE_NAME,
-          queueOptions: {
-            durable: true,
-          },
-        },
-      },
-    ]),
+    // ClientsModule.register([
+    //   {
+    //     name: 'WHAPI_RECEIVED_SERVICE',
+    //     transport: Transport.RMQ,
+    //     options: {
+    //       urls: ['amqp://localhost:5672'],
+    //       queue: WHAPI_RECEIVED_QUEUE_NAME,
+    //       queueOptions: {
+    //         durable: true,
+    //       },
+    //     },
+    //   },
+    //   {
+    //     name: 'WHAPI_SENT_SERVICE',
+    //     transport: Transport.RMQ,
+    //     options: {
+    //       urls: ['amqp://localhost:5672'],
+    //       queue: WHAPI_SENT_QUEUE_NAME,
+    //       queueOptions: {
+    //         durable: true,
+    //       },
+    //     },
+    //   },
+    //   {
+    //     name: 'OCR_SENT_QUEUE_NAME',
+    //     transport: Transport.RMQ,
+    //     options: {
+    //       urls: ['amqp://localhost:5672'],
+    //       queue: OCR_SENT_QUEUE_NAME,
+    //       queueOptions: {
+    //         durable: true,
+    //       },
+    //     },
+    //   },
+    //   {
+    //     name: 'OCR_RECEIVED_QUEUE_NAME',
+    //     transport: Transport.RMQ,
+    //     options: {
+    //       urls: ['amqp://localhost:5672'],
+    //       queue: OCR_RECEIVED_QUEUE_NAME,
+    //       queueOptions: {
+    //         durable: true,
+    //       },
+    //     },
+    //   },
+    // ]),
     ExternalApiModule,
   ],
   controllers: [RabbitmqController],

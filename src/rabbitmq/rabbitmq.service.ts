@@ -442,6 +442,7 @@ export class RabbitmqService {
       },
     )
     if (updatedConversation.badResponseCount >= 2) {
+      await this.deleteAllConversations(conversation)
       const errorStep = await this.stepService.findOneByLevel(15)
       // Push message to whapi queue to demand to driver to go on MBP local
       this.handleMessageToSent({
@@ -458,7 +459,7 @@ export class RabbitmqService {
     })
   }
 
-  private async deleteAllConversation(conversation: Conversation) {
+  private async deleteAllConversations(conversation: Conversation) {
     await this.conversationService.removeAllByPhoneNumber(
       conversation.whaPhoneNumber,
     )

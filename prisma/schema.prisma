@@ -186,3 +186,14 @@ model DriverCar {
   idDriver  Int      @unique
   idCar     Int      @unique
 }
+
+model HistoryConversation {
+  id             Int                                @id @default(autoincrement())
+  createdAt      DateTime                           @default(now())
+  updatedAt      DateTime                           @updatedAt
+  whaPhoneNumber String
+  stepId         Int?
+  step           Step?                              @relation(fields: [stepId], references: [id])
+  status         HistoryConversationStatus
+  reason         HistoryConversationReasonForEnding
+}

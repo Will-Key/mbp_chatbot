@@ -194,112 +194,96 @@ export class RabbitmqService {
     })
   }
 
+  private async handleDocumentUpload(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+    documentSide: 'FRONT' | 'BACK',
+    documentType: 'DRIVER_LICENSE' | 'CAR_REGISTRATION',
+    nextStepLevel: number,
+    flowId: number = 1
+  ) {
+    const whaPhoneNumber = newMessage.messages[0].from;
+
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage);
+    if (checkImageValidityResponse === 0) return;
+
+    const link = newMessage.messages[0].image.link
+    this.logger.log(`${documentType} ${documentSide} link`, link);
+
+    const createDocumentFile: CreateDocumentFileDto = {
+      dataImageUrl: link,
+      documentSide,
+      documentType,
+      whaPhoneNumber,
+    };
+
+    const doc = await this.documentFileService.create(createDocumentFile);
+    if (!doc) {
+      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      await this.updateMessage(lastConversation, errorMessage);
+      return;
+    }
+
+    const ocrResponse = await this.ocrSpaceService.sendFile(doc);
+    if (ocrResponse === 0) {
+      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      await this.updateMessage(lastConversation, errorMessage);
+      return;
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      nextStepLevel,
+      flowId,
+    );
+
+    await this.saveMessage({
+      whaPhoneNumber,
+      convMessage: newMessage.messages[0].image.link,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    });
+  }
+
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto
   ) {
-    const flowId = 1
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    if (checkImageValidityResponse === 0) return
-
-    const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
-      documentSide: 'FRONT',
-      documentType: 'DRIVER_LICENSE',
-      whaPhoneNumber: newMessage.messages[0].from,
-    }
-    const doc = await this.documentFileService.create(createDocumentFile)
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
-    if (ocrResponse === 0) {
-      const errorMessage = "Le numéro n'a pas pu être récupérer.\nRéessayer."
-      //{...lastConversation, badResponseCount: 5}
-      await this.updateMessage(lastConversation, errorMessage)
-      return
-    }
-
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      lastConversation.step.level + 1,
-      flowId,
-    )
-    await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].image.link,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
-    })
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'FRONT',
+      'DRIVER_LICENSE',
+      lastConversation.step.level + 1
+    );
   }
 
   private async handleDriverLicenseBackUpload(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto,
+    newMessage: NewMessageWebhookDto
   ) {
-    const flowId = 1
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    console.log('checkingImageValidityResponse', checkImageValidityResponse)
-    if (checkImageValidityResponse === 0) return
-
-    const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
-      documentSide: 'BACK',
-      documentType: 'DRIVER_LICENSE',
-      whaPhoneNumber: newMessage.messages[0].from,
-    }
-    const doc = await this.documentFileService.create(createDocumentFile)
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
-
-    if (ocrResponse === 0) {
-      const errorMessage = "Une erreur s'est produite lors de la récupération."
-      await this.updateMessage(lastConversation, errorMessage)
-    }
-
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      lastConversation.step.level + 1,
-      flowId,
-    )
-    await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].image.link,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
-    })
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'BACK',
+      'DRIVER_LICENSE',
+      lastConversation.step.level + 1
+    );
   }
 
   private async handleCarRegistrationUpload(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto,
+    newMessage: NewMessageWebhookDto
   ) {
-    const flowId = 1
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    console.log('checkingImageValidityResponse', checkImageValidityResponse)
-    if (checkImageValidityResponse === 0) return
-
-    const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
-      documentSide: 'FRONT',
-      documentType: 'CAR_REGISTRATION',
-      whaPhoneNumber: newMessage.messages[0].from,
-    }
-    const doc = await this.documentFileService.create(createDocumentFile)
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
-    if (ocrResponse === 0) {
-      const errorMessage = "Une erreur s'est produite lors de la récupération."
-      await this.updateMessage(lastConversation, errorMessage)
-    }
-
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      19,
-      flowId,
-    )
-    await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].image.link,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
-    })
-
-    // TODO: Add a cron for send data to yango 
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'FRONT',
+      'CAR_REGISTRATION',
+      19
+    );
+    // TODO: Add a cron for sending data to Yango 
     // Or do it when we are on the last step
-    //await this.sendDataToYango(newMessage)
+    // await this.sendDataToYango(newMessage);
   }
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {

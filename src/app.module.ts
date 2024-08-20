@@ -41,7 +41,7 @@ import { HistoryConversationModule } from './history-conversation/history-conver
   providers: [AppService, PrismaService],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private readonly seederService: SeederService) {}
+  constructor(private readonly seederService: SeederService) { }
 
   async onModuleInit() {
     await this.seederService.seed()

@@ -466,12 +466,13 @@ export class RabbitmqService {
   }
 
   private async editHistoryConversation(payload: CreateHistoryConversationDto) {
-    if (payload.stepId === 0) {
+    if (payload.stepId === 1) {
       await this.historyConversationService.create(payload)
     } else {
+      const stepId = payload.reason === 'ERROR' ? payload.stepId : payload.stepId - 1
       const history = await this.historyConversationService.findOneByWhaPhoneNumberAndStepId(
         payload.whaPhoneNumber,
-        payload.stepId - 1
+        stepId
       )
       await this.historyConversationService.update(history.id, payload)
     }

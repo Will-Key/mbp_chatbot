@@ -17,6 +17,7 @@ import { WebhookModule } from './webhook/webhook.module'
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module'
 import { ExternalApiModule } from './external-api/external-api.module'
 import { StepBadResponseMessageModule } from './step-bad-response-message/step-bad-response-message.module';
+import { HistoryConversationModule } from './history-conversation/history-conversation.module';
 
 @Module({
   imports: [
@@ -34,12 +35,13 @@ import { StepBadResponseMessageModule } from './step-bad-response-message/step-b
     RabbitmqModule,
     ExternalApiModule,
     StepBadResponseMessageModule,
+    HistoryConversationModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private readonly seederService: SeederService) {}
+  constructor(private readonly seederService: SeederService) { }
 
   async onModuleInit() {
     await this.seederService.seed()

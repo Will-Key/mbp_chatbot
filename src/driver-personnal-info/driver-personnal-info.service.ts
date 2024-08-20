@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { CreateDriverPersonnalInfoDto } from './dto/create-driver-personnal-info.dto'
 import { UpdateDriverPersonnalInfoDto } from './dto/update-driver-personnal-info.dto'
-import { PrismaService } from '../../prisma/prisma.service'
+import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class DriverPersonnalInfoService {

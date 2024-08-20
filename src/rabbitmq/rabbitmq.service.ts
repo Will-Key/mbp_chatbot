@@ -12,6 +12,8 @@ import { ConversationService } from '../conversation/conversation.service'
 import {
   Conversation,
   DocumentFile,
+  HistoryConversationReasonForEnding,
+  HistoryConversationStatus,
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
 } from '@prisma/client'
@@ -27,6 +29,8 @@ import { ConversationType } from '../shared/types'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { YangoService } from '../external-api/yango.service'
+import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
+import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 
 @Injectable()
 export class RabbitmqService {
@@ -44,7 +48,8 @@ export class RabbitmqService {
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
-    private readonly yangoService: YangoService
+    private readonly yangoService: YangoService,
+    private readonly historyConversationService: HistoryConversationService
   ) { }
 
   onModuleInit() {
@@ -115,7 +120,7 @@ export class RabbitmqService {
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
-          'incorrectChoice',
+          'equalLength',
         )
         await this.updateMessage(lastConversation, errorMessage)
       }
@@ -167,7 +172,7 @@ export class RabbitmqService {
     if (incomingMessage.length !== 10) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
-        'incorrectChoice',
+        'equalLength',
       )
       await this.updateMessage(lastConversation, errorMessage)
       return
@@ -194,112 +199,96 @@ export class RabbitmqService {
     })
   }
 
+  private async handleDocumentUpload(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+    documentSide: 'FRONT' | 'BACK',
+    documentType: 'DRIVER_LICENSE' | 'CAR_REGISTRATION',
+    nextStepLevel: number,
+    flowId: number = 1
+  ) {
+    const whaPhoneNumber = newMessage.messages[0].from;
+
+    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage);
+    if (checkImageValidityResponse === 0) return;
+
+    const link = newMessage.messages[0].image.link
+    this.logger.log(`${documentType} ${documentSide} link`, link);
+
+    const createDocumentFile: CreateDocumentFileDto = {
+      dataImageUrl: link,
+      documentSide,
+      documentType,
+      whaPhoneNumber,
+    };
+
+    const doc = await this.documentFileService.create(createDocumentFile);
+    if (!doc) {
+      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      await this.updateMessage(lastConversation, errorMessage);
+      return;
+    }
+
+    const ocrResponse = await this.ocrSpaceService.sendFile(doc);
+    if (ocrResponse === 0) {
+      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      await this.updateMessage(lastConversation, errorMessage);
+      return;
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      nextStepLevel,
+      flowId,
+    );
+
+    await this.saveMessage({
+      whaPhoneNumber,
+      convMessage: newMessage.messages[0].image.link,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    });
+  }
+
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto
   ) {
-    const flowId = 1
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    if (checkImageValidityResponse === 0) return
-
-    const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
-      documentSide: 'FRONT',
-      documentType: 'DRIVER_LICENSE',
-      whaPhoneNumber: newMessage.messages[0].from,
-    }
-    const doc = await this.documentFileService.create(createDocumentFile)
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
-    if (ocrResponse === 0) {
-      const errorMessage = "Le numéro n'a pas pu être récupérer.\nRéessayer."
-      //{...lastConversation, badResponseCount: 5}
-      await this.updateMessage(lastConversation, errorMessage)
-      return
-    }
-
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      lastConversation.step.level + 1,
-      flowId,
-    )
-    await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].image.link,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
-    })
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'FRONT',
+      'DRIVER_LICENSE',
+      lastConversation.step.level + 1
+    );
   }
 
   private async handleDriverLicenseBackUpload(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto,
+    newMessage: NewMessageWebhookDto
   ) {
-    const flowId = 1
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    console.log('checkingImageValidityResponse', checkImageValidityResponse)
-    if (checkImageValidityResponse === 0) return
-
-    const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
-      documentSide: 'BACK',
-      documentType: 'DRIVER_LICENSE',
-      whaPhoneNumber: newMessage.messages[0].from,
-    }
-    const doc = await this.documentFileService.create(createDocumentFile)
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
-
-    if (ocrResponse === 0) {
-      const errorMessage = "Une erreur s'est produite lors de la récupération."
-      await this.updateMessage(lastConversation, errorMessage)
-    }
-
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      lastConversation.step.level + 1,
-      flowId,
-    )
-    await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].image.link,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
-    })
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'BACK',
+      'DRIVER_LICENSE',
+      lastConversation.step.level + 1
+    );
   }
 
   private async handleCarRegistrationUpload(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto,
+    newMessage: NewMessageWebhookDto
   ) {
-    const flowId = 1
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage)
-    console.log('checkingImageValidityResponse', checkImageValidityResponse)
-    if (checkImageValidityResponse === 0) return
-
-    const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: newMessage.messages[0].image.link,
-      documentSide: 'FRONT',
-      documentType: 'CAR_REGISTRATION',
-      whaPhoneNumber: newMessage.messages[0].from,
-    }
-    const doc = await this.documentFileService.create(createDocumentFile)
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc)
-    if (ocrResponse === 0) {
-      const errorMessage = "Une erreur s'est produite lors de la récupération."
-      await this.updateMessage(lastConversation, errorMessage)
-    }
-
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      19,
-      flowId,
-    )
-    await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].image.link,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
-    })
-
-    // TODO: Add a cron for send data to yango 
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'FRONT',
+      'CAR_REGISTRATION',
+      19
+    );
+    // TODO: Add a cron for sending data to Yango 
     // Or do it when we are on the last step
-    //await this.sendDataToYango(newMessage)
+    // await this.sendDataToYango(newMessage);
   }
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
@@ -425,12 +414,18 @@ export class RabbitmqService {
     }
     const conv = await this.conversationService.create(newConv)
     this.logger.log('conv', conv)
-    if (conv)
+    if (conv) {
+      await this.editHistoryConversation({
+        whaPhoneNumber: conv.whaPhoneNumber,
+        status: HistoryConversationStatus.IN_PROGRESS,
+        stepId: conv.stepId
+      })
       await this.pushMessageToSent({
         to: whaPhoneNumber,
         body: nextMessage,
         typing_time: 5,
       })
+    }
   }
 
   private async updateMessage(conversation: Conversation, message: string) {
@@ -442,6 +437,13 @@ export class RabbitmqService {
       },
     )
     if (updatedConversation.badResponseCount >= 2) {
+      await this.editHistoryConversation({
+        whaPhoneNumber: conversation.whaPhoneNumber,
+        status: HistoryConversationStatus.FAIL,
+        reason: HistoryConversationReasonForEnding.ERROR,
+        stepId: conversation.stepId
+      })
+      await this.deleteAllConversations(conversation)
       const errorStep = await this.stepService.findOneByLevel(15)
       // Push message to whapi queue to demand to driver to go on MBP local
       this.handleMessageToSent({
@@ -451,6 +453,12 @@ export class RabbitmqService {
       })
       return
     }
+    await this.editHistoryConversation({
+      whaPhoneNumber: conversation.whaPhoneNumber,
+      status: HistoryConversationStatus.IN_PROGRESS,
+      reason: HistoryConversationReasonForEnding.ERROR,
+      stepId: conversation.stepId
+    })
     this.handleMessageToSent({
       to: conversation.whaPhoneNumber,
       body: message,
@@ -458,7 +466,20 @@ export class RabbitmqService {
     })
   }
 
-  private async deleteAllConversation(conversation: Conversation) {
+  private async editHistoryConversation(payload: CreateHistoryConversationDto) {
+    if (payload.stepId === 1) {
+      await this.historyConversationService.create(payload)
+    } else {
+      const stepId = payload.reason === 'ERROR' ? payload.stepId : payload.stepId - 1
+      const history = await this.historyConversationService.findOneByWhaPhoneNumberAndStepId(
+        payload.whaPhoneNumber,
+        stepId
+      )
+      await this.historyConversationService.update(history.id, payload)
+    }
+  }
+
+  private async deleteAllConversations(conversation: Conversation) {
     await this.conversationService.removeAllByPhoneNumber(
       conversation.whaPhoneNumber,
     )
@@ -470,7 +491,7 @@ export class RabbitmqService {
   ): string {
     return lastConversation.step.stepBadResponseMessage.find(
       (sbrm) => sbrm.errorType === errorType,
-    ).message
+    )?.message
   }
 
   async pushMessageToSent(message: SendMessageDto) {

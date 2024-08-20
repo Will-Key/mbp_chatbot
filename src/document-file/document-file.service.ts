@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { CreateDocumentFileDto } from './dto/create-document-file.dto'
 import { UpdateDocumentFileDto } from './dto/update-document-file.dto'
-import { PrismaService } from '../../prisma/prisma.service'
+import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class DocumentFileService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   create(createDocumentFileDto: CreateDocumentFileDto) {
     return this.prismaService.documentFile.create({

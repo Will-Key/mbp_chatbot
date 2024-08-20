@@ -73,6 +73,18 @@ enum StepBadResponseMessageErrorType {
   isDate
 }
 
+enum HistoryConversationStatus {
+  IN_PROGRESS
+  FAIL
+  SUCCEEDED
+}
+
+enum HistoryConversationReasonForEnding {
+  ERROR
+  TIME_LIMIT_REACHED
+  NORMAL_FINISH
+}
+
 model Flow {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -94,6 +106,7 @@ model Step {
   flow                   Flow?                    @relation(fields: [flowId], references: [id])
   conversation           Conversation[]
   stepBadResponseMessage StepBadResponseMessage[]
+  HistoryConversation    HistoryConversation[]
 }
 
 model StepBadResponseMessage {
@@ -185,4 +198,15 @@ model DriverCar {
   updatedAt DateTime @updatedAt
   idDriver  Int      @unique
   idCar     Int      @unique
+}
+
+model HistoryConversation {
+  id             Int                                 @id @default(autoincrement())
+  createdAt      DateTime                            @default(now())
+  updatedAt      DateTime                            @updatedAt
+  whaPhoneNumber String
+  stepId         Int?
+  step           Step?                               @relation(fields: [stepId], references: [id])
+  status         HistoryConversationStatus
+  reason         HistoryConversationReasonForEnding?
 }

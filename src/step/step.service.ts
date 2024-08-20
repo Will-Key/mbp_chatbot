@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { CreateStepDto } from './dto/create-step.dto'
 import { UpdateStepDto } from './dto/update-step.dto'
-import { PrismaService } from '../../prisma/prisma.service'
+import { PrismaService } from 'prisma/prisma.service'
 import { Step } from '@prisma/client'
 
 @Injectable()

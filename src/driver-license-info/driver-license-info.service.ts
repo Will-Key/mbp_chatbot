@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { CreateDriverLicenseInfoDto } from './dto/create-driver-license-info.dto'
 import { UpdateDriverLicenseInfoDto } from './dto/update-driver-license-info.dto'
-import { PrismaService } from '../../prisma/prisma.service'
+import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class DriverLicenseInfoService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   create(createDriverLicenseInfoDto: CreateDriverLicenseInfoDto) {
     return this.prismaService.driverLicenseInfo.create({

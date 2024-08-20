@@ -1,12 +1,41 @@
-version: '1.0.0'
-services:
-  # app:
-  #   build: .
-  #   ports:
-  #     - '3000:3000'
-  #   depends_on:
-  #     - noa-db
+# version: '1.0.0'
+# services:
+#   # app:
+#   #   build: .
+#   #   ports:
+#   #     - '3000:3000'
+#   #   depends_on:
+#   #     - noa-db
 
+#   noa-db:
+#     image: postgres:latest
+#     restart: always
+#     environment:
+#       - POSTGRES_USER=postgres
+#       - POSTGRES_PASSWORD=postgres
+#     ports:
+#       - '5432:5432'
+#     volumes: 
+#       - noa-db:/var/lib/postgresql/data
+#   rabbitmq:
+#     image: rabbitmq:3-management-alpine
+#     container_name: 'rabbitmq'
+#     ports:
+#         - 5672:5672
+#         - 15672:15672
+#     volumes:
+#         - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+#         - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+#     networks:
+#         - rabbitmq_go_net
+# volumes:
+#   noa-db:
+#     driver: local
+# networks:
+#   rabbitmq_go_net:
+#     driver: bridge
+
+services:
   noa-db:
     image: postgres:latest
     restart: always
@@ -15,22 +44,35 @@ services:
       - POSTGRES_PASSWORD=postgres
     ports:
       - '5432:5432'
-    volumes: 
+    volumes:
       - noa-db:/var/lib/postgresql/data
+
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: 'rabbitmq'
     ports:
-        - 5672:5672
-        - 15672:15672
+      - 5672:5672
+      - 15672:15672
     volumes:
-        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
-        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
-        - rabbitmq_go_net
+      - rabbitmq_go_net
+
+  bot-app:
+    build: .
+    ports:
+      - '3001:3001'
+    depends_on:
+      - noa-db
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+
 volumes:
   noa-db:
     driver: local
+
 networks:
   rabbitmq_go_net:
     driver: bridge

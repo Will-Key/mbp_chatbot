@@ -1,6 +1,6 @@
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from 'prisma/prisma.service';
 import { CreateHistoryConversationDto } from './dto/create-history-conversation.dto';
 import { UpdateHistoryConversationDto } from './dto/update-history-conversation.dto';
 

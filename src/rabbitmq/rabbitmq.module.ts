@@ -9,7 +9,7 @@ import {
   OCR_RECEIVED_QUEUE_NAME,
 } from './constants'
 import { ExternalApiModule } from '../external-api/external-api.module'
-import { PrismaService } from '../../prisma/prisma.service'
+import { PrismaService } from 'prisma/prisma.service'
 import { ConversationService } from '../conversation/conversation.service'
 import { StepService } from '../step/step.service'
 import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'

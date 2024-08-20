@@ -7,7 +7,7 @@ import { ConversationService } from '../conversation/conversation.service'
 import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { CarInfoService } from '../car-info/car-info.service'
-import { PrismaService } from '../../prisma/prisma.service'
+import { PrismaService } from 'prisma/prisma.service'
 import { YangoService } from './yango.service'
 
 @Module({

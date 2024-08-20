@@ -120,7 +120,7 @@ export class RabbitmqService {
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
-          'incorrectChoice',
+          'equalLength',
         )
         await this.updateMessage(lastConversation, errorMessage)
       }
@@ -172,7 +172,7 @@ export class RabbitmqService {
     if (incomingMessage.length !== 10) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
-        'incorrectChoice',
+        'equalLength',
       )
       await this.updateMessage(lastConversation, errorMessage)
       return
@@ -413,18 +413,19 @@ export class RabbitmqService {
       stepId,
     }
     const conv = await this.conversationService.create(newConv)
-    await this.editHistoryConversation({
-      whaPhoneNumber: conv.whaPhoneNumber,
-      status: HistoryConversationStatus.IN_PROGRESS,
-      stepId: conv.stepId
-    })
     this.logger.log('conv', conv)
-    if (conv)
+    if (conv) {
+      await this.editHistoryConversation({
+        whaPhoneNumber: conv.whaPhoneNumber,
+        status: HistoryConversationStatus.IN_PROGRESS,
+        stepId: conv.stepId
+      })
       await this.pushMessageToSent({
         to: whaPhoneNumber,
         body: nextMessage,
         typing_time: 5,
       })
+    }
   }
 
   private async updateMessage(conversation: Conversation, message: string) {
@@ -490,7 +491,7 @@ export class RabbitmqService {
   ): string {
     return lastConversation.step.stepBadResponseMessage.find(
       (sbrm) => sbrm.errorType === errorType,
-    ).message
+    )?.message
   }
 
   async pushMessageToSent(message: SendMessageDto) {

@@ -80,7 +80,6 @@ enum HistoryConversationStatus {
 }
 
 enum HistoryConversationReasonForEnding {
-  IN_PROGRESS
   ERROR
   TIME_LIMIT_REACHED
   NORMAL_FINISH
@@ -202,12 +201,12 @@ model DriverCar {
 }
 
 model HistoryConversation {
-  id             Int                                @id @default(autoincrement())
-  createdAt      DateTime                           @default(now())
-  updatedAt      DateTime                           @updatedAt
+  id             Int                                 @id @default(autoincrement())
+  createdAt      DateTime                            @default(now())
+  updatedAt      DateTime                            @updatedAt
   whaPhoneNumber String
   stepId         Int?
-  step           Step?                              @relation(fields: [stepId], references: [id])
+  step           Step?                               @relation(fields: [stepId], references: [id])
   status         HistoryConversationStatus
-  reason         HistoryConversationReasonForEnding
+  reason         HistoryConversationReasonForEnding?
 }

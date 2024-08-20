@@ -12,6 +12,8 @@ import { ConversationService } from '../conversation/conversation.service'
 import {
   Conversation,
   DocumentFile,
+  HistoryConversationReasonForEnding,
+  HistoryConversationStatus,
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
 } from '@prisma/client'
@@ -27,6 +29,8 @@ import { ConversationType } from '../shared/types'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { YangoService } from '../external-api/yango.service'
+import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
+import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 
 @Injectable()
 export class RabbitmqService {
@@ -44,7 +48,8 @@ export class RabbitmqService {
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
-    private readonly yangoService: YangoService
+    private readonly yangoService: YangoService,
+    private readonly historyConversationService: HistoryConversationService
   ) { }
 
   onModuleInit() {
@@ -408,6 +413,11 @@ export class RabbitmqService {
       stepId,
     }
     const conv = await this.conversationService.create(newConv)
+    await this.editHistoryConversation({
+      whaPhoneNumber: conv.whaPhoneNumber,
+      status: HistoryConversationStatus.IN_PROGRESS,
+      stepId: conv.stepId
+    })
     this.logger.log('conv', conv)
     if (conv)
       await this.pushMessageToSent({
@@ -426,6 +436,12 @@ export class RabbitmqService {
       },
     )
     if (updatedConversation.badResponseCount >= 2) {
+      await this.editHistoryConversation({
+        whaPhoneNumber: conversation.whaPhoneNumber,
+        status: HistoryConversationStatus.FAIL,
+        reason: HistoryConversationReasonForEnding.ERROR,
+        stepId: conversation.stepId
+      })
       await this.deleteAllConversations(conversation)
       const errorStep = await this.stepService.findOneByLevel(15)
       // Push message to whapi queue to demand to driver to go on MBP local
@@ -436,11 +452,29 @@ export class RabbitmqService {
       })
       return
     }
+    await this.editHistoryConversation({
+      whaPhoneNumber: conversation.whaPhoneNumber,
+      status: HistoryConversationStatus.IN_PROGRESS,
+      reason: HistoryConversationReasonForEnding.ERROR,
+      stepId: conversation.stepId
+    })
     this.handleMessageToSent({
       to: conversation.whaPhoneNumber,
       body: message,
       typing_time: 5,
     })
+  }
+
+  private async editHistoryConversation(payload: CreateHistoryConversationDto) {
+    if (payload.stepId === 0) {
+      await this.historyConversationService.create(payload)
+    } else {
+      const history = await this.historyConversationService.findOneByWhaPhoneNumberAndStepId(
+        payload.whaPhoneNumber,
+        payload.stepId - 1
+      )
+      await this.historyConversationService.update(history.id, payload)
+    }
   }
 
   private async deleteAllConversations(conversation: Conversation) {

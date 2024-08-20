@@ -7,5 +7,5 @@ export class CreateHistoryConversationDto {
 
     status: HistoryConversationStatus
 
-    reason: HistoryConversationReasonForEnding
+    reason?: HistoryConversationReasonForEnding
 }

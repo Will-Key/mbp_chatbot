@@ -30,7 +30,7 @@ export class HistoryConversationService {
         })
     }
 
-    findOneByWhaPhoneNumberAndFlowId(whaPhoneNumber: string, stepId: number) {
+    findOneByWhaPhoneNumberAndStepId(whaPhoneNumber: string, stepId: number) {
         return this.prismaService.historyConversation.findFirst({
             where: { whaPhoneNumber, stepId },
             orderBy: { createdAt: 'desc' }

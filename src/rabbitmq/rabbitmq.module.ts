@@ -24,7 +24,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'WHAPI_RECEIVED_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://localhost:5672'],
+          urls: ['amqp://0.0.0.0:5672'],
           queue: WHAPI_RECEIVED_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -35,7 +35,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'WHAPI_SENT_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://localhost:5672'],
+          urls: ['amqp://0.0.0.0:5672'],
           queue: WHAPI_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -46,7 +46,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'OCR_SENT_QUEUE_NAME',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://localhost:5672'],
+          urls: ['amqp://0.0.0.0:5672'],
           queue: OCR_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -57,7 +57,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'OCR_RECEIVED_QUEUE_NAME',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://localhost:5672'],
+          urls: ['amqp://0.0.0.0:5672'],
           queue: OCR_RECEIVED_QUEUE_NAME,
           queueOptions: {
             durable: true,

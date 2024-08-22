@@ -18,6 +18,7 @@ import { RabbitmqModule } from './rabbitmq/rabbitmq.module'
 import { ExternalApiModule } from './external-api/external-api.module'
 import { StepBadResponseMessageModule } from './step-bad-response-message/step-bad-response-message.module';
 import { HistoryConversationModule } from './history-conversation/history-conversation.module';
+import { ScheduleModule } from '@nestjs/schedule'
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { HistoryConversationModule } from './history-conversation/history-conver
     ExternalApiModule,
     StepBadResponseMessageModule,
     HistoryConversationModule,
+    ScheduleModule.forRoot()
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

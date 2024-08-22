@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { CreateConversationDto } from './dto/create-conversation.dto'
 import { UpdateConversationDto } from './dto/update-conversation.dto'
 import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class ConversationService {
+  logger = new Logger()
   constructor(private readonly prismaService: PrismaService) { }
 
   create(createConversationDto: CreateConversationDto) {
@@ -72,5 +73,23 @@ export class ConversationService {
     return this.prismaService.conversation.deleteMany({
       where: { whaPhoneNumber },
     })
+  }
+
+  getPhoneNumbers() {
+    return this.prismaService.conversation.findMany({
+      select: {
+        whaPhoneNumber: true,
+      },
+      distinct: ['whaPhoneNumber'],
+    });
+  }
+
+  findPhoneNumberLastConversation(whaPhoneNumber: string) {
+    return this.prismaService.conversation.findFirst({
+      where: { whaPhoneNumber },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 }

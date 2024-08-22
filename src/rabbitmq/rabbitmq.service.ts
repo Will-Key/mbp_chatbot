@@ -31,6 +31,8 @@ import { DriverLicenseInfoService } from '../driver-license-info/driver-license-
 import { YangoService } from '../external-api/yango.service'
 import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
+import { Cron, CronExpression } from '@nestjs/schedule'
+import { subMinutes } from 'date-fns'
 
 @Injectable()
 export class RabbitmqService {
@@ -470,12 +472,15 @@ export class RabbitmqService {
     if (payload.stepId === 1) {
       await this.historyConversationService.create(payload)
     } else {
-      const stepId = payload.reason === 'ERROR' ? payload.stepId : payload.stepId - 1
+      const stepId = (payload.reason === HistoryConversationReasonForEnding.ERROR ||
+        payload.reason === HistoryConversationReasonForEnding.TIME_LIMIT_REACHED
+      )
+        ? payload.stepId : payload.stepId - 1
       const history = await this.historyConversationService.findOneByWhaPhoneNumberAndStepId(
         payload.whaPhoneNumber,
         stepId
       )
-      await this.historyConversationService.update(history.id, payload)
+      await this.historyConversationService.update(history?.id, payload)
     }
   }
 
@@ -540,4 +545,27 @@ export class RabbitmqService {
   }
 
   async handleOcrResponsePushedQueue() { }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async deleteOldConversations() {
+    this.logger.log("I'am the old conversations undertaker")
+    const fiveMinutesAgo = subMinutes(new Date(), 5);
+
+    const phoneNumbers = await this.conversationService.getPhoneNumbers();
+    console.log('phoneNumbers', phoneNumbers)
+    for (const { whaPhoneNumber } of phoneNumbers) {
+      const lastConversation = await this.conversationService.findPhoneNumberLastConversation(whaPhoneNumber);
+      console.log('lastConversation', lastConversation)
+      if (lastConversation && lastConversation.updatedAt < fiveMinutesAgo) {
+        await this.conversationService.removeAllByPhoneNumber(whaPhoneNumber);
+        this.logger.log(`Conversations deleted for phone number: ${whaPhoneNumber}`);
+        await this.editHistoryConversation({
+          whaPhoneNumber,
+          status: HistoryConversationStatus.FAIL,
+          reason: HistoryConversationReasonForEnding.TIME_LIMIT_REACHED,
+          stepId: lastConversation.stepId
+        })
+      }
+    }
+  }
 }

@@ -37,6 +37,12 @@ export class DriverPersonnalInfoService {
     })
   }
 
+  deleteByWhaPhoneNumber(whaPhoneNumber: string) {
+    return this.prismaService.driverPersonnalInfo.delete({
+      where: { whaPhoneNumber }
+    })
+  }
+
   remove(id: number) {
     return this.prismaService.driverPersonnalInfo.delete({ where: { id } })
   }

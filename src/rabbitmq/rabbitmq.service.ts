@@ -446,6 +446,7 @@ export class RabbitmqService {
         stepId: conversation.stepId
       })
       await this.deleteAllConversations(conversation)
+      await this.deleteInfoCollected(conversation)
       const errorStep = await this.stepService.findOneByLevel(15)
       // Push message to whapi queue to demand to driver to go on MBP local
       this.handleMessageToSent({
@@ -469,6 +470,7 @@ export class RabbitmqService {
   }
 
   private async editHistoryConversation(payload: CreateHistoryConversationDto) {
+    console.log('historyConvPayload', payload)
     if (payload.stepId === 1) {
       await this.historyConversationService.create(payload)
     } else {
@@ -480,7 +482,8 @@ export class RabbitmqService {
         payload.whaPhoneNumber,
         stepId
       )
-      await this.historyConversationService.update(history?.id, payload)
+      console.log('history', history)
+      if (history) await this.historyConversationService.update(history?.id, payload)
     }
   }
 
@@ -488,6 +491,11 @@ export class RabbitmqService {
     await this.conversationService.removeAllByPhoneNumber(
       conversation.whaPhoneNumber,
     )
+  }
+
+  private async deleteInfoCollected(conversation: Conversation) {
+    const personnalInfo = await this.driverPersonnalInfoService.deleteByWhaPhoneNumber(conversation.whaPhoneNumber)
+    await this.driverLicenseInfoService.deleteByPhoneNumber(personnalInfo.phoneNumber)
   }
 
   private getErrorMessage(

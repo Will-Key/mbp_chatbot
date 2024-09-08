@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { DocumentFile } from '@prisma/client'
+import { DocumentFile, DocumentType } from '@prisma/client'
 import { RequestLogService } from '../request-log/request-log.service'
 import { ocrSpace } from 'ocr-space-api-wrapper'
 import { SendDocDto } from './dto/send-doc.dto'
@@ -105,7 +105,7 @@ export class OcrSpaceService {
       licenseNumber,
       collectMethod: 'OCR',
     })
-    if (licenseNumber.length !== 20) return 0
+    if (!this.validateCard(licenseNumber, 'DRIVER_LICENSE')) return 0
 
     try {
       const driverPersonnalInfo = await this.driverPersonnalInfoService.create({
@@ -155,7 +155,9 @@ export class OcrSpaceService {
     responseLines: { LineText: string }[],
     whaPhoneNumber: string,
   ) {
-    const plateNumberIndex = responseLines.findIndex(line => line.LineText.includes('immatriculation')) + 1
+    const immatriculationIndex = responseLines.findIndex(line => line.LineText.includes('immatriculation'))
+    console.log("immatriculationIndex", immatriculationIndex)
+    const plateNumberIndex = immatriculationIndex === -1 ? 2 : immatriculationIndex + 1
     const brandIndex = responseLines.findIndex(line => line.LineText.includes('Marque')) + 1
     const colorIndex = responseLines.findIndex(line => line.LineText.includes('Couleur')) + 1
     const yearIndex = responseLines.findIndex(line => line.LineText.includes('edition')) + 1
@@ -166,7 +168,8 @@ export class OcrSpaceService {
     const color = responseLines[colorIndex].LineText
     const year = responseLines[yearIndex].LineText.split('-')[2]
 
-    if (plateNumber.length < 6) return 0
+    console.log('plateNumber', plateNumber)
+    if (!this.validateCard(plateNumber, 'CAR_REGISTRATION')) return 0
 
     try {
       const carInfo = await this.carInfoService.create({
@@ -197,5 +200,17 @@ export class OcrSpaceService {
     const date = new Date(year, month - 1, day)
 
     return date.toISOString();
+  }
+
+  private validateCard(input: string, type: DocumentType): boolean {
+    const hasLetters = /[A-Z]/.test(input);
+
+    const hasDigits = /\d/.test(input);
+
+    if (type === 'CAR_REGISTRATION') return hasLetters && hasDigits
+
+    const hasTwoDashes = (input.match(/-/g) || []).length === 2;
+
+    return hasLetters && hasDigits && hasTwoDashes;
   }
 }

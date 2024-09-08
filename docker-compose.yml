@@ -58,16 +58,15 @@ services:
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
       - rabbitmq_go_net
-
-  bot-app:
-    build: .
-    ports:
-      - '3001:3001'
-    depends_on:
-      - noa-db
-      - rabbitmq
-    networks:
-      - rabbitmq_go_net
+  # bot-app:
+  #   build: .
+  #   ports:
+  #     - '3001:3001'
+  #   depends_on:
+  #     - noa-db
+  #     - rabbitmq
+  #   networks:
+  #     - rabbitmq_go_net
 
 volumes:
   noa-db:

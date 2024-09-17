@@ -13,6 +13,9 @@ RUN npm install
 # Copier tout le reste des fichiers de l'application dans le répertoire de travail
 COPY . .
 
+# Define environment
+ENV NODE_ENV=production
+
 # Générer Prisma Client
 RUN npm run prisma:generate
 

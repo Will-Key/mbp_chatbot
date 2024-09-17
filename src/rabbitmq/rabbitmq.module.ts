@@ -16,6 +16,7 @@ import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-pers
 import { DocumentFileService } from '../document-file/document-file.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
+import { baseUrl } from '../shared/constants'
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'WHAPI_RECEIVED_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://rabbitmq:5672'],
+          urls: [`amqp://${baseUrl}:5672`],
           queue: WHAPI_RECEIVED_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -35,7 +36,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'WHAPI_SENT_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://rabbitmq:5672'],
+          urls: ['amqp://baseUrl:5672'],
           queue: WHAPI_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -46,7 +47,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'OCR_SENT_QUEUE_NAME',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://rabbitmq:5672'],
+          urls: ['amqp://baseUrl:5672'],
           queue: OCR_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -57,7 +58,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
         name: 'OCR_RECEIVED_QUEUE_NAME',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://rabbitmq:5672'],
+          urls: ['amqp://baseUrl:5672'],
           queue: OCR_RECEIVED_QUEUE_NAME,
           queueOptions: {
             durable: true,

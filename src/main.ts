@@ -13,28 +13,28 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://0.0.0.0:5672'],
+      urls: ['amqp://rabbitmq:5672'],
       queue: WHAPI_RECEIVED_QUEUE_NAME,
     },
   })
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://0.0.0.0:5672'],
+      urls: ['amqp://rabbitmq:5672'],
       queue: WHAPI_SENT_QUEUE_NAME,
     },
   })
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://0.0.0.0:5672'],
+      urls: ['amqp://rabbitmq:5672'],
       queue: OCR_SENT_QUEUE_NAME,
     },
   })
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://0.0.0.0:5672'],
+      urls: ['amqp://rabbitmq:5672'],
       queue: OCR_RECEIVED_QUEUE_NAME,
     },
   })

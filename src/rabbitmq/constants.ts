@@ -7,7 +7,7 @@ export const OCR_RECEIVED_QUEUE_NAME = 'ocr-received-queue'
 
 export const queueConfig = (
   queueName: string,
-  url = 'amqp://0.0.0.0:5672',
+  url = 'amqp://rabbitmq:5672',
 ): ClientProviderOptions => ({
   name: queueName,
   transport: Transport.RMQ,

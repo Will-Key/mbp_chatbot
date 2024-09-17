@@ -36,7 +36,7 @@ import { baseUrl } from '../shared/constants'
         name: 'WHAPI_SENT_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://baseUrl:5672'],
+          urls: [`amqp://${baseUrl}:5672`],
           queue: WHAPI_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -47,7 +47,7 @@ import { baseUrl } from '../shared/constants'
         name: 'OCR_SENT_QUEUE_NAME',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://baseUrl:5672'],
+          urls: [`amqp://${baseUrl}:5672`],
           queue: OCR_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
@@ -58,7 +58,7 @@ import { baseUrl } from '../shared/constants'
         name: 'OCR_RECEIVED_QUEUE_NAME',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://baseUrl:5672'],
+          urls: [`amqp://${baseUrl}:5672`],
           queue: OCR_RECEIVED_QUEUE_NAME,
           queueOptions: {
             durable: true,

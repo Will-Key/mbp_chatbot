@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  noa-db:
+  mbp_chatbot_db:
     image: postgres:latest
     restart: always
     environment:
@@ -10,7 +10,9 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - noa-db:/var/lib/postgresql/data
+      - mbp_chatbot_db:/var/lib/postgresql/data
+    networks:
+      - rabbitmq_go_net # Added to the same network
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -29,16 +31,16 @@ services:
     ports:
       - '3001:3001'
     depends_on:
-      - noa-db
+      - mbp_chatbot_db
       - rabbitmq
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@noa-db:5432/postgres
+      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/postgres # Updated to use service name
       - RABBITMQ_URL=amqp://rabbitmq:5672
     networks:
       - rabbitmq_go_net
 
 volumes:
-  noa-db:
+  mbp_chatbot_db:
     driver: local
 
 networks:

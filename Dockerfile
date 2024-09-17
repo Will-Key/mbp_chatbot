@@ -23,11 +23,4 @@ RUN npm run build
 EXPOSE 3001
 
 # Démarrer l'application
-#CMD ["npm", "run", "start:prod"]
-
-# Install the script
-COPY wait-for-it.sh /usr/src/app/wait-for-it.sh
-RUN chmod +x /usr/src/app/wait-for-it.sh
-
-# Modify the CMD to wait for RabbitMQ before starting the app
-CMD ["./wait-for-it.sh", "rabbitmq:5672", "--", "npm", "run", "start:prod"]
+CMD ["npm", "run", "start:prod"]

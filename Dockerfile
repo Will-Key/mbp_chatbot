@@ -16,7 +16,7 @@ COPY . .
 # Générer Prisma Client
 RUN npm run prisma:generate
 
-# Compiler le projet NestJS (optionnel si tu as du TypeScript)
+# Compiler le projet NestJS (optionnel si vous utilisez TypeScript)
 RUN npm run build
 
 # Exposer le port utilisé par l'application

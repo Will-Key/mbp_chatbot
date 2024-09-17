@@ -12,7 +12,7 @@ services:
     volumes:
       - mbp_chatbot_db:/var/lib/postgresql/data
     networks:
-      - rabbitmq_go_net # Added to the same network
+      - rabbitmq_go_net
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -34,7 +34,7 @@ services:
       - mbp_chatbot_db
       - rabbitmq
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/postgres # Updated to use service name
+      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/postgres
       - RABBITMQ_URL=amqp://rabbitmq:5672
     networks:
       - rabbitmq_go_net

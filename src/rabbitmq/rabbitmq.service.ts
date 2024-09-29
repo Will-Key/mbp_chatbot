@@ -449,7 +449,7 @@ export class RabbitmqService {
       await this.deleteInfoCollected(conversation)
       const errorStep = await this.stepService.findOneByLevel(15)
       // Push message to whapi queue to demand to driver to go on MBP local
-      this.handleMessageToSent({
+      await this.handleMessageToSent({
         to: conversation.whaPhoneNumber,
         body: errorStep.message,
         typing_time: 5,

@@ -36,12 +36,15 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5434/mbp_chatbot_db
       - RABBITMQ_URL=amqp://mbp-chatbot-rabbitmq:5674
     networks:
-      - rabbitmq_go_net
+      - mbp_chatbot_rabbitmq_go_net
+    volumes:
+      - ./entrypoint.sh:/usr/src/app/entrypoint.sh
+    command: ["sh", "/usr/src/app/entrypoint.sh"]
 
 volumes:
   mbp_chatbot_db:
     driver: local
 
 networks:
-  rabbitmq_go_net:
+  mbp_chatbot_rabbitmq_go_net:
     driver: bridge

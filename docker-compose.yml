@@ -17,6 +17,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: 'mbp-chatbot-rabbitmq'
+    restart: always
     ports:
       - 5674:5672 # Changer le port exposé pour éviter le conflit
       - 15674:15672 # Interface de gestion avec un port différent
@@ -25,8 +26,10 @@ services:
       - ~/.docker-conf/rabbitmq/app2-log/:/var/log/rabbitmq
     networks:
       - rabbitmq_go_net
+
   bot-app:
     build: .
+    restart: always
     ports:
       - '3001:3001'
     depends_on:

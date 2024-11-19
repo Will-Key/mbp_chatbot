@@ -7,35 +7,35 @@ import {
   WHAPI_SENT_QUEUE_NAME,
 } from './rabbitmq/constants'
 import { MicroserviceOptions, Transport } from '@nestjs/microservices'
-import { baseUrl } from './shared/constants'
+import { baseUrl, rabbitmqPort } from './shared/constants'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: [`amqp://${baseUrl}:5672`],
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
       queue: WHAPI_RECEIVED_QUEUE_NAME,
     },
   })
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: [`amqp://${baseUrl}:5672`],
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
       queue: WHAPI_SENT_QUEUE_NAME,
     },
   })
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: [`amqp://${baseUrl}:5672`],
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
       queue: OCR_SENT_QUEUE_NAME,
     },
   })
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: [`amqp://${baseUrl}:5672`],
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
       queue: OCR_RECEIVED_QUEUE_NAME,
     },
   })

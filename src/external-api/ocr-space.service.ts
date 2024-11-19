@@ -19,7 +19,7 @@ export class OcrSpaceService {
     private readonly driverPersonnalInfoService: DriverPersonnalInfoService,
     private readonly driverLicenseInfoService: DriverLicenseInfoService,
     private readonly carInfoService: CarInfoService,
-  ) { }
+  ) {}
 
   async sendFile(file: DocumentFile) {
     const params: SendDocDto = {
@@ -68,7 +68,11 @@ export class OcrSpaceService {
     }>
     if (file.documentType === 'DRIVER_LICENSE')
       return await this.getDriverLicenseData(responseLines, file)
-    else return await this.getCarRegistrationData(responseLines, file.whaPhoneNumber)
+    else
+      return await this.getCarRegistrationData(
+        responseLines,
+        file.whaPhoneNumber,
+      )
   }
 
   private async getDriverLicenseData(
@@ -78,8 +82,15 @@ export class OcrSpaceService {
     file: DocumentFile,
   ) {
     if (file.documentSide === 'FRONT')
-      return await this.getDriverLicenseFrontData(responseLines, file.whaPhoneNumber)
-    else return await this.getDriverLicenseBackData(responseLines, file.whaPhoneNumber)
+      return await this.getDriverLicenseFrontData(
+        responseLines,
+        file.whaPhoneNumber,
+      )
+    else
+      return await this.getDriverLicenseBackData(
+        responseLines,
+        file.whaPhoneNumber,
+      )
   }
 
   private async getDriverLicenseFrontData(
@@ -90,9 +101,12 @@ export class OcrSpaceService {
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
 
-    const lastNameIndex = responseLines.findIndex(line => line.LineText.includes('1.')) + 1
-    const firstNameIndex = responseLines.findIndex(line => line.LineText.includes('2.')) + 1
-    const licenseNumberIndex = responseLines.findIndex(line => line.LineText.includes('5.')) + 1
+    const lastNameIndex =
+      responseLines.findIndex((line) => line.LineText.includes('1.')) + 1
+    const firstNameIndex =
+      responseLines.findIndex((line) => line.LineText.includes('2.')) + 1
+    const licenseNumberIndex =
+      responseLines.findIndex((line) => line.LineText.includes('5.')) + 1
 
     const lastName = responseLines[lastNameIndex].LineText
     const firstName = responseLines[firstNameIndex].LineText
@@ -105,7 +119,7 @@ export class OcrSpaceService {
       licenseNumber,
       collectMethod: 'OCR',
     })
-    if (!this.validateCard(licenseNumber, 'DRIVER_LICENSE')) return 0
+    if (!this.isValidCard(licenseNumber, 'DRIVER_LICENSE')) return 0
 
     try {
       const driverPersonnalInfo = await this.driverPersonnalInfoService.create({
@@ -131,11 +145,14 @@ export class OcrSpaceService {
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
 
-    const licenseDeliveryDateIndex = responseLines.findIndex(line => line.LineText.includes('8.')) + 2
-    const licenseExpiryDateIndex = responseLines.findIndex(line => line.LineText.includes('9.')) + 2
+    const licenseDeliveryDateIndex =
+      responseLines.findIndex((line) => line.LineText.includes('8.')) + 2
+    const licenseExpiryDateIndex =
+      responseLines.findIndex((line) => line.LineText.includes('9.')) + 2
 
     try {
-      const licenseDeliveryDate = responseLines[licenseDeliveryDateIndex].LineText
+      const licenseDeliveryDate =
+        responseLines[licenseDeliveryDateIndex].LineText
       const licenseExpiryDate = responseLines[licenseExpiryDateIndex].LineText
 
       const driverLicenseInfo = await this.driverLicenseInfoService.create({
@@ -155,12 +172,18 @@ export class OcrSpaceService {
     responseLines: { LineText: string }[],
     whaPhoneNumber: string,
   ) {
-    const immatriculationIndex = responseLines.findIndex(line => line.LineText.includes('immatriculation'))
-    console.log("immatriculationIndex", immatriculationIndex)
-    const plateNumberIndex = immatriculationIndex === -1 ? 2 : immatriculationIndex + 1
-    const brandIndex = responseLines.findIndex(line => line.LineText.includes('Marque')) + 1
-    const colorIndex = responseLines.findIndex(line => line.LineText.includes('Couleur')) + 1
-    const yearIndex = responseLines.findIndex(line => line.LineText.includes('edition')) + 1
+    const immatriculationIndex = responseLines.findIndex((line) =>
+      line.LineText.includes('immatriculation'),
+    )
+    console.log('immatriculationIndex', immatriculationIndex)
+    const plateNumberIndex =
+      immatriculationIndex === -1 ? 2 : immatriculationIndex + 1
+    const brandIndex =
+      responseLines.findIndex((line) => line.LineText.includes('Marque')) + 1
+    const colorIndex =
+      responseLines.findIndex((line) => line.LineText.includes('Couleur')) + 1
+    const yearIndex =
+      responseLines.findIndex((line) => line.LineText.includes('edition')) + 1
 
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
     const plateNumber = responseLines[plateNumberIndex].LineText
@@ -169,7 +192,7 @@ export class OcrSpaceService {
     const year = responseLines[yearIndex].LineText.split('-')[2]
 
     console.log('plateNumber', plateNumber)
-    if (!this.validateCard(plateNumber, 'CAR_REGISTRATION')) return 0
+    if (!this.isValidCard(plateNumber, 'CAR_REGISTRATION')) return 0
 
     try {
       const carInfo = await this.carInfoService.create({
@@ -195,22 +218,24 @@ export class OcrSpaceService {
   }
 
   private convertToISOString(dateString: string): string {
-    const [day, month, year] = dateString.split('-').map(part => parseInt(part, 10))
+    const [day, month, year] = dateString
+      .split('-')
+      .map((part) => parseInt(part, 10))
 
     const date = new Date(year, month - 1, day)
 
-    return date.toISOString();
+    return date.toISOString()
   }
 
-  private validateCard(input: string, type: DocumentType): boolean {
-    const hasLetters = /[A-Z]/.test(input);
+  private isValidCard(input: string, type: DocumentType): boolean {
+    const hasLetters = /[A-Z]/.test(input)
 
-    const hasDigits = /\d/.test(input);
+    const hasDigits = /\d/.test(input)
 
     if (type === 'CAR_REGISTRATION') return hasLetters && hasDigits
 
-    const hasTwoDashes = (input.match(/-/g) || []).length === 2;
+    const hasTwoDashes = (input.match(/-/g) || []).length === 2
 
-    return hasLetters && hasDigits && hasTwoDashes;
+    return hasLetters && hasDigits && hasTwoDashes
   }
 }

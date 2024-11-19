@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
-      - '5432:5432'
+      - '5434:5432' # Changer le port exposé pour éviter le conflit
     volumes:
       - mbp_chatbot_db:/var/lib/postgresql/data
     networks:
@@ -16,28 +16,27 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: 'rabbitmq'
+    container_name: 'mbp-chatbot-rabbitmq'
     ports:
-      - 5672:5672
-      - 15672:15672
+      - 5674:5672 # Changer le port exposé pour éviter le conflit
+      - 15674:15672 # Interface de gestion avec un port différent
     volumes:
-      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
-      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+      - ~/.docker-conf/rabbitmq/app2-data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/app2-log/:/var/log/rabbitmq
     networks:
       - rabbitmq_go_net
-
-  bot-app:
-    build: .
-    ports:
-      - '3001:3001'
-    depends_on:
-      - mbp_chatbot_db
-      - rabbitmq
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/postgres
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-    networks:
-      - rabbitmq_go_net
+  # bot-app:
+  #   build: .
+  #   ports:
+  #     - '3001:3001'
+  #   depends_on:
+  #     - mbp_chatbot_db
+  #     - mbp-chatbot-rabbitmq
+  #   environment:
+  #     - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5434/mbp_chatbot_db
+  #     - RABBITMQ_URL=amqp://mbp-chatbot-rabbitmq:5674
+  #   networks:
+  #     - rabbitmq_go_net
 
 volumes:
   mbp_chatbot_db:

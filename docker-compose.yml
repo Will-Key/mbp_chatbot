@@ -12,7 +12,7 @@ services:
     volumes:
       - mbp_chatbot_db:/var/lib/postgresql/data
     networks:
-      - rabbitmq_go_net
+      - mbp_chatbot_go_net
 
   mbp_chatbot_rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -25,7 +25,7 @@ services:
       - ~/.docker-conf/rabbitmq/app2-data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/app2-log/:/var/log/rabbitmq
     networks:
-      - rabbitmq_go_net
+      - mbp_chatbot_go_net
 
   bot-app:
     build: .
@@ -39,7 +39,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5434/mbp_chatbot_db
       - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:5674
     networks:
-      - mbp_chatbot_rabbitmq_go_net
+      - mbp_chatbot_go_net
     volumes:
       - ./entrypoint.sh:/usr/src/app/entrypoint.sh
     command: ["sh", "/usr/src/app/entrypoint.sh"]
@@ -49,5 +49,5 @@ volumes:
     driver: local
 
 networks:
-  mbp_chatbot_rabbitmq_go_net:
+  mbp_chatbot_go_net:
     driver: bridge

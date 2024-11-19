@@ -36,8 +36,8 @@ services:
       - mbp_chatbot_db
       - mbp_chatbot_rabbitmq
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5434/mbp_chatbot_db
-      - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:5674
+      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/mbp_chatbot_db
+      - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:5672
     networks:
       - mbp_chatbot_go_net
     volumes:

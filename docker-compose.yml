@@ -30,6 +30,7 @@ services:
 
   bot-app:
     build: .
+    container_name: mbp_chatbot_app
     restart: always
     ports:
       - '3001:3001'

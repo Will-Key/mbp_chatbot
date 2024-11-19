@@ -3,6 +3,7 @@ version: '3'
 services:
   mbp_chatbot_db:
     image: postgres:latest
+    container_name: mbp_chatbot_db
     restart: always
     environment:
       - POSTGRES_USER=postgres

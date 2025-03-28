@@ -1,4 +1,4 @@
 export const baseUrl =
-  process.env.NODE_ENV === 'production' ? '191.101.81.60' : 'localhost'
+  process.env.NODE_ENV === 'production' ? '69.62.125.181' : 'localhost'
 
 export const rabbitmqPort = '5674'

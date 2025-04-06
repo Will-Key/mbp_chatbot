@@ -7,7 +7,7 @@ import {
   MinLength,
 } from 'class-validator'
 
-export class CreateDriverPersonnalInfoDto {
+export class CreateDriverPersonalInfoDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(2)

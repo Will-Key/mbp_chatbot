@@ -7,44 +7,44 @@ import {
   Param,
   Delete,
 } from '@nestjs/common'
-import { DriverPersonnalInfoService } from './driver-personnal-info.service'
-import { CreateDriverPersonnalInfoDto } from './dto/create-driver-personnal-info.dto'
-import { UpdateDriverPersonnalInfoDto } from './dto/update-driver-personnal-info.dto'
+import { DriverPersonalInfoService } from './driver-Personal-info.service'
+import { CreateDriverPersonalInfoDto } from './dto/create-driver-Personal-info.dto'
+import { UpdateDriverPersonalInfoDto } from './dto/update-driver-Personal-info.dto'
 
-//@Controller('driver-personnal-info')
-export class DriverPersonnalInfoController {
+//@Controller('driver-Personal-info')
+export class DriverPersonalInfoController {
   constructor(
-    private readonly driverPersonnalInfoService: DriverPersonnalInfoService,
+    private readonly driverPersonalInfoService: DriverPersonalInfoService,
   ) {}
 
   @Post()
-  create(@Body() createDriverPersonnalInfoDto: CreateDriverPersonnalInfoDto) {
-    return this.driverPersonnalInfoService.create(createDriverPersonnalInfoDto)
+  create(@Body() createDriverPersonalInfoDto: CreateDriverPersonalInfoDto) {
+    return this.driverPersonalInfoService.create(createDriverPersonalInfoDto)
   }
 
   @Get()
   findAll() {
-    return this.driverPersonnalInfoService.findAll()
+    return this.driverPersonalInfoService.findAll()
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.driverPersonnalInfoService.findOne(+id)
+    return this.driverPersonalInfoService.findOne(+id)
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateDriverPersonnalInfoDto: UpdateDriverPersonnalInfoDto,
+    @Body() updateDriverPersonalInfoDto: UpdateDriverPersonalInfoDto,
   ) {
-    return this.driverPersonnalInfoService.update(
+    return this.driverPersonalInfoService.update(
       +id,
-      updateDriverPersonnalInfoDto,
+      updateDriverPersonalInfoDto,
     )
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.driverPersonnalInfoService.remove(+id)
+    return this.driverPersonalInfoService.remove(+id)
   }
 }

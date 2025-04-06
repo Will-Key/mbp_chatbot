@@ -5,7 +5,7 @@ import { ocrSpace } from 'ocr-space-api-wrapper'
 import { SendDocDto } from './dto/send-doc.dto'
 import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
 import { ConversationService } from '../conversation/conversation.service'
-import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
+import { DriverPersonalInfoService } from '../driver-Personal-info/driver-Personal-info.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { CarInfoService } from '../car-info/car-info.service'
 
@@ -16,7 +16,7 @@ export class OcrSpaceService {
   constructor(
     private readonly requestLogService: RequestLogService,
     private readonly conversationService: ConversationService,
-    private readonly driverPersonnalInfoService: DriverPersonnalInfoService,
+    private readonly driverPersonalInfoService: DriverPersonalInfoService,
     private readonly driverLicenseInfoService: DriverLicenseInfoService,
     private readonly carInfoService: CarInfoService,
   ) {}
@@ -122,7 +122,7 @@ export class OcrSpaceService {
     if (!this.isValidCard(licenseNumber, 'DRIVER_LICENSE')) return 0
 
     try {
-      const driverPersonnalInfo = await this.driverPersonnalInfoService.create({
+      const driverPersonalInfo = await this.driverPersonalInfoService.create({
         lastName,
         firstName,
         phoneNumber,
@@ -130,7 +130,7 @@ export class OcrSpaceService {
         licenseNumber,
         collectMethod: 'OCR',
       })
-      return driverPersonnalInfo.id
+      return driverPersonalInfo.id
     } catch (error) {
       this.logger.error(error)
       return 0

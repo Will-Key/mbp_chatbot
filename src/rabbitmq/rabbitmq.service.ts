@@ -19,7 +19,7 @@ import {
 } from '@prisma/client'
 import { StepService } from '../step/step.service'
 import { CreateConversationDto } from '../conversation/dto/create-conversation.dto'
-import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
+import { DriverPersonalInfoService } from '../driver-Personal-info/driver-Personal-info.service'
 import { CreateDocumentFileDto } from '../document-file/dto/create-document-file.dto'
 import { DocumentFileService } from '../document-file/document-file.service'
 import { WhapiService } from '../external-api/whapi.service'
@@ -45,7 +45,7 @@ export class RabbitmqService {
     private readonly whapiSentQueueClient: ClientProxy,
     private readonly conversationService: ConversationService,
     private readonly stepService: StepService,
-    private readonly driverPersonnalInfoService: DriverPersonnalInfoService,
+    private readonly driverPersonalInfoService: DriverPersonalInfoService,
     private readonly driverLicenseInfoService: DriverLicenseInfoService,
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
@@ -180,7 +180,7 @@ export class RabbitmqService {
       return
     }
     const driver =
-      await this.driverPersonnalInfoService.findDriverPersonnalInfoByPhoneNumber(
+      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
         `225${incomingMessage}`,
       )
     if (driver) {
@@ -321,7 +321,7 @@ export class RabbitmqService {
 
     const phoneNumber = (await this.conversationService.findOneByStepLevelAndWhaPhoneNumber(1, 1, whaPhoneNumber)).message
 
-    const driverPersonnalInfo = await this.driverPersonnalInfoService.findDriverPersonnalInfoByPhoneNumber(phoneNumber)
+    const driverPersonalInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
     const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
 
     // Push conversation to yango queue for 
@@ -339,11 +339,11 @@ export class RabbitmqService {
         country: 'civ',
         expiry_date: driverLicenseInfo.expiryDate.toISOString(),
         issue_date: driverLicenseInfo.deliveryDate.toISOString(),
-        number: driverPersonnalInfo.licenseNumber,
+        number: driverPersonalInfo.licenseNumber,
       },
       full_name: {
-        first_name: driverPersonnalInfo.firstName,
-        last_name: driverPersonnalInfo.lastName
+        first_name: driverPersonalInfo.firstName,
+        last_name: driverPersonalInfo.lastName
       },
       profile: {
         hire_date: new Date().toISOString()
@@ -494,8 +494,8 @@ export class RabbitmqService {
   }
 
   private async deleteInfoCollected(conversation: Conversation) {
-    const personnalInfo = await this.driverPersonnalInfoService.deleteByWhaPhoneNumber(conversation.whaPhoneNumber)
-    await this.driverLicenseInfoService.deleteByPhoneNumber(personnalInfo.phoneNumber)
+    const PersonalInfo = await this.driverPersonalInfoService.deleteByWhaPhoneNumber(conversation.whaPhoneNumber)
+    await this.driverLicenseInfoService.deleteByPhoneNumber(PersonalInfo.phoneNumber)
   }
 
   private getErrorMessage(

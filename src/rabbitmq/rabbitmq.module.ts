@@ -12,7 +12,7 @@ import { ExternalApiModule } from '../external-api/external-api.module'
 import { PrismaService } from 'prisma/prisma.service'
 import { ConversationService } from '../conversation/conversation.service'
 import { StepService } from '../step/step.service'
-import { DriverPersonnalInfoService } from '../driver-personnal-info/driver-personnal-info.service'
+import { DriverPersonalInfoService } from '../driver-Personal-info/driver-Personal-info.service'
 import { DocumentFileService } from '../document-file/document-file.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
@@ -74,7 +74,7 @@ import { baseUrl, rabbitmqPort } from '../shared/constants'
     PrismaService,
     ConversationService,
     StepService,
-    DriverPersonnalInfoService,
+    DriverPersonalInfoService,
     DriverLicenseInfoService,
     DocumentFileService,
     HistoryConversationService,

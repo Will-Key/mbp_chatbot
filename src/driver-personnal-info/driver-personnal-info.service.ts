@@ -1,49 +1,49 @@
 import { Injectable } from '@nestjs/common'
-import { CreateDriverPersonnalInfoDto } from './dto/create-driver-personnal-info.dto'
-import { UpdateDriverPersonnalInfoDto } from './dto/update-driver-personnal-info.dto'
+import { CreateDriverPersonalInfoDto } from './dto/create-driver-Personal-info.dto'
+import { UpdateDriverPersonalInfoDto } from './dto/update-driver-Personal-info.dto'
 import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
-export class DriverPersonnalInfoService {
+export class DriverPersonalInfoService {
   constructor(private readonly prismaService: PrismaService) { }
 
-  create(createDriverPersonnalInfoDto: CreateDriverPersonnalInfoDto) {
-    return this.prismaService.driverPersonnalInfo.create({
-      data: createDriverPersonnalInfoDto,
+  create(createDriverPersonalInfoDto: CreateDriverPersonalInfoDto) {
+    return this.prismaService.driverPersonalInfo.create({
+      data: createDriverPersonalInfoDto,
     })
   }
 
   findAll() {
-    return this.prismaService.driverPersonnalInfo.findMany()
+    return this.prismaService.driverPersonalInfo.findMany()
   }
 
   findOne(id: number) {
-    return this.prismaService.driverPersonnalInfo.findUnique({ where: { id } })
+    return this.prismaService.driverPersonalInfo.findUnique({ where: { id } })
   }
 
-  findDriverPersonnalInfoByPhoneNumber(phoneNumber: string) {
-    return this.prismaService.driverPersonnalInfo.findUnique({
+  findDriverPersonalInfoByPhoneNumber(phoneNumber: string) {
+    return this.prismaService.driverPersonalInfo.findUnique({
       where: { phoneNumber },
     })
   }
 
   update(
     id: number,
-    updateDriverPersonnalInfoDto: UpdateDriverPersonnalInfoDto,
+    updateDriverPersonalInfoDto: UpdateDriverPersonalInfoDto,
   ) {
-    return this.prismaService.driverPersonnalInfo.update({
-      data: updateDriverPersonnalInfoDto,
+    return this.prismaService.driverPersonalInfo.update({
+      data: updateDriverPersonalInfoDto,
       where: { id },
     })
   }
 
   deleteByWhaPhoneNumber(whaPhoneNumber: string) {
-    return this.prismaService.driverPersonnalInfo.delete({
+    return this.prismaService.driverPersonalInfo.delete({
       where: { whaPhoneNumber }
     })
   }
 
   remove(id: number) {
-    return this.prismaService.driverPersonnalInfo.delete({ where: { id } })
+    return this.prismaService.driverPersonalInfo.delete({ where: { id } })
   }
 }

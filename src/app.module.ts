@@ -19,6 +19,7 @@ import { ExternalApiModule } from './external-api/external-api.module'
 import { StepBadResponseMessageModule } from './step-bad-response-message/step-bad-response-message.module';
 import { HistoryConversationModule } from './history-conversation/history-conversation.module';
 import { ScheduleModule } from '@nestjs/schedule'
+import { OtpVerificationModule } from './otp-verification/otp-verification.module';
 
 @Module({
   imports: [
@@ -37,7 +38,8 @@ import { ScheduleModule } from '@nestjs/schedule'
     ExternalApiModule,
     StepBadResponseMessageModule,
     HistoryConversationModule,
-    ScheduleModule.forRoot()
+    ScheduleModule.forRoot(),
+    OtpVerificationModule
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

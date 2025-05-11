@@ -210,3 +210,15 @@ model HistoryConversation {
   status         HistoryConversationStatus
   reason         HistoryConversationReasonForEnding?
 }
+
+model OtpVerification {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  phoneNumber String
+  otpCode     String
+  expiresAt   DateTime
+  isUsed      Boolean  @default(false)
+
+  @@index([phoneNumber, otpCode])
+}

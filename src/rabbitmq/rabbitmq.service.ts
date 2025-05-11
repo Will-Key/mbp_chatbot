@@ -33,6 +33,7 @@ import { CreateHistoryConversationDto } from '../history-conversation/dto/create
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { subMinutes } from 'date-fns'
+import { OtpService } from '../external-api/otp.service'
 
 @Injectable()
 export class RabbitmqService {
@@ -51,7 +52,8 @@ export class RabbitmqService {
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
     private readonly yangoService: YangoService,
-    private readonly historyConversationService: HistoryConversationService
+    private readonly historyConversationService: HistoryConversationService,
+    private readonly otpService: OtpService
   ) { }
 
   onModuleInit() {
@@ -152,12 +154,15 @@ export class RabbitmqService {
         await this.handlePhoneNumberStep(lastConversation, newMessage)
         break
       case 2:
-        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
+        await this.handleOtpVerification(lastConversation, newMessage)
         break
       case 3:
-        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
         break
       case 4:
+        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+        break
+      case 5:
         await this.handleCarRegistrationUpload(lastConversation, newMessage)
         break
       default:
@@ -169,22 +174,60 @@ export class RabbitmqService {
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
   ) {
-    const flowId = 1
-    const incomingMessage = newMessage.messages[0].text.body.trim()
-    if (incomingMessage.length !== 10) {
-      const errorMessage = this.getErrorMessage(
-        lastConversation,
-        'equalLength',
+    try {
+      const flowId = 1
+      const phoneNumber = newMessage.messages[0].text.body.trim()
+      if (phoneNumber.length !== 10) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+      const driver =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          `225${phoneNumber}`,
+        )
+      if (driver) {
+        const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
+      await this.otpService.generateAndSendOtp(phoneNumber)
+
+      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+        lastConversation.step.level + 1,
+        flowId,
       )
+      await this.saveMessage({
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
+        nextMessage: nextStep.message,
+        stepId: nextStep.id,
+      })
+    } catch (error) {
+      const errorMessage = error.message
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
-    const driver =
-      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-        `225${incomingMessage}`,
-      )
-    if (driver) {
-      const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
+  }
+
+  private async handleOtpVerification(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    const flowId = 1
+    const whaPhoneNumber = newMessage.messages[0].from
+    const otpEnter = newMessage.messages[0].text.body.trim()
+
+    const phoneNumber = (await this.conversationService.findPhoneNumberLastConversation(whaPhoneNumber)).message
+
+    const isVerified = this.otpService.verifyOtp(phoneNumber, otpEnter)
+
+    if (!isVerified) {
+      const errorMessage = "Code incorrect"
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -195,7 +238,7 @@ export class RabbitmqService {
     )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: `225${incomingMessage}`,//newMessage.messages[0].text.body,
+      convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })

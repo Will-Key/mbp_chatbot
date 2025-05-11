@@ -9,6 +9,7 @@ export class OtpService {
   private readonly logger = new Logger(OtpService.name)
   private readonly smsApiKey: string;
   private readonly smsApiUrl: string;
+  private readonly smsApiSender: string;
   
   constructor(
     private readonly httpService: HttpService,
@@ -16,6 +17,7 @@ export class OtpService {
   ) {
     this.smsApiKey = process.env.SMS_API_KEY
     this.smsApiUrl = process.env.SMS_API_URL
+    this.smsApiSender = process.env.SMS_API_SENDER
   }
 
   async generateAndSendOtp(phoneNumber: string): Promise<string> {
@@ -56,13 +58,14 @@ export class OtpService {
     return true;
   }
 
-  private async sendSms(phoneNumber: string, message: string): Promise<void> {
+  private async sendSms(phoneNumber: string, content: string): Promise<void> {
     try {
       await lastValueFrom(
         this.httpService.post(this.smsApiUrl, {
-          apiKey: this.smsApiKey,
+          token: this.smsApiKey,
+          from: this.smsApiSender,
           to: phoneNumber,
-          message
+          content
         })
       );
     } catch (error) {

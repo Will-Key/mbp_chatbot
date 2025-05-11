@@ -17,6 +17,7 @@ import { DocumentFileService } from '../document-file/document-file.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 import { baseUrl, rabbitmqPort } from '../shared/constants'
+import { OtpService } from '../external-api/otp.service'
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { baseUrl, rabbitmqPort } from '../shared/constants'
     DriverLicenseInfoService,
     DocumentFileService,
     HistoryConversationService,
+    OtpService,
   ],
   exports: [RabbitmqService],
 })

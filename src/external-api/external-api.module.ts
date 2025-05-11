@@ -10,7 +10,8 @@ import { CarInfoService } from '../car-info/car-info.service'
 import { PrismaService } from 'prisma/prisma.service'
 import { YangoService } from './yango.service'
 import { OtpService } from './otp.service'
-import { VerifyOtpVerificationDto } from '../otp-verification/dto/verify-otp-verification.dto'
+import { OpenAIService } from './openai.service'
+import { OtpVerificationService } from '../otp-verification/otp-verification.service'
 
 @Module({
   imports: [
@@ -29,9 +30,17 @@ import { VerifyOtpVerificationDto } from '../otp-verification/dto/verify-otp-ver
     DriverPersonalInfoService,
     DriverLicenseInfoService,
     CarInfoService,
-    VerifyOtpVerificationDto,
+    OtpVerificationService,
     PrismaService,
+    OpenAIService,
   ],
-  exports: [WhapiService, OcrSpaceService, YangoService, OtpService],
+  exports: [
+    WhapiService,
+    OcrSpaceService,
+    YangoService,
+    OtpService,
+    OpenAIService,
+    OtpVerificationService
+  ],
 })
 export class ExternalApiModule { }

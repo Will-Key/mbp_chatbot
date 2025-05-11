@@ -1,10 +1,11 @@
 import { HttpService } from "@nestjs/axios";
-import { Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { randomInt } from "crypto";
 import { lastValueFrom } from "rxjs";
 import { OtpVerificationService } from "../otp-verification/otp-verification.service";
 import { addMinutes, isAfter } from "date-fns";
 
+@Injectable()
 export class OtpService {
   private readonly logger = new Logger(OtpService.name)
   private readonly smsApiKey: string;

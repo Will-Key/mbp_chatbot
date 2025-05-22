@@ -54,6 +54,23 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 2,
+    message: `Veuillez renseigner le code reçu par message. 
+            `,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Code incorrect',
+        errorType: 'equalLength',
+      },
+      {
+        message: 'Code expiré',
+        errorType: 'isExpire',
+      },
+    ],
+    flowId: 1,
+  },
+  {
+    level: 3,
     message: `Partager une photo lisible de votre permis en resto et verso.
             \nPartager d'abord la photo recto de votre permis.
             `,
@@ -71,7 +88,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 3,
+    level: 4,
     message: `Partager Ensuite le verso du permis`,
     expectedResponseType: StepExpectedResponseType.image,
     badResponseMessage: [
@@ -87,7 +104,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 4,
+    level: 5,
     message: `Partager également une photo lisible en recto uniquement de la carte grise du véhicule auquel vous souhaitez être associé.`,
     expectedResponseType: StepExpectedResponseType.image,
     badResponseMessage: [
@@ -104,7 +121,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 5,
+    level: 6,
     message: `Veuillez entrer votre nom`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -113,7 +130,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 6,
+    level: 7,
     message: `Veuillez entrer votre prénom`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -122,7 +139,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 7,
+    level: 8,
     message: `Veuillez entrer le numero de votre permis`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -134,7 +151,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 8,
+    level: 9,
     message: `Veuillez entrer la date d'expiration`,
     expectedResponseType: StepExpectedResponseType.date,
     badResponseMessage: [
@@ -143,7 +160,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 9,
+    level: 10,
     message: `Veuillez entrer la date de délivrance`,
     expectedResponseType: StepExpectedResponseType.date,
     badResponseMessage: [

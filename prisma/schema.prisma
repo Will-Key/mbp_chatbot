@@ -71,6 +71,7 @@ enum StepBadResponseMessageErrorType {
   isNotExist
   incorrectChoice
   isDate
+  isExpire
 }
 
 enum HistoryConversationStatus {
@@ -209,4 +210,16 @@ model HistoryConversation {
   step           Step?                               @relation(fields: [stepId], references: [id])
   status         HistoryConversationStatus
   reason         HistoryConversationReasonForEnding?
+}
+
+model OtpVerification {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  phoneNumber String
+  otpCode     String
+  expiresAt   DateTime
+  isUsed      Boolean  @default(false)
+
+  @@index([phoneNumber, otpCode])
 }

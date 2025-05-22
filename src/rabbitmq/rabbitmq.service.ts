@@ -19,7 +19,7 @@ import {
 } from '@prisma/client'
 import { StepService } from '../step/step.service'
 import { CreateConversationDto } from '../conversation/dto/create-conversation.dto'
-import { DriverPersonalInfoService } from '../driver-Personal-info/driver-Personal-info.service'
+import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { CreateDocumentFileDto } from '../document-file/dto/create-document-file.dto'
 import { DocumentFileService } from '../document-file/document-file.service'
 import { WhapiService } from '../external-api/whapi.service'

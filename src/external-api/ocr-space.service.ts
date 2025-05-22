@@ -5,7 +5,7 @@ import { ocrSpace } from 'ocr-space-api-wrapper'
 import { SendDocDto } from './dto/send-doc.dto'
 import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
 import { ConversationService } from '../conversation/conversation.service'
-import { DriverPersonalInfoService } from '../driver-Personal-info/driver-Personal-info.service'
+import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { CarInfoService } from '../car-info/car-info.service'
 

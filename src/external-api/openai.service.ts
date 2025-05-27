@@ -2,6 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { lastValueFrom } from "rxjs";
 import { GetOcrResponseDto } from "./dto/get-ocr-response.dto";
 import { HttpService } from "@nestjs/axios";
+import { ExtractDriverLicenseFrontDto } from "./dto/extract-driver-license-front.dto";
+import { ExtractVehiculeRegistrationDto } from "./dto/extract-vehicule-registration.dto";
 
 @Injectable()
 export class OpenAIService {
@@ -14,7 +16,7 @@ export class OpenAIService {
     this.apiKey = process.env.OPENAI_API_KEY
   }
 
-  async extractDriverLicenseFront(ocrData: GetOcrResponseDto): Promise<any> {
+  async extractDriverLicenseFront(ocrData: GetOcrResponseDto): Promise<ExtractDriverLicenseFrontDto> {
     try {
       const systemPrompt = `
         Tu es un expert en extraction de données de permis de conduire ivoirien.
@@ -25,7 +27,7 @@ export class OpenAIService {
         - deliveryDate: date de délivrance (au format YYYY-MM-DD)
         - deliveryPlace: lieu de délivrance
         
-        Si une information n'est pas trouvée, renvoie null pour ce champ.
+        Si une information n'est pas trouvée, renvoie null pour ce champ mais toute fois tient compte des erreurs des libellés des informations à récupérer.
         Les dates doivent être converties au format YYYY-MM-DD.
         Assure-toi que les noms sont correctement formatés (première lettre en majuscule).
       `;
@@ -55,7 +57,7 @@ export class OpenAIService {
     }
   }
 
-  async extractVehicleRegistration(ocrData: GetOcrResponseDto): Promise<any> {
+  async extractVehicleRegistration(ocrData: GetOcrResponseDto): Promise<ExtractVehiculeRegistrationDto> {
     try {
       const systemPrompt = `
         Tu es un expert en extraction de données de carte grise ivoirienne.
@@ -63,6 +65,7 @@ export class OpenAIService {
         - plateNumber: numéro d'immatriculation
         - brand: marque du véhicule
         - genre: genre du véhicule
+        - color: couleur du véhicule
         - firstRegistrationDate: date de première mise en circulation (au format YYYY-MM-DD)
         
         Si une information n'est pas trouvée, renvoie null pour ce champ.
@@ -98,7 +101,7 @@ export class OpenAIService {
         }
       )
     );
-
+    console.log('makeOpenAiRequest', response)
     return JSON.parse(response.data.choices[0].message.content);
   }
 }

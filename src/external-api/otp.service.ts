@@ -62,16 +62,20 @@ export class OtpService {
   private async sendSms(phoneNumber: string, content: string): Promise<void> {
     try {
       await lastValueFrom(
-        this.httpService.post(this.smsApiUrl, {
-          token: this.smsApiKey,
-          from: this.smsApiSender,
-          to: phoneNumber,
-          content
+        this.httpService.get(this.smsApiUrl, {
+          params: {
+            token: this.smsApiKey,
+            from: this.smsApiSender,
+            to: `225${phoneNumber}`,
+            content: content,
+          },
         })
       );
     } catch (error) {
+      console.log(error)
       this.logger.error(`Erreur lors de l'envoi du SMS: ${error.message}`);
       throw error;
     }
   }
+  
 }

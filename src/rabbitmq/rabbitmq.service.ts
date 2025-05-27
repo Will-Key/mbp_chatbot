@@ -159,10 +159,10 @@ export class RabbitmqService {
       case 3:
         await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
         break
+      // case 4:
+      //   await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+      //   break
       case 4:
-        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
-        break
-      case 5:
         await this.handleCarRegistrationUpload(lastConversation, newMessage)
         break
       default:
@@ -208,7 +208,10 @@ export class RabbitmqService {
         stepId: nextStep.id,
       })
     } catch (error) {
-      const errorMessage = error.message
+      let errorMessage = error.message
+      if (errorMessage != "OTP envoyé avec succès") 
+        errorMessage = "Erreur lors de l'envoie du OTP.\nVeuillez reéssayer."
+      
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -333,7 +336,7 @@ export class RabbitmqService {
     );
     // TODO: Add a cron for sending data to Yango 
     // Or do it when we are on the last step
-    // await this.sendDataToYango(newMessage);
+    await this.sendDataToYango(newMessage);
   }
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
@@ -393,20 +396,21 @@ export class RabbitmqService {
       }
     }
 
-    const createYangoP = await this.yangoService.createProfile(createYangoDto)
+    // const createYangoP = await this.yangoService.createProfile(createYangoDto)
 
-    const { nextMessage, stepId } = createYangoP === 1 ? {
-      nextMessage: 'Votre inscription a été effectué avec succès.',
-      stepId: 20
-    } : {
-      nextMessage: 'Votre inscription a échoué.',
-      stepId: 24
-    }
+    // const { nextMessage, stepId } = createYangoP === 1 ? {
+    //   nextMessage: 'Votre inscription a été effectué avec succès.',
+    //   stepId: 20
+    // } : {
+    //   nextMessage: 'Votre inscription a échoué.',
+    //   stepId: 24
+    // }
+    console.log('createYangoDto', createYangoDto)
     await this.saveMessage({
       whaPhoneNumber,
       convMessage: newMessage.messages[0].text.body,
-      nextMessage,
-      stepId,
+      nextMessage: JSON.stringify(createYangoDto),
+      stepId: 20,
     })
   }
 

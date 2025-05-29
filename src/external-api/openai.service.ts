@@ -21,11 +21,13 @@ export class OpenAIService {
       const systemPrompt = `
         Tu es un expert en extraction de données de permis de conduire ivoirien.
         Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
+        - imageType: doit contenir "PERMIS DE CONDUIRE"
         - licenseNumber: numéro du permis de conduire
         - lastName: nom de famille du chauffeur
         - firstName: prénom du chauffeur
         - deliveryDate: date de délivrance (au format YYYY-MM-DD)
         - deliveryPlace: lieu de délivrance
+        - percentage: le pourcentage d'information récupéré sans rajouter le signe % en te basant sur les propriétés précédentes.
         
         Si une information n'est pas trouvée, renvoie null pour ce champ mais toute fois tient compte des erreurs des libellés des informations à récupérer.
         Les dates doivent être converties au format YYYY-MM-DD.
@@ -67,6 +69,7 @@ export class OpenAIService {
         - genre: genre du véhicule
         - color: couleur du véhicule
         - firstRegistrationDate: date de première mise en circulation (au format YYYY-MM-DD)
+        - percentage: le pourcentage d'information récupéré sans rajouter le signe % en te basant sur les propriétés précédentes.
         
         Si une information n'est pas trouvée, renvoie null pour ce champ.
         Les dates doivent être converties au format YYYY-MM-DD.

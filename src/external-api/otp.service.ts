@@ -49,11 +49,10 @@ export class OtpService {
       return false;
     }
 
-    if(isAfter(new Date(), otpRecord.expiresAt)) return false
+    if(this.isExpired(otpRecord.expiresAt)) return false
 
-    await this.otpVerificationService.update(
+    await this.otpVerificationService.setOtpToUsed(
       otpRecord.id,
-      true
     );
 
     return true;
@@ -76,6 +75,10 @@ export class OtpService {
       this.logger.error(`Erreur lors de l'envoi du SMS: ${error.message}`);
       throw error;
     }
+  }
+
+  private isExpired(expiresAt: Date) {
+    return isAfter(new Date(), expiresAt)
   }
   
 }

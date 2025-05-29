@@ -4,4 +4,5 @@ export class ExtractVehiculeRegistrationDto {
   genre: string
   color: string
   firstRegistrationDate: string
+  percentage: string
 }

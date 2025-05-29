@@ -3,4 +3,5 @@ export class ExtractDriverLicenseFrontDto {
   lastName: string
   firstName: string
   deliveryDate: string
+  percenrtage: string
 }

@@ -71,9 +71,13 @@ export class OcrSpaceService {
     if (file.documentType === 'DRIVER_LICENSE') {
       const driverLicenseInfo = await this.openAiService.extractDriverLicenseFront(response)
 
+      if(+driverLicenseInfo.percenrtage < 80) return 0
+
       return await this.getDriverLicenseFrontData(driverLicenseInfo, file.whaPhoneNumber)
     } else {
       const vehiculeInfo = await this.openAiService.extractVehicleRegistration(response)
+
+      if(+vehiculeInfo.percentage < 80) return 0
 
       return await this.getCarRegistrationData(vehiculeInfo, file.whaPhoneNumber)
     }
@@ -87,13 +91,6 @@ export class OcrSpaceService {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
     try {
       
-      const driverLicenseInfo = await this.driverLicenseInfoService.create({
-        countryCode: 'CIV',
-        expiryDate: addYears(deliveryDate, 10).toISOString(),
-        deliveryDate: this.convertToISOString(deliveryDate),
-        driverPhoneNumber: phoneNumber,
-      })
-      
       const driverPersonalInfo = await this.driverPersonalInfoService.create({
         lastName,
         firstName,
@@ -102,6 +99,15 @@ export class OcrSpaceService {
         licenseNumber,
         collectMethod: 'OCR',
       })
+
+      await this.driverLicenseInfoService.create({
+        countryCode: 'CIV',
+        expiryDate: addYears(deliveryDate, 10).toISOString(),
+        deliveryDate: this.convertToISOString(deliveryDate),
+        driverPhoneNumber: phoneNumber,
+        idDriverPersInfo: driverPersonalInfo.id
+      })
+      
 
       return driverPersonalInfo.id
     } catch (error) {
@@ -133,6 +139,7 @@ export class OcrSpaceService {
         expiryDate: this.convertToISOString(licenseExpiryDate),
         deliveryDate: this.convertToISOString(licenseDeliveryDate),
         driverPhoneNumber: phoneNumber,
+        idDriverPersInfo: 0
       })
       return driverLicenseInfo.id
     } catch (error) {

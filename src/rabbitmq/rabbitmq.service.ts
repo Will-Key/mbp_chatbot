@@ -176,7 +176,7 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 1
-      const phoneNumber = newMessage.messages[0].text.body.trim()
+      const phoneNumber = this.cleanupPhoneNumver(newMessage.messages[0].text.body.trim())
       if (phoneNumber.length !== 10) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -215,6 +215,10 @@ export class RabbitmqService {
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
+  }
+
+  private cleanupPhoneNumver(numero: string): string {
+    return numero.replace(/\D/g, '');
   }
 
   private async handleOtpVerification(
@@ -272,14 +276,18 @@ export class RabbitmqService {
 
     const doc = await this.documentFileService.create(createDocumentFile);
     if (!doc) {
-      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      const errorMessage = documentType === "DRIVER_LICENSE"
+        ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle.";
       await this.updateMessage(lastConversation, errorMessage);
       return;
     }
 
     const ocrResponse = await this.ocrSpaceService.sendFile(doc);
     if (ocrResponse === 0) {
-      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      const errorMessage = documentType === "DRIVER_LICENSE"
+      ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle.";
       await this.updateMessage(lastConversation, errorMessage);
       return;
     }
@@ -370,6 +378,10 @@ export class RabbitmqService {
     const driverPersonalInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
     const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
 
+    // Get data for building car creation on yango
+
+    // Get yango carId and update
+
     // Push conversation to yango queue for 
     const createYangoDto: CreateYangoProfileDto = {
       order_provider: {
@@ -396,7 +408,7 @@ export class RabbitmqService {
       }
     }
 
-    // const createYangoP = await this.yangoService.createProfile(createYangoDto)
+    //const createYangoP = await this.yangoService.createProfile(createYangoDto)
 
     // const { nextMessage, stepId } = createYangoP === 1 ? {
     //   nextMessage: 'Votre inscription a été effectué avec succès.',

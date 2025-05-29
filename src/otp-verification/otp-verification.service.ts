@@ -21,4 +21,11 @@ export class OtpVerificationService {
       data: { isUsed }
     })
   }
+
+  async setOtpToUsed(id: number) {
+    return await this.prismaService.otpVerification.update({
+      where: { id },
+      data: { isUsed: true }
+    })
+  }
 }

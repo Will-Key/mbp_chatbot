@@ -29,5 +29,18 @@ export class YangoService {
         )
     }
 
-    async createCar() { }
+    async createCar(payload: unknown) {
+        return 1
+        return await lastValueFrom(
+            this.httpService
+                .post(`${process.env.YANGO_API_URL}/${this.PROFILE_CREATION_PATH}`, payload, {
+                    headers: {
+                        Authorization: `Bearer ${process.env.WHAPI_TOKEN}`,
+                        accept: 'application/json',
+                        'content-type': 'application/json',
+                    },
+                    timeout: 15000,
+                })
+        )
+    }
 }

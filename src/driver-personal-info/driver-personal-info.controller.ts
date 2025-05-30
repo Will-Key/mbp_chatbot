@@ -7,9 +7,10 @@ import {
   Param,
   Delete,
 } from '@nestjs/common'
-import { DriverPersonalInfoService } from './driver-Personal-info.service'
-import { CreateDriverPersonalInfoDto } from './dto/create-driver-Personal-info.dto'
-import { UpdateDriverPersonalInfoDto } from './dto/update-driver-Personal-info.dto'
+
+import { CreateDriverPersonalInfoDto } from './dto/create-driver-personal-info.dto'
+import { UpdateDriverPersonalInfoDto } from './dto/update-driver-personal-info.dto'
+import { DriverPersonalInfoService } from './driver-personal-info.service'
 
 //@Controller('driver-Personal-info')
 export class DriverPersonalInfoController {

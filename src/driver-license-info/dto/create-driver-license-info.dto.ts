@@ -25,4 +25,8 @@ export class CreateDriverLicenseInfoDto {
   @IsNotEmpty()
   @IsNumber()
   driverPhoneNumber: string
+
+  @IsNotEmpty()
+  @IsNumber()
+  idDriverPersInfo: number
 }

@@ -19,7 +19,7 @@ import {
 } from '@prisma/client'
 import { StepService } from '../step/step.service'
 import { CreateConversationDto } from '../conversation/dto/create-conversation.dto'
-import { DriverPersonalInfoService } from '../driver-Personal-info/driver-Personal-info.service'
+import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { CreateDocumentFileDto } from '../document-file/dto/create-document-file.dto'
 import { DocumentFileService } from '../document-file/document-file.service'
 import { WhapiService } from '../external-api/whapi.service'
@@ -33,6 +33,7 @@ import { CreateHistoryConversationDto } from '../history-conversation/dto/create
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { subMinutes } from 'date-fns'
+import { OtpService } from '../external-api/otp.service'
 
 @Injectable()
 export class RabbitmqService {
@@ -51,7 +52,8 @@ export class RabbitmqService {
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
     private readonly yangoService: YangoService,
-    private readonly historyConversationService: HistoryConversationService
+    private readonly historyConversationService: HistoryConversationService,
+    private readonly otpService: OtpService
   ) { }
 
   onModuleInit() {
@@ -152,11 +154,14 @@ export class RabbitmqService {
         await this.handlePhoneNumberStep(lastConversation, newMessage)
         break
       case 2:
-        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
+        await this.handleOtpVerification(lastConversation, newMessage)
         break
       case 3:
-        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+        await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
         break
+      // case 4:
+      //   await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+      //   break
       case 4:
         await this.handleCarRegistrationUpload(lastConversation, newMessage)
         break
@@ -169,22 +174,67 @@ export class RabbitmqService {
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
   ) {
-    const flowId = 1
-    const incomingMessage = newMessage.messages[0].text.body.trim()
-    if (incomingMessage.length !== 10) {
-      const errorMessage = this.getErrorMessage(
-        lastConversation,
-        'equalLength',
+    try {
+      const flowId = 1
+      const phoneNumber = this.cleanupPhoneNumver(newMessage.messages[0].text.body.trim())
+      if (phoneNumber.length !== 10) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+      const driver =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          `225${phoneNumber}`,
+        )
+      if (driver) {
+        const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
+      await this.otpService.generateAndSendOtp(phoneNumber)
+
+      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+        lastConversation.step.level + 1,
+        flowId,
       )
+      await this.saveMessage({
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
+        nextMessage: nextStep.message,
+        stepId: nextStep.id,
+      })
+    } catch (error) {
+      let errorMessage = error.message
+      if (errorMessage != "OTP envoyé avec succès") 
+        errorMessage = "Erreur lors de l'envoie du OTP.\nVeuillez reéssayer."
+      
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
-    const driver =
-      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-        `225${incomingMessage}`,
-      )
-    if (driver) {
-      const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
+  }
+
+  private cleanupPhoneNumver(numero: string): string {
+    return numero.replace(/\D/g, '');
+  }
+
+  private async handleOtpVerification(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    const flowId = 1
+    const whaPhoneNumber = newMessage.messages[0].from
+    const otpEnter = newMessage.messages[0].text.body.trim()
+
+    const phoneNumber = (await this.conversationService.findPhoneNumberLastConversation(whaPhoneNumber)).message
+
+    const isVerified = this.otpService.verifyOtp(phoneNumber, otpEnter)
+
+    if (!isVerified) {
+      const errorMessage = "Code incorrect"
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -195,7 +245,7 @@ export class RabbitmqService {
     )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: `225${incomingMessage}`,//newMessage.messages[0].text.body,
+      convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
@@ -226,14 +276,18 @@ export class RabbitmqService {
 
     const doc = await this.documentFileService.create(createDocumentFile);
     if (!doc) {
-      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      const errorMessage = documentType === "DRIVER_LICENSE"
+        ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle.";
       await this.updateMessage(lastConversation, errorMessage);
       return;
     }
 
     const ocrResponse = await this.ocrSpaceService.sendFile(doc);
     if (ocrResponse === 0) {
-      const errorMessage = "L'image n'a pas pu être traitée.\nVeuillez réessayer.";
+      const errorMessage = documentType === "DRIVER_LICENSE"
+      ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle.";
       await this.updateMessage(lastConversation, errorMessage);
       return;
     }
@@ -290,7 +344,7 @@ export class RabbitmqService {
     );
     // TODO: Add a cron for sending data to Yango 
     // Or do it when we are on the last step
-    // await this.sendDataToYango(newMessage);
+    await this.sendDataToYango(newMessage);
   }
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
@@ -324,6 +378,10 @@ export class RabbitmqService {
     const driverPersonalInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
     const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
 
+    // Get data for building car creation on yango
+
+    // Get yango carId and update
+
     // Push conversation to yango queue for 
     const createYangoDto: CreateYangoProfileDto = {
       order_provider: {
@@ -350,20 +408,21 @@ export class RabbitmqService {
       }
     }
 
-    const createYangoP = await this.yangoService.createProfile(createYangoDto)
+    //const createYangoP = await this.yangoService.createProfile(createYangoDto)
 
-    const { nextMessage, stepId } = createYangoP === 1 ? {
-      nextMessage: 'Votre inscription a été effectué avec succès.',
-      stepId: 20
-    } : {
-      nextMessage: 'Votre inscription a échoué.',
-      stepId: 24
-    }
+    // const { nextMessage, stepId } = createYangoP === 1 ? {
+    //   nextMessage: 'Votre inscription a été effectué avec succès.',
+    //   stepId: 20
+    // } : {
+    //   nextMessage: 'Votre inscription a échoué.',
+    //   stepId: 24
+    // }
+    console.log('createYangoDto', createYangoDto)
     await this.saveMessage({
       whaPhoneNumber,
       convMessage: newMessage.messages[0].text.body,
-      nextMessage,
-      stepId,
+      nextMessage: JSON.stringify(createYangoDto),
+      stepId: 20,
     })
   }
 

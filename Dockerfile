@@ -44,6 +44,9 @@ COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 # Donne les droits d'exécution au script
 RUN chmod +x ./entrypoint.sh
 
+# Set environment variable
+ENV NODE_ENV=production
+
 # Port exposé
 EXPOSE 3001
 

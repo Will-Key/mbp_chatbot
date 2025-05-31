@@ -44,7 +44,7 @@ services:
       - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:5672
     networks:
       - mbp_chatbot_go_net
-    volumes:
+    #volumes:
       #- ./entrypoint.sh:/usr/src/app/entrypoint.sh
     command: ["sh", "/usr/src/app/entrypoint.sh"]
 

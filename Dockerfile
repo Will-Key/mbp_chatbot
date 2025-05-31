@@ -35,8 +35,8 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
 
 # ✅ Copie le script d'entrée dans le conteneur
-COPY entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Set environment variable
 ENV NODE_ENV=production

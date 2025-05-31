@@ -14,6 +14,11 @@ RUN npm ci
 # Copy the rest of the application code
 COPY . .
 
+COPY entrypoint.sh /usr/src/app/entrypoint.sh
+RUN chmod +x /usr/src/app/entrypoint.sh
+
+COPY .env .env
+
 # Generate Prisma client
 RUN npm run prisma:generate
 

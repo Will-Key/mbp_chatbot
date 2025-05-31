@@ -46,7 +46,7 @@ services:
       - mbp_chatbot_go_net
     #volumes:
       #- ./entrypoint.sh:/usr/src/app/entrypoint.sh
-    command: ["sh", "/usr/src/app/entrypoint.sh"]
+    command: ["sh", "entrypoint.sh"]
 
 volumes:
   mbp_chatbot_db:

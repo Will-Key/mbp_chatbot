@@ -490,42 +490,48 @@ export class RabbitmqService {
   }
 
   private async updateMessage(conversation: Conversation, message: string) {
-    const updatedConversation = await this.conversationService.update(
-      conversation.id,
-      {
-        message,
-        badResponseCount: conversation.badResponseCount + 1,
-      },
-    )
-    if (updatedConversation.badResponseCount >= 2) {
+    try {
+      const updatedConversation = await this.conversationService.update(
+        conversation.id,
+        {
+          message,
+          badResponseCount: conversation.badResponseCount + 1,
+        },
+      )
+      if (updatedConversation.badResponseCount >= 2) {
+        await this.editHistoryConversation({
+          whaPhoneNumber: conversation.whaPhoneNumber,
+          status: HistoryConversationStatus.FAIL,
+          reason: HistoryConversationReasonForEnding.ERROR,
+          stepId: conversation.stepId
+        })
+        
+        const errorStep = await this.stepService.findOneByLevel(15)
+        // Push message to whapi queue to demand to driver to go on MBP local
+        await this.handleMessageToSent({
+          to: conversation.whaPhoneNumber,
+          body: errorStep.message,
+          typing_time: 5,
+        })
+  
+        await this.deleteAllConversations(conversation)
+        await this.deleteInfoCollected(conversation)
+        return
+      }
       await this.editHistoryConversation({
         whaPhoneNumber: conversation.whaPhoneNumber,
-        status: HistoryConversationStatus.FAIL,
+        status: HistoryConversationStatus.IN_PROGRESS,
         reason: HistoryConversationReasonForEnding.ERROR,
         stepId: conversation.stepId
       })
-      await this.deleteAllConversations(conversation)
-      await this.deleteInfoCollected(conversation)
-      const errorStep = await this.stepService.findOneByLevel(15)
-      // Push message to whapi queue to demand to driver to go on MBP local
-      await this.handleMessageToSent({
+      this.handleMessageToSent({
         to: conversation.whaPhoneNumber,
-        body: errorStep.message,
+        body: message,
         typing_time: 5,
       })
-      return
+    } catch (error) {
+      console.log(error.message)
     }
-    await this.editHistoryConversation({
-      whaPhoneNumber: conversation.whaPhoneNumber,
-      status: HistoryConversationStatus.IN_PROGRESS,
-      reason: HistoryConversationReasonForEnding.ERROR,
-      stepId: conversation.stepId
-    })
-    this.handleMessageToSent({
-      to: conversation.whaPhoneNumber,
-      body: message,
-      typing_time: 5,
-    })
   }
 
   private async editHistoryConversation(payload: CreateHistoryConversationDto) {

@@ -14,34 +14,29 @@ RUN npm ci
 # Copy the rest of the application code
 COPY . .
 
-COPY entrypoint.sh /usr/src/app/entrypoint.sh
-RUN chmod +x /usr/src/app/entrypoint.sh
-
-COPY .env .env
-
-# Generate Prisma client
+# Générer Prisma client
 RUN npm run prisma:generate
 
 # Build the application
 RUN npm run build
+
 
 # Stage 2: Production image
 FROM node:18-alpine AS runner
 
 RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install only production dependencies in the production image
-RUN npm ci --only=production
-
-# Copy the built application from the builder stage
+# Copy only what's needed for production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package*.json ./
+
+# ✅ Copie le script d'entrée dans le conteneur
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 # Set environment variable
 ENV NODE_ENV=production
@@ -49,5 +44,5 @@ ENV NODE_ENV=production
 # Expose the port
 EXPOSE 3001
 
-# Run the application
-CMD ["node", "dist/src/main.js"]
+# Commande d'exécution via le script
+CMD ["sh", "./entrypoint.sh"]

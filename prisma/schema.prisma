@@ -189,7 +189,7 @@ model CarInfo {
   plateNumber       String    @unique
   status            CarStatus
   code              String
-  model             String
+  model             String?
   driverPhoneNumber String    @unique
   yangoCarId        String?   @unique
 }

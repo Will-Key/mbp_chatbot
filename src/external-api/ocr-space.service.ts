@@ -149,7 +149,7 @@ export class OcrSpaceService {
   }
 
   private async getCarRegistrationData(
-    { brand, plateNumber, color, genre, firstRegistrationDate }: ExtractVehiculeRegistrationDto,
+    { brand, plateNumber, color, model, firstRegistrationDate }: ExtractVehiculeRegistrationDto,
     whaPhoneNumber: string,
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
@@ -162,6 +162,7 @@ export class OcrSpaceService {
         plateNumber,
         status: 'unknown',
         code: plateNumber,
+        model,
         driverPhoneNumber: phoneNumber,
       })
       console.log('carInfo', carInfo)

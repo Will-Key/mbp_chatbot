@@ -351,7 +351,7 @@ export class RabbitmqService {
       'CAR_REGISTRATION',
       19
     );
-    // TODO: Add a cron for sending data to Yango 
+    // TODO: Add a cron for sending data to Yango
     // Or do it when we are on the last step
     await this.sendDataToYango(newMessage);
   }
@@ -402,7 +402,7 @@ export class RabbitmqService {
       vehicule_specifications: {
         brand: carInfo.brand,
         color: carInfo.color,
-        model: "",
+        model: carInfo.model,
         transmission: 'mechanical',
         year: 0
       }

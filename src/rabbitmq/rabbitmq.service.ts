@@ -103,12 +103,15 @@ export class RabbitmqService {
 
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
     const initialStep = await this.stepService.findOneByLevel(0)
-    await this.saveMessage({
-      whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: newMessage.messages[0].text.body,
-      nextMessage: initialStep.message,
-      stepId: initialStep.id,
-    })
+    const message = newMessage.messages[0].text.body
+    if (message === 'Start') {
+      await this.saveMessage({
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: newMessage.messages[0].text.body,
+        nextMessage: initialStep.message,
+        stepId: initialStep.id,
+      })
+    }
   }
 
   private async handleExistingConversation(

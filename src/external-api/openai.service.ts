@@ -66,8 +66,8 @@ export class OpenAIService {
         Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
         - plateNumber: numéro d'immatriculation
         - brand: marque du véhicule
-        - genre: genre du véhicule
-        - color: couleur du véhicule
+        - genre: Type commercial
+        - color: couleur du véhicule (retourne la couleur récupérer en russe entre ces valeurs "Белый" | "Желтый" | "Бежевый" | "Черный" | "Голубой" | "Серый" | "Красный" | "Оранжевый" | "Синий" | "Зеленый" | "Коричневый" | "Фиолетовый" | "Розовый")
         - firstRegistrationDate: date de première mise en circulation (au format YYYY-MM-DD)
         - percentage: le pourcentage d'information récupéré sans rajouter le signe % en te basant sur les propriétés précédentes.
         

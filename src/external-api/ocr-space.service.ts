@@ -161,7 +161,7 @@ export class OcrSpaceService {
         year: firstRegistrationDate.split('-')[0],
         plateNumber,
         status: 'unknown',
-        code: '',
+        code: plateNumber,
         driverPhoneNumber: phoneNumber,
       })
       console.log('carInfo', carInfo)

@@ -27,6 +27,14 @@ export class DriverPersonalInfoService {
     })
   }
 
+  findDriverPersonnalInfoByYangoProfileID(yangoProfileId: string) {
+    return this.prismaService.driverPersonnalInfo.findUnique({
+      where: {
+        yangoProfileId
+      }
+    })
+  }
+
   update(
     id: number,
     updateDriverPersonalInfoDto: UpdateDriverPersonalInfoDto,

@@ -4,6 +4,9 @@ import {
   WHAPI_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
   OCR_SENT_QUEUE_NAME,
+  CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+  CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
 } from './constants'
 import { SendMessageDto } from '../external-api/dto/send-message.dto'
 import { firstValueFrom } from 'rxjs'
@@ -34,6 +37,8 @@ import { HistoryConversationService } from '../history-conversation/history-conv
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { subMinutes } from 'date-fns'
 import { OtpService } from '../external-api/otp.service'
+import { CarInfoService } from '../car-info/car-info.service'
+import { CreateYangoCarDto } from 'src/external-api/dto/create-yango-car.dto'
 
 @Injectable()
 export class RabbitmqService {
@@ -48,6 +53,7 @@ export class RabbitmqService {
     private readonly stepService: StepService,
     private readonly driverPersonalInfoService: DriverPersonalInfoService,
     private readonly driverLicenseInfoService: DriverLicenseInfoService,
+    private readonly carInfoService: CarInfoService,
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
@@ -382,6 +388,25 @@ export class RabbitmqService {
     const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
 
     // Get data for building car creation on yango
+    const carInfo = await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+    const createYangoCar: CreateYangoCarDto = {
+      park_profile: {
+        callsign: carInfo.code,
+        fuel_type: 'petrol',
+        status: 'unknown',
+        categories: ["econom", "comfort"]
+      },
+      vehicule_licenses: {
+        licence_plate_number: carInfo.plateNumber
+      },
+      vehicule_specifications: {
+        brand: carInfo.brand,
+        color: carInfo.color,
+        model: "",
+        transmission: 'mechanical',
+        year: 0
+      }
+    }
 
     // Get yango carId and update
 
@@ -621,6 +646,45 @@ export class RabbitmqService {
   }
 
   async handleOcrResponsePushedQueue() { }
+
+  async pushCreateYangoProfileToQueue(payload: CreateYangoProfileDto) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(CREATE_YANGO_PROFILE_SENT_QUEUE_NAME, payload),
+      )
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
+    } catch (error) {
+      this.logger.error(`Error on emitting doc: ${error}`)
+    }
+  }
+
+  async handleCreateYangoProfile(payload: CreateYangoProfileDto) { }
+  
+  async pushCreateYangoCarToQueue(payload: CreateYangoProfileDto) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(CREATE_YANGO_CAR_SENT_QUEUE_NAME, payload),
+      )
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
+    } catch (error) {
+      this.logger.error(`Error on emitting doc: ${error}`)
+    }
+  }
+
+  async handleCreateYangoCar(payload: CreateYangoCarDto) { }
+  
+  async pushUpdateYangoDriverInfoToQueue(payload: CreateYangoProfileDto) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME, payload),
+      )
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
+    } catch (error) {
+      this.logger.error(`Error on emitting doc: ${error}`)
+    }
+  }
+
+  async handleUpdateYangoDriverInfo(payload: CreateYangoProfileDto) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async deleteOldConversations() {

@@ -3,6 +3,9 @@ import { Injectable } from "@nestjs/common";
 import { RequestLogService } from "src/request-log/request-log.service";
 import { CreateYangoProfileDto } from "./dto/create-yango-profile.dto";
 import { lastValueFrom } from "rxjs";
+import { v4 as uuidv4 } from "uuid"
+import { DriverPersonalInfoService } from "../driver-personal-info/driver-personal-info.service";
+import { CarInfoService } from "../car-info/car-info.service";
 
 @Injectable()
 export class YangoService {
@@ -12,10 +15,23 @@ export class YangoService {
     constructor(
         private readonly httpService: HttpService,
         private readonly requestLogService: RequestLogService,
+        private readonly driverPersonnalInforService: DriverPersonalInfoService,
+        private readonly carInfoService: CarInfoService
     ) { }
 
     async createProfile(payload: CreateYangoProfileDto) {
-        return 1
+        const profileId = uuidv4()
+        const driver = this.driverPersonnalInforService.findDriverPersonnalInfoByYangoProfileID(profileId)
+        if (driver) {
+            return {
+                status: 400,
+                message: "Conducteur existe"
+            }
+        }
+        return {
+            status: 200,
+            message: "Profil créé"
+        }
         return await lastValueFrom(
             this.httpService
                 .post(`${process.env.YANGO_API_URL}/${this.PROFILE_CREATION_PATH}`, payload, {
@@ -30,7 +46,18 @@ export class YangoService {
     }
 
     async createCar(payload: unknown) {
-        return 1
+        const carId = uuidv4()
+        const car = this.carInfoService.findCarInfoByYangoCarId(carId)
+        if (car) {
+            return {
+                status: 400,
+                message: "Car existe"
+            }
+        }
+        return {
+            status: 200,
+            message: "Car créé"
+        }
         return await lastValueFrom(
             this.httpService
                 .post(`${process.env.YANGO_API_URL}/${this.PROFILE_CREATION_PATH}`, payload, {

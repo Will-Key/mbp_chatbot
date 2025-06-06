@@ -21,6 +21,18 @@ export class CarInfoService {
     return this.prismaService.carInfo.findUnique({ where: { id } })
   }
 
+  findCarInfoByDriverPhoneNumber(driverPhoneNumber: string) {
+    return this.prismaService.carInfo.findUnique({
+      where: { driverPhoneNumber }
+    })
+  }
+
+  findCarInfoByYangoCarId(yangoCarId: string) {
+    return this.prismaService.carInfo.findUnique({
+      where: { yangoCarId }
+    })
+  }
+
   update(id: number, updateCarInfoDto: UpdateCarInfoDto) {
     return this.prismaService.carInfo.update({
       data: updateCarInfoDto,

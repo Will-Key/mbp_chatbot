@@ -14,6 +14,7 @@ import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import { DocumentFile } from '@prisma/client'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
 import { CreateYangoCarDto } from 'src/external-api/dto/create-yango-car.dto'
+import { ConversationType } from 'src/shared/types'
 
 @Controller()
 export class RabbitmqController {
@@ -52,10 +53,11 @@ export class RabbitmqController {
   }
 
   @EventPattern(CREATE_YANGO_PROFILE_SENT_QUEUE_NAME)
-  async createYangoProfile(@Payload() data: CreateYangoProfileDto) {
+  async createYangoProfile(@Payload() payload: {lastConversation: ConversationType,
+      newMessage: NewMessageWebhookDto}) {
     try {
-      this.logger.log(`Create yango profile: ${data}`)
-      await this.rabbitmqService.handleCreateYangoProfile(data)
+      this.logger.log(`Create yango profile: ${payload}`)
+      await this.rabbitmqService.handleCreateYangoProfile(payload)
     } catch (error) {
       this.logger.error(`Error processing during yango profile creation: ${error}`)
     }

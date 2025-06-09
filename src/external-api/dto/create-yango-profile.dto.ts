@@ -33,4 +33,5 @@ export class CreateYangoProfileDto {
     driver_license: DriverLicense
     full_name: DriverInfo
     profile: Profile
+    carId: string
 }

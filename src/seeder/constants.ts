@@ -7,7 +7,10 @@ export const INITIAL_FLOWS: CreateFlowDto[] = [
     name: 'Inscription',
   },
   {
-    name: 'Association',
+    name: 'Changement de véhicule',
+  },
+  {
+    name: 'Modification de numéro de téléphone',
   },
 ]
 
@@ -18,7 +21,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
               \nVeuillez choisir un des services ci-après :
               \n1-	Je m'enregistre Chez le partenaire MBP
               \n2-	J'effectue le changement du véhicule associé à mon compte MBP
-              \n3-	Réclamation et autres questions.
+              \n3-	Je modifie le numéro associé à mon compte.
             `,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -71,8 +74,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 3,
-    message: `Partager une photo lisible de votre permis en resto et verso.
-            \nPartager d'abord la photo recto de votre permis.
+    message: `Partager une photo lisible en recto uniquement de votre permis de conduire.
             `,
     expectedResponseType: StepExpectedResponseType.url,
     badResponseMessage: [
@@ -89,22 +91,6 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 4,
-    message: `Partager Ensuite le verso du permis`,
-    expectedResponseType: StepExpectedResponseType.image,
-    badResponseMessage: [
-      {
-        message: 'Veuillez envoyer la photo verso de votre permis',
-        errorType: 'incorrectChoice',
-      },
-      {
-        message: 'La taille de la photo envoyer trop grande',
-        errorType: 'maxSize',
-      },
-    ],
-    flowId: 1,
-  },
-  {
-    level: 5,
     message: `Partager également une photo lisible en recto uniquement de la carte grise du véhicule auquel vous souhaitez être associé.`,
     expectedResponseType: StepExpectedResponseType.image,
     badResponseMessage: [
@@ -121,54 +107,6 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     flowId: 1,
   },
   {
-    level: 6,
-    message: `Veuillez entrer votre nom`,
-    expectedResponseType: StepExpectedResponseType.text,
-    badResponseMessage: [
-      { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
-    ],
-    flowId: 1,
-  },
-  {
-    level: 7,
-    message: `Veuillez entrer votre prénom`,
-    expectedResponseType: StepExpectedResponseType.text,
-    badResponseMessage: [
-      { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
-    ],
-    flowId: 1,
-  },
-  {
-    level: 8,
-    message: `Veuillez entrer le numero de votre permis`,
-    expectedResponseType: StepExpectedResponseType.text,
-    badResponseMessage: [
-      {
-        message: 'Veuillez entrer le numéro de votre permis',
-        errorType: 'minLength',
-      },
-    ],
-    flowId: 1,
-  },
-  {
-    level: 9,
-    message: `Veuillez entrer la date d'expiration`,
-    expectedResponseType: StepExpectedResponseType.date,
-    badResponseMessage: [
-      { message: "Veuillez entrer la date d'expiration", errorType: 'isDate' },
-    ],
-    flowId: 1,
-  },
-  {
-    level: 10,
-    message: `Veuillez entrer la date de délivrance`,
-    expectedResponseType: StepExpectedResponseType.date,
-    badResponseMessage: [
-      { message: 'Veuillez entrer la date de délivrance', errorType: 'isDate' },
-    ],
-    flowId: 1,
-  },
-  {
     level: 14,
     message: `L'information renseignée n'est pas celle attendue.`,
     expectedResponseType: 'text',
@@ -177,7 +115,11 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 15,
-    message: `L'opération a échoué, vous pouvez vous rendre dans les locaux de MBP GROUP ou réessayer de vous inscrire en passant par chat.\n1- Je me rends chez mon partenaire.\n2- Je m'inscris par chat.`,
+    message: `L'opération a échoué, vous pouvez contacter un agent à partir de ce numéro +225 0710825902.n\n
+      Pour vous rendre dans nos locaux suivez cette localisation.\n
+      https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n\n
+      Pour reéssayer envoyer "Start"
+    `,
     expectedResponseType: 'text',
     badResponseMessage: [],
     flowId: 1,
@@ -198,85 +140,75 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 24,
-    message: `Votre inscription à la plateforme a échoué`,
+    message: `Votre inscription à la plateforme a échoué;\n
+      Vous pouvez contacter un agent à partir de ce numéro +225 0710825902.\n
+      Pour vous rendre dans nos locaux suivez cette localisation\n
+      https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n\n
+      Pour reéssayer envoyer "Start"
+    `,
     expectedResponseType: 'text',
     badResponseMessage: [],
     flowId: 1,
   },
-  // {
-  //   level: 1,
-  //   message: `D'accord, nous allons mettre à jour l'association de votre véhicule.
-  //           \nVeuillez saisir votre numéro de téléphone.`,
-  //   expectedResponseType: StepExpectedResponseType.text,
-  //   badResponseMessage: [
-  //     {
-  //       message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
-  //       errorType: 'equalLength',
-  //     },
-  //     {
-  //       message: "Ce numéro de téléphone n'est pas associé à un chauffeur",
-  //       errorType: 'isNotExist',
-  //     },
-  //   ],
-  //   flowId: 2,
-  // },
-  // {
-  //   level: 2,
-  //   message: `Merci ! Quelle est la plaque d'immatriculation du véhicule que vous souhaitez associer ?`,
-  //   expectedResponseType: StepExpectedResponseType.text,
-  //   badResponseMessage: [
-  //     {
-  //       message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
-  //       errorType: 'equalLength',
-  //     },
-  //     {
-  //       message: 'Ce numéro de téléphone est déjà associé à un chauffeur',
-  //       errorType: 'isExist',
-  //     },
-  //   ],
-  //   flowId: 2,
-  // },
-  // {
-  //   level: 3,
-  //   message: `Avez-vous déjà un véhicule associé ?
-  //           \n1- Oui
-  //           \n2- Non`,
-  //   expectedResponseType: StepExpectedResponseType.text,
-  //   expectedResponseLength: 1,
-  //   flowId: 2,
-  // },
-  // {
-  //   level: 4,
-  //   message: `Quelle est la plaque d'immatriculation de l'ancien véhicule ?`,
-  //   expectedResponseType: StepExpectedResponseType.text,
-  //   expectedResponseLength: 6,
-  //   flowId: 2,
-  // },
-  // {
-  //   level: 5,
-  //   message: `Voulez-vous vraiment vous dissocier de votre ancien véhicule pour vous associer à ce nouveau véhicule ?.
-  //           \n1- Oui
-  //           \n2- Non`,
-  //   expectedResponseType: StepExpectedResponseType.text,
-  //   expectedResponseLength: 1,
-  //   flowId: 2,
-  // },
-  // {
-  //   level: 6,
-  //   message: `Merci ! Nous traitons maintenant votre demande...`,
-  //   expectedResponseType: '',
-  //   badResponseMessage: [
-  //     { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
-  //   ],
-  //   flowId: 2,
-  // },
-  // {
-  //   level: 7,
-  //   message: `Opération effectué avec succès.`,
-  //   expectedResponseType: '',
-  //   badResponseMessage: [
-  //     { message: 'Veuillez entrer votre nom', errorType: 'minLength' },
-  //   ],
-  //   flowId: 2,
-  // },
+  {
+    level: 1,
+    message: `D'accord, nous allons mettre à jour l'association de votre véhicule.
+            \nVeuillez saisir le numéro de téléphone associé à votre compte.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
+        errorType: 'equalLength',
+      },
+      {
+        message: "Ce numéro de téléphone n'est pas associé à un chauffeur",
+        errorType: 'isNotExist',
+      },
+    ],
+    flowId: 2,
+  },
+  {
+    level: 2,
+    message: `Veuillez renseigner le code reçu par message.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Code incorrect',
+        errorType: 'equalLength',
+      },
+      {
+        message: 'Code expiré',
+        errorType: 'isExpire',
+      },
+    ],
+    flowId: 2,
+  },
+  {
+    level: 3,
+    message: `Partager une photo lisible en recto uniquement de la carte grise du véhicule auquel vous souhaitez être associé.`,
+    expectedResponseType: StepExpectedResponseType.image,
+    badResponseMessage: [
+      {
+        message:
+          'Veuillez envoyer la photo recto de la carte grise du véhicule',
+        errorType: 'incorrectChoice',
+      },
+      {
+        message: 'La taille de la photo envoyer trop grande',
+        errorType: 'maxSize',
+      },
+    ],
+    flowId: 2,
+  },
+  {
+    level: 6,
+    message: `Merci ! Nous traitons maintenant votre demande...`,
+    expectedResponseType: StepExpectedResponseType.text,
+    flowId: 2,
+  },
+  {
+    level: 7,
+    message: `Opération effectué avec succès.`,
+    flowId: 2,
+  },
 ]

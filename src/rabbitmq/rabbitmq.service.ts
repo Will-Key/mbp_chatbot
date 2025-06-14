@@ -624,6 +624,12 @@ export class RabbitmqService {
     if (!profileId) 
       return await this.abortConversation(abortData)
 
+    const carInfo = await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+    await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
+
+    const driverInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
+    await this.driverPersonalInfoService.update(driverInfo.id, { yangoProfileId: profileId })
+
     await this.saveMessage({
       whaPhoneNumber,
       convMessage: newMessage.messages[0].text.body,

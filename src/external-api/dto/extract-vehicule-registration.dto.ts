@@ -1,7 +1,7 @@
 export class ExtractVehiculeRegistrationDto {
   plateNumber: string
   brand: string
-  genre: string
+  model: string
   color: string
   firstRegistrationDate: string
   percentage: string

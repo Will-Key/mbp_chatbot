@@ -4,6 +4,9 @@ import {
   WHAPI_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
   OCR_SENT_QUEUE_NAME,
+  CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+  CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
 } from './constants'
 import { SendMessageDto } from '../external-api/dto/send-message.dto'
 import { firstValueFrom } from 'rxjs'
@@ -34,6 +37,8 @@ import { HistoryConversationService } from '../history-conversation/history-conv
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { subMinutes } from 'date-fns'
 import { OtpService } from '../external-api/otp.service'
+import { CarInfoService } from '../car-info/car-info.service'
+import { CreateYangoCarDto } from 'src/external-api/dto/create-yango-car.dto'
 
 @Injectable()
 export class RabbitmqService {
@@ -48,6 +53,7 @@ export class RabbitmqService {
     private readonly stepService: StepService,
     private readonly driverPersonalInfoService: DriverPersonalInfoService,
     private readonly driverLicenseInfoService: DriverLicenseInfoService,
+    private readonly carInfoService: CarInfoService,
     private readonly documentFileService: DocumentFileService,
     private readonly whapiService: WhapiService,
     private readonly ocrSpaceService: OcrSpaceService,
@@ -345,9 +351,9 @@ export class RabbitmqService {
       'CAR_REGISTRATION',
       19
     );
-    // TODO: Add a cron for sending data to Yango 
+    // TODO: Add a cron for sending data to Yango
     // Or do it when we are on the last step
-    await this.sendDataToYango(newMessage);
+    await this.sendDataToYango(lastConversation, newMessage);
   }
 
   private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
@@ -371,62 +377,10 @@ export class RabbitmqService {
   }
 
   private async sendDataToYango(
-    newMessage: NewMessageWebhookDto,
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto
   ) {
-    //const nextStep = await this.stepService.findOneBylevelAndFlowId(19, 1)
-    const whaPhoneNumber = newMessage.messages[0].from
-
-    const phoneNumber = (await this.conversationService.findOneByStepLevelAndWhaPhoneNumber(1, 1, whaPhoneNumber)).message
-
-    const driverPersonalInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
-    const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
-
-    // Get data for building car creation on yango
-
-    // Get yango carId and update
-
-    // Push conversation to yango queue for 
-    const createYangoDto: CreateYangoProfileDto = {
-      order_provider: {
-        partner: true,
-        platform: true
-      },
-      person: {
-        contact_info: {
-          phone: phoneNumber
-        }
-      },
-      driver_license: {
-        country: 'civ',
-        expiry_date: driverLicenseInfo.expiryDate.toISOString(),
-        issue_date: driverLicenseInfo.deliveryDate.toISOString(),
-        number: driverPersonalInfo.licenseNumber,
-      },
-      full_name: {
-        first_name: driverPersonalInfo.firstName,
-        last_name: driverPersonalInfo.lastName
-      },
-      profile: {
-        hire_date: new Date().toISOString()
-      }
-    }
-
-    //const createYangoP = await this.yangoService.createProfile(createYangoDto)
-
-    // const { nextMessage, stepId } = createYangoP === 1 ? {
-    //   nextMessage: 'Votre inscription a été effectué avec succès.',
-    //   stepId: 20
-    // } : {
-    //   nextMessage: 'Votre inscription a échoué.',
-    //   stepId: 24
-    // }
-    console.log('createYangoDto', createYangoDto)
-    await this.saveMessage({
-      whaPhoneNumber,
-      convMessage: newMessage.messages[0].text.body,
-      nextMessage: JSON.stringify(createYangoDto),
-      stepId: 20,
-    })
+    this.pushCreateYangoProfileToQueue({lastConversation, newMessage})
   }
 
   private async getSecondFlowSteps(
@@ -502,24 +456,7 @@ export class RabbitmqService {
         },
       )
       if (updatedConversation.badResponseCount >= 2) {
-        await this.editHistoryConversation({
-          whaPhoneNumber: conversation.whaPhoneNumber,
-          status: HistoryConversationStatus.FAIL,
-          reason: HistoryConversationReasonForEnding.ERROR,
-          stepId: conversation.stepId
-        })
-        
-        const errorStep = await this.stepService.findOneByLevel(15)
-        // Push message to whapi queue to demand to driver to go on MBP local
-        await this.handleMessageToSent({
-          to: conversation.whaPhoneNumber,
-          body: errorStep.message,
-          typing_time: 5,
-        })
-  
-        await this.deleteAllConversations(conversation)
-        await this.deleteInfoCollected(conversation)
-        return
+        return this.abortConversation(conversation)
       }
       await this.editHistoryConversation({
         whaPhoneNumber: conversation.whaPhoneNumber,
@@ -535,6 +472,26 @@ export class RabbitmqService {
     } catch (error) {
       console.log(error.message)
     }
+  }
+
+  private async abortConversation(conversation: Conversation) {
+    await this.editHistoryConversation({
+      whaPhoneNumber: conversation.whaPhoneNumber,
+      status: HistoryConversationStatus.FAIL,
+      reason: HistoryConversationReasonForEnding.ERROR,
+      stepId: conversation.stepId
+    })
+    
+    const errorStep = await this.stepService.findOneByLevel(15)
+    // Push message to whapi queue to demand to driver to go on MBP local
+    await this.handleMessageToSent({
+      to: conversation.whaPhoneNumber,
+      body: errorStep.message,
+      typing_time: 5,
+    })
+
+    await this.deleteAllConversations(conversation)
+    await this.deleteInfoCollected(conversation)
   }
 
   private async editHistoryConversation(payload: CreateHistoryConversationDto) {
@@ -621,6 +578,143 @@ export class RabbitmqService {
   }
 
   async handleOcrResponsePushedQueue() { }
+
+  async pushCreateYangoProfileToQueue(payload: {lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto}) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(CREATE_YANGO_PROFILE_SENT_QUEUE_NAME, payload),
+      )
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
+    } catch (error) {
+      this.logger.error(`Error on emitting doc: ${error}`)
+    }
+  }
+
+  async handleCreateYangoProfile({
+      lastConversation,
+      newMessage
+    }: {
+      lastConversation: ConversationType,
+      newMessage: NewMessageWebhookDto
+    }) {
+    //const nextStep = await this.stepService.findOneBylevelAndFlowId(19, 1)
+    const whaPhoneNumber = newMessage.messages[0].from
+
+    const phoneNumber = (await this.conversationService.findOneByStepLevelAndWhaPhoneNumber(1, 1, whaPhoneNumber)).message
+
+    const abortData = {
+      id: lastConversation.id,
+      createdAt: lastConversation.createdAt,
+      updatedAt: lastConversation.updatedAt,
+      whaPhoneNumber: lastConversation.whaPhoneNumber,
+      message: lastConversation.message,
+      badResponseCount: lastConversation.badResponseCount,
+      stepId: lastConversation.stepId
+    }
+
+    const createYangoCar: CreateYangoCarDto = await this.buildCreateCarPayload(phoneNumber)
+
+    const carId = (await this.yangoService.createCar(createYangoCar)).vehicle_id
+    if (!carId) 
+      return await this.abortConversation(abortData)
+
+    const createYangoDto: CreateYangoProfileDto = await this.buildCreateProfilePayload(phoneNumber, carId)
+    const profileId = (await this.yangoService.createProfile(createYangoDto)).contractor_profile_id
+    if (!profileId) 
+      return await this.abortConversation(abortData)
+
+    const carInfo = await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+    await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
+
+    const driverInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
+    await this.driverPersonalInfoService.update(driverInfo.id, { yangoProfileId: profileId })
+
+    await this.saveMessage({
+      whaPhoneNumber,
+      convMessage: newMessage.messages[0].text.body,
+      nextMessage: JSON.stringify(createYangoDto),
+      stepId: 20,
+    })
+  }
+
+  private async buildCreateCarPayload(phoneNumber: string): Promise<CreateYangoCarDto> {
+    const carInfo = await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+    return {
+      park_profile: {
+        callsign: carInfo.code,
+        fuel_type: 'petrol',
+        status: 'unknown',
+        categories: ["econom", "comfort"]
+      },
+      vehicule_licenses: {
+        licence_plate_number: carInfo.plateNumber
+      },
+      vehicule_specifications: {
+        brand: carInfo.brand,
+        color: carInfo.color,
+        model: carInfo.model,
+        transmission: 'mechanical',
+        year: 0
+      }
+    }
+  }
+
+  private async buildCreateProfilePayload(phoneNumber: string, carId: string): Promise<CreateYangoProfileDto> {
+    const driverPersonalInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
+    const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
+    return {
+      order_provider: {
+        partner: true,
+        platform: true
+      },
+      person: {
+        contact_info: {
+          phone: phoneNumber
+        }
+      },
+      driver_license: {
+        country: 'civ',
+        expiry_date: driverLicenseInfo.expiryDate.toISOString(),
+        issue_date: driverLicenseInfo.deliveryDate.toISOString(),
+        number: driverPersonalInfo.licenseNumber,
+      },
+      full_name: {
+        first_name: driverPersonalInfo.firstName,
+        last_name: driverPersonalInfo.lastName
+      },
+      profile: {
+        hire_date: new Date().toISOString()
+      },
+      carId
+    }
+  }
+  
+  async pushCreateYangoCarToQueue(payload: CreateYangoProfileDto) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(CREATE_YANGO_CAR_SENT_QUEUE_NAME, payload),
+      )
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
+    } catch (error) {
+      this.logger.error(`Error on emitting doc: ${error}`)
+    }
+  }
+
+  async handleCreateYangoCar(payload: CreateYangoCarDto) { }
+  
+  async pushUpdateYangoDriverInfoToQueue(payload: CreateYangoProfileDto) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME, payload),
+      )
+      this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
+    } catch (error) {
+      this.logger.error(`Error on emitting doc: ${error}`)
+    }
+  }
+
+  async handleUpdateYangoDriverInfo(payload: CreateYangoProfileDto) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async deleteOldConversations() {

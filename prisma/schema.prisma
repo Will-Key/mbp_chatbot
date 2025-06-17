@@ -190,7 +190,7 @@ model CarInfo {
   status            CarStatus
   code              String
   model             String?
-  driverPhoneNumber String    @unique
+  driverPhoneNumber String
   yangoCarId        String?   @unique
 }
 

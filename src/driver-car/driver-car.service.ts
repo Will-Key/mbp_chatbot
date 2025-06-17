@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
+import { PrismaService } from 'prisma/prisma.service'
 import { CreateDriverCarDto } from './dto/create-driver-car.dto'
 import { UpdateDriverCarDto } from './dto/update-driver-car.dto'
-import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class DriverCarService {
@@ -21,6 +21,12 @@ export class DriverCarService {
     return this.prismaService.driverCar.findUnique({ where: { id } })
   }
 
+  findOneByDriverId(idDriver: number) {
+    return this.prismaService.driverCar.findFirst({
+      where: { idDriver }
+    })
+  }
+
   update(idDriver: number, updateDriverCarDto: UpdateDriverCarDto) {
     return this.prismaService.driverCar.update({
       data: updateDriverCarDto,
@@ -30,5 +36,9 @@ export class DriverCarService {
 
   remove(id: number) {
     return this.prismaService.driverCar.delete({ where: { id } })
+  }
+
+  deleteByDriverId(idDriver: number) {
+    return this.prismaService.driverCar.delete({ where: { idDriver }})
   }
 }

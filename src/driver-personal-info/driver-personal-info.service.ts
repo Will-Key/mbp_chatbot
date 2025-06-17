@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common'
+import { subMinutes } from 'date-fns'
+import { PrismaService } from 'prisma/prisma.service'
 import { CreateDriverPersonalInfoDto } from './dto/create-driver-personal-info.dto'
 import { UpdateDriverPersonalInfoDto } from './dto/update-driver-personal-info.dto'
-import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class DriverPersonalInfoService {
@@ -47,7 +48,12 @@ export class DriverPersonalInfoService {
 
   deleteByWhaPhoneNumber(whaPhoneNumber: string) {
     return this.prismaService.driverPersonnalInfo.delete({
-      where: { whaPhoneNumber }
+      where: {
+        whaPhoneNumber,
+        createdAt: {
+          gt: subMinutes(new Date(), 5)
+        }
+      }
     })
   }
 

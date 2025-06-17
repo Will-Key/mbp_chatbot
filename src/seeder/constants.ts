@@ -1,6 +1,6 @@
+import { StepExpectedResponseType } from '@prisma/client'
 import { CreateStepDto } from 'src/step/dto/create-step.dto'
 import { CreateFlowDto } from '../flow/dto/create-flow.dto'
-import { StepExpectedResponseType } from '@prisma/client'
 
 export const INITIAL_FLOWS: CreateFlowDto[] = [
   {
@@ -115,10 +115,10 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 15,
-    message: `L'opération a échoué, vous pouvez contacter un agent à partir de ce numéro +225 0710825902.n\n
-      Pour vous rendre dans nos locaux suivez cette localisation.\n
-      https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n\n
-      Pour reéssayer envoyer "Start"
+    message: `L'opération a échoué, vous pouvez contacter un agent à partir de ce numéro +225 0710825902.\n
+Pour vous rendre dans nos locaux suivez cette localisation.\n
+https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n\n
+Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
@@ -140,11 +140,11 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 24,
-    message: `Votre inscription à la plateforme a échoué;\n
-      Vous pouvez contacter un agent à partir de ce numéro +225 0710825902.\n
-      Pour vous rendre dans nos locaux suivez cette localisation\n
-      https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n\n
-      Pour reéssayer envoyer "Start"
+    message: `Votre inscription à la plateforme a échoué;
+Vous pouvez contacter un agent à partir de ce numéro +225 0710825902.
+Pour vous rendre dans nos locaux suivez cette localisation
+https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.
+Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
@@ -152,7 +152,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 1,
-    message: `D'accord, nous allons mettre à jour l'association de votre véhicule.
+    message: `D'accord, nous allons modifier le vehicule auquel vous êtes rattaché.
             \nVeuillez saisir le numéro de téléphone associé à votre compte.`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -202,13 +202,13 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 6,
-    message: `Merci ! Nous traitons maintenant votre demande...`,
+    message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
     flowId: 2,
   },
   {
     level: 7,
-    message: `Opération effectué avec succès.`,
+    message: `Opération effectué avec succès.\nL'association au nouveau véhicule a été effectué avec succès.`,
     flowId: 2,
   },
 ]

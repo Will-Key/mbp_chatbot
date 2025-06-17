@@ -1,9 +1,9 @@
-import { HttpService } from "@nestjs/axios";
-import { Injectable, Logger } from "@nestjs/common";
-import { randomInt } from "crypto";
-import { lastValueFrom } from "rxjs";
-import { OtpVerificationService } from "../otp-verification/otp-verification.service";
-import { addMinutes, isAfter } from "date-fns";
+import { HttpService } from "@nestjs/axios"
+import { Injectable, Logger } from "@nestjs/common"
+import { randomInt } from "crypto"
+import { addMinutes, isAfter } from "date-fns"
+import { lastValueFrom } from "rxjs"
+import { OtpVerificationService } from "../otp-verification/otp-verification.service"
 
 @Injectable()
 export class OtpService {
@@ -27,11 +27,11 @@ export class OtpService {
     await this.otpVerificationService.create({
         phoneNumber,
         otpCode: otp,
-        expiresAt: addMinutes(new Date(), 10)
+        expiresAt: addMinutes(new Date(), 2)
     });
     
     try {
-      await this.sendSms(phoneNumber, `Votre code de verification MbpGroup est: ${otp}. Il expire dans 10 minutes.`);
+      await this.sendSms(phoneNumber, `Votre code de verification MbpGroup est: ${otp}. Il expire dans 2 minutes.`);
       return 'OTP envoyé avec succès';
     } catch (error) {
       this.logger.error(`Erreur lors de l'envoi du SMS: ${error.message}`);
@@ -40,15 +40,16 @@ export class OtpService {
   }
 
   async verifyOtp(phoneNumber: string, otpCode: string): Promise<boolean> {
+    console.log('phoneNumber', phoneNumber, 'otpCode', otpCode)
     const otpRecord = await this.otpVerificationService.findFirst({
       phoneNumber,
       otpCode,
     });
-
+    console.log('otpRecord', otpRecord)
     if (!otpRecord) {
       return false;
     }
-
+    console.log('isExpired', this.isExpired(otpRecord.expiresAt))
     if(this.isExpired(otpRecord.expiresAt)) return false
 
     await this.otpVerificationService.setOtpToUsed(
@@ -65,7 +66,7 @@ export class OtpService {
           params: {
             token: this.smsApiKey,
             from: this.smsApiSender,
-            to: `225${phoneNumber}`,
+            to: phoneNumber,
             content: content,
           },
         })

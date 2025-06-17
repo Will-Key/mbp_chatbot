@@ -1,0 +1,15 @@
+{
+  "editor.formatOnSave": true,
+  "prettier.semi": false,
+  "javascript.format.semicolons": "remove",
+  "typescript.format.semicolons": "remove",
+  "editor.codeActionsOnSave": {
+    "source.sortImports": "always",
+    "source.fixAll.ts": "always",
+    "source.removeUnusedImports": "always",
+    "source.addMissingImports.ts": "always",
+    "source.removeUnused.ts": "always",
+    "source.organizeImports": "always",
+    "source.sort.json": "always"
+  }
+}

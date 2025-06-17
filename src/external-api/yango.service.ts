@@ -1,12 +1,11 @@
-import { HttpService } from "@nestjs/axios";
-import { Injectable } from "@nestjs/common";
-import { RequestLogService } from "src/request-log/request-log.service";
-import { CreateYangoProfileDto } from "./dto/create-yango-profile.dto";
-import { lastValueFrom } from "rxjs";
+import { HttpService } from "@nestjs/axios"
+import { Injectable } from "@nestjs/common"
+import { RequestLogService } from "src/request-log/request-log.service"
 import { v4 as uuidv4 } from "uuid"
-import { DriverPersonalInfoService } from "../driver-personal-info/driver-personal-info.service";
-import { CarInfoService } from "../car-info/car-info.service";
-import { CreateYangoCarDto } from "./dto/create-yango-car.dto";
+import { CarInfoService } from "../car-info/car-info.service"
+import { DriverPersonalInfoService } from "../driver-personal-info/driver-personal-info.service"
+import { CreateYangoCarDto } from "./dto/create-yango-car.dto"
+import { CreateYangoProfileDto } from "./dto/create-yango-profile.dto"
 
 @Injectable()
 export class YangoService {
@@ -20,9 +19,9 @@ export class YangoService {
         private readonly carInfoService: CarInfoService
     ) { }
 
-    async createProfile(payload: CreateYangoProfileDto): Promise<{ status: number, contractor_profile_id: string }> {
+    async createProfile(_payload: CreateYangoProfileDto): Promise<{ status: number, contractor_profile_id: string }> {
         const profileId = uuidv4()
-        const driver = this.driverPersonnalInforService.findDriverPersonnalInfoByYangoProfileID(profileId)
+        const driver = await this.driverPersonnalInforService.findDriverPersonnalInfoByYangoProfileID(profileId)
         if (driver) {
             return {
                 status: 400,
@@ -46,9 +45,9 @@ export class YangoService {
         // )
     }
 
-    async createCar(payload: CreateYangoCarDto): Promise<{ status: number, vehicle_id: string; }> {
+    async createCar(_payload: CreateYangoCarDto): Promise<{ status: number, vehicle_id: string; }> {
         const carId = uuidv4()
-        const car = this.carInfoService.findCarInfoByYangoCarId(carId)
+        const car = await this.carInfoService.findCarInfoByYangoCarId(carId)
         if (car) {
             return {
                 status: 400,

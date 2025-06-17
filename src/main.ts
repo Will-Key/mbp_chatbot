@@ -1,12 +1,14 @@
 import { NestFactory } from '@nestjs/core'
+import { MicroserviceOptions, Transport } from '@nestjs/microservices'
 import { AppModule } from './app.module'
 import {
+  CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+  CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
   OCR_RECEIVED_QUEUE_NAME,
   OCR_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './rabbitmq/constants'
-import { MicroserviceOptions, Transport } from '@nestjs/microservices'
 import { baseUrl, rabbitmqPort } from './shared/constants'
 
 async function bootstrap() {
@@ -37,6 +39,20 @@ async function bootstrap() {
     options: {
       urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
       queue: OCR_RECEIVED_QUEUE_NAME,
+    },
+  })
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
+      queue: CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+    },
+  })
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
+      queue: CREATE_YANGO_CAR_SENT_QUEUE_NAME,
     },
   })
   await app.startAllMicroservices()

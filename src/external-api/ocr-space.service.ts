@@ -1,17 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { DocumentFile, DocumentType } from '@prisma/client'
-import { RequestLogService } from '../request-log/request-log.service'
-import { ocrSpace } from 'ocr-space-api-wrapper'
-import { SendDocDto } from './dto/send-doc.dto'
-import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
-import { ConversationService } from '../conversation/conversation.service'
-import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
-import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
-import { CarInfoService } from '../car-info/car-info.service'
-import { OpenAIService } from './openai.service'
-import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
+import { DocumentFile } from '@prisma/client'
 import { addYears } from 'date-fns'
+import { ocrSpace } from 'ocr-space-api-wrapper'
+import { CarInfoService } from '../car-info/car-info.service'
+import { ConversationService } from '../conversation/conversation.service'
+import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
+import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
+import { RequestLogService } from '../request-log/request-log.service'
+import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
 import { ExtractVehiculeRegistrationDto } from './dto/extract-vehicule-registration.dto'
+import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
+import { SendDocDto } from './dto/send-doc.dto'
+import { OpenAIService } from './openai.service'
 
 @Injectable()
 export class OcrSpaceService {
@@ -26,7 +26,7 @@ export class OcrSpaceService {
     private readonly openAiService: OpenAIService
   ) {}
 
-  async sendFile(file: DocumentFile) {
+  async sendFile(file: DocumentFile, flowId: number) {
     const params: SendDocDto = {
       apiKey: process.env.OCR_SPACE_TOKEN,
       language: 'fre',
@@ -38,8 +38,8 @@ export class OcrSpaceService {
 
     try {
       const response = await ocrSpace(file.dataImageUrl, params)
-      this.logger.log(`whapi response:`, response)
-      const ocrResponse = await this.processOcrResponse(response, file)
+      this.logger.log(`ocrSpace response:`, JSON.stringify(response))
+      const ocrResponse = await this.processOcrResponse(response, file, flowId)
       
       await this.requestLogService.create({
         direction: 'OUT',
@@ -51,7 +51,7 @@ export class OcrSpaceService {
       console.log('ocrResponse', ocrResponse)
       return ocrResponse
     } catch (error) {
-      this.logger.log(`whapi error: ${error}`)
+      this.logger.log(`ocrSpace error: ${error}`)
       await this.requestLogService.create({
         direction: 'OUT',
         status: 'FAIL',
@@ -66,20 +66,21 @@ export class OcrSpaceService {
   private async processOcrResponse(
     response: GetOcrResponseDto,
     file: DocumentFile,
+    flowId: number
   ) {
-    
+    console.log('file.documentType', file.documentType)
     if (file.documentType === 'DRIVER_LICENSE') {
       const driverLicenseInfo = await this.openAiService.extractDriverLicenseFront(response)
 
       if(+driverLicenseInfo.percenrtage < 80) return 0
 
-      return await this.getDriverLicenseFrontData(driverLicenseInfo, file.whaPhoneNumber)
+      return await this.getDriverLicenseFrontData(driverLicenseInfo, file.whaPhoneNumber, flowId)
     } else {
       const vehiculeInfo = await this.openAiService.extractVehicleRegistration(response)
 
       if(+vehiculeInfo.percentage < 80) return 0
 
-      return await this.getCarRegistrationData(vehiculeInfo, file.whaPhoneNumber)
+      return await this.getCarRegistrationData(vehiculeInfo, file.whaPhoneNumber, flowId)
     }
     
   }
@@ -87,8 +88,9 @@ export class OcrSpaceService {
   private async getDriverLicenseFrontData(
     { lastName, firstName, licenseNumber, deliveryDate}: ExtractDriverLicenseFrontDto,
     whaPhoneNumber: string,
+    flowId: number
   ) {
-    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
+    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, flowId)
     try {
       
       const driverPersonalInfo = await this.driverPersonalInfoService.create({
@@ -116,66 +118,65 @@ export class OcrSpaceService {
     }
   }
 
-  private async getDriverLicenseBackData(
-    responseLines: {
-      LineText: string
-    }[],
-    whaPhoneNumber: string,
-  ) {
-    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
-
-    const licenseDeliveryDateIndex =
-      responseLines.findIndex((line) => line.LineText.includes('8.')) + 2
-    const licenseExpiryDateIndex =
-      responseLines.findIndex((line) => line.LineText.includes('9.')) + 2
-
-    try {
-      const licenseDeliveryDate =
-        responseLines[licenseDeliveryDateIndex].LineText
-      const licenseExpiryDate = responseLines[licenseExpiryDateIndex].LineText
-
-      const driverLicenseInfo = await this.driverLicenseInfoService.create({
-        countryCode: 'CIV',
-        expiryDate: this.convertToISOString(licenseExpiryDate),
-        deliveryDate: this.convertToISOString(licenseDeliveryDate),
-        driverPhoneNumber: phoneNumber,
-        idDriverPersInfo: 0
-      })
-      return driverLicenseInfo.id
-    } catch (error) {
-      this.logger.error(error)
-      return 0
-    }
-  }
 
   private async getCarRegistrationData(
-    { brand, plateNumber, color, genre, firstRegistrationDate }: ExtractVehiculeRegistrationDto,
+    { brand, plateNumber, color, model, firstRegistrationDate }: ExtractVehiculeRegistrationDto,
     whaPhoneNumber: string,
+    flowId: number
   ) {
-    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber)
+    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, flowId)
+    let carId: number
     
     try {
-      const carInfo = await this.carInfoService.create({
+      carId = (await this.carInfoService.create({
         brand,
         color,
         year: firstRegistrationDate.split('-')[0],
         plateNumber,
         status: 'unknown',
-        code: '',
+        code: plateNumber,
+        model,
         driverPhoneNumber: phoneNumber,
-      })
-      console.log('carInfo', carInfo)
-      return carInfo.id
+      })).id
+      /*if (flowId === 1) {
+        carId = (await this.carInfoService.create({
+          brand,
+          color,
+          year: firstRegistrationDate.split('-')[0],
+          plateNumber,
+          status: 'unknown',
+          code: plateNumber,
+          model,
+          driverPhoneNumber: phoneNumber,
+        })).id
+      } else {
+        carId = (await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)).id
+        await this.carInfoService.update(carId, {
+          brand,
+          color,
+          year: firstRegistrationDate.split('-')[0],
+          plateNumber,
+          status: 'unknown',
+          code: plateNumber,
+          model,
+          driverPhoneNumber: phoneNumber,
+        })
+      }*/
+      
+      return carId
     } catch (error) {
       this.logger.error(error)
       return 0
     }
   }
 
-  private async getDriverPhoneNumber(whaPhoneNumber: string): Promise<string> {
-    return (
+  private async getDriverPhoneNumber(whaPhoneNumber: string, flowId: number): Promise<string> {
+    return flowId === 1 ? (
       await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
-    ).find((conv) => conv.step.level === 2 && conv.step.flowId === 1).message
+    ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId).message
+    : (
+      await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
+    ).find((conv) => conv.step.level === 1 && conv.step.flowId === flowId).message
   }
 
   private convertToISOString(dateString: string): string {
@@ -188,15 +189,4 @@ export class OcrSpaceService {
     return date.toISOString()
   }
 
-  private isValidCard(input: string, type: DocumentType): boolean {
-    const hasLetters = /[A-Z]/.test(input)
-
-    const hasDigits = /\d/.test(input)
-
-    if (type === 'CAR_REGISTRATION') return hasLetters && hasDigits
-
-    const hasTwoDashes = (input.match(/-/g) || []).length === 2
-
-    return hasLetters && hasDigits && hasTwoDashes
-  }
 }

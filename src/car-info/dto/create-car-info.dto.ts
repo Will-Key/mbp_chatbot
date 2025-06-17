@@ -28,6 +28,10 @@ export class CreateCarInfoDto {
 
   @IsNotEmpty()
   @IsString()
+  model: string
+
+  @IsNotEmpty()
+  @IsString()
   driverPhoneNumber: string
 
   @IsString()

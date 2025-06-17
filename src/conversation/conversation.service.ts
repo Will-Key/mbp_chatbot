@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { PrismaService } from 'prisma/prisma.service'
 import { CreateConversationDto } from './dto/create-conversation.dto'
 import { UpdateConversationDto } from './dto/update-conversation.dto'
-import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class ConversationService {
@@ -20,6 +20,15 @@ export class ConversationService {
 
   findOne(id: number) {
     return this.prismaService.conversation.findUnique({ where: { id: id } })
+  }
+
+  findOneByStepIdAndWhaPhoneNumber(stepId: number, whaPhoneNumber: string) {
+    return this.prismaService.conversation.findFirst({
+      where: {
+        stepId,
+        whaPhoneNumber
+      }
+    })
   }
 
   findOneByStepLevelAndWhaPhoneNumber(level: number, flowId: number, whaPhoneNumber: string) {

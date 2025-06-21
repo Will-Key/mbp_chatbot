@@ -239,11 +239,12 @@ export class RabbitmqService {
   ) {
     const whaPhoneNumber = newMessage.messages[0].from
     const otpEnter = newMessage.messages[0].text.body.trim()
-
-    const phoneNumber = (await this.conversationService.findPhoneNumberLastConversation(whaPhoneNumber)).message
+    
+    const step = await this.stepService.findOneBylevelAndFlowId(flowId, flowId)
+    const phoneNumber = flowId === 1 ? (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id + 1, whaPhoneNumber)).message
+      : (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id, whaPhoneNumber)).message
 
     const isVerified = await this.otpService.verifyOtp(phoneNumber, otpEnter)
-
     if (!isVerified) {
       const errorMessage = "Code incorrect"
       await this.updateMessage(lastConversation, errorMessage)

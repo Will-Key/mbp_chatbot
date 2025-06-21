@@ -22,6 +22,12 @@ export class DriverPersonalInfoService {
     return this.prismaService.driverPersonnalInfo.findUnique({ where: { id } })
   }
 
+  findDriverPersonalInfoByWhaPhoneNumber(whaPhoneNumber: string) {
+    return this.prismaService.driverPersonnalInfo.findUnique({
+      where: { whaPhoneNumber },
+    })
+  }
+
   findDriverPersonalInfoByPhoneNumber(phoneNumber: string) {
     return this.prismaService.driverPersonnalInfo.findUnique({
       where: { phoneNumber },

@@ -239,8 +239,9 @@ export class RabbitmqService {
   ) {
     const whaPhoneNumber = newMessage.messages[0].from
     const otpEnter = newMessage.messages[0].text.body.trim()
-    
+
     const step = await this.stepService.findOneBylevelAndFlowId(flowId, flowId)
+
     const phoneNumber = flowId === 1 ? (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id + 1, whaPhoneNumber)).message
       : (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id, whaPhoneNumber)).message
 
@@ -493,14 +494,14 @@ export class RabbitmqService {
       stepId,
     }
     const conv = await this.conversationService.create(newConv)
-    this.logger.log('conv', conv)
+    this.logger.log('conv', JSON.stringify(conv))
     if (conv) {
       await this.editHistoryConversation({
         whaPhoneNumber: conv.whaPhoneNumber,
         status: HistoryConversationStatus.IN_PROGRESS,
         stepId: conv.stepId
       })
-      await this.delay(15000)
+      await this.delay(5000)
       await this.pushMessageToSent({
         to: whaPhoneNumber,
         body: nextMessage,
@@ -514,11 +515,9 @@ export class RabbitmqService {
       const updatedConversation = await this.conversationService.update(
         conversation.id,
         {
-          message,
           badResponseCount: conversation.badResponseCount + 1,
         },
       )
-      console.log('updateMessage', updatedConversation.badResponseCount)
       if (updatedConversation.badResponseCount >= 2) {
         return await this.abortConversation(conversation)
       }
@@ -559,7 +558,6 @@ export class RabbitmqService {
   }
 
   private async editHistoryConversation(payload: CreateHistoryConversationDto) {
-    console.log('historyConvPayload', payload)
     if (payload.stepId === 1) {
       await this.historyConversationService.create(payload)
     } else {
@@ -583,10 +581,14 @@ export class RabbitmqService {
   }
 
   private async deleteInfoCollected(conversation: Conversation) {
-    const personalInfo = await this.driverPersonalInfoService.deleteByWhaPhoneNumber(conversation.whaPhoneNumber)
-    await this.driverLicenseInfoService.deleteByPhoneNumber(personalInfo.phoneNumber)
-    const carId = (await this.carInfoService.findRecentByPhoneNumver(personalInfo.phoneNumber)).id
+    console.log('deleteInfoCollected', conversation.whaPhoneNumber)
+    const phoneNumber = (await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(conversation.whaPhoneNumber)).phoneNumber
+    console.log('deleteInfoCollected.phoneNumber', phoneNumber)
+    const carId = (await this.carInfoService.findRecentByPhoneNumver(phoneNumber)).id
+    console.log('deleteInfoCollected.carId', carId)
     await this.carInfoService.remove(carId)
+    await this.driverLicenseInfoService.deleteByPhoneNumber(phoneNumber)
+    await this.driverPersonalInfoService.deleteByWhaPhoneNumber(conversation.whaPhoneNumber)
     //await this.driverCarService.deleteByDriverId(personalInfo.id)
   }
 

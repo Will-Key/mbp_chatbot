@@ -216,7 +216,7 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      this.delay(30000)
+      await this.delay(30000)
       await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
     } catch (error) {
       let errorMessage = error.message
@@ -347,7 +347,7 @@ export class RabbitmqService {
       );
       console.log('flowId', flowId)
 
-      this.delay(30000)
+      await this.delay(30000)
       if (flowId === 1) {
         await this.sendDataToYango(lastConversation, newMessage);
       } else {
@@ -499,7 +499,7 @@ export class RabbitmqService {
         status: HistoryConversationStatus.IN_PROGRESS,
         stepId: conv.stepId
       })
-      this.delay(15000)
+      await this.delay(15000)
       await this.pushMessageToSent({
         to: whaPhoneNumber,
         body: nextMessage,

@@ -17,11 +17,11 @@ export const INITIAL_FLOWS: CreateFlowDto[] = [
 export const INITIAL_STEPS: CreateStepDto[] = [
   {
     level: 0,
-    message: `Merci d'avoir choisir le partenaire MBP pour vous connecter à votre compte Yango.
-              \nVeuillez choisir un des services ci-après :
-              \n1-	Je m'enregistre Chez le partenaire MBP
-              \n2-	J'effectue le changement du véhicule associé à mon compte MBP
-              \n3-	Je modifie le numéro associé à mon compte.
+    message: `Merci d'avoir choisi le partenaire MBP pour vous connecter à votre compte Yango.
+              Veuillez sélectionner l'un des services suivant:
+              1-Ouverture de compte MBP
+              2-Changement de véhicule
+              3-Modification du numéro de téléphone
             `,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -38,9 +38,8 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 1,
-    message: `Pour vous enregistrer chez MBP, vous suivrez les étapes ci-après. 
-              \nVous devriez entrez aux différentes étapes, les informations demandées.
-              \nVeuillez entrer votre numéro de téléphone. 
+    message: `Merci de suivre les étapes ci-dessous pour finaliser votre inscription. 
+              Étape 1 : Veuillez entrer votre numéro de téléphone 
             `,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -62,7 +61,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
-        message: 'Code incorrect',
+        message: 'Code incorrect.\nVeuillez saisir à nouveau le code reçu.',
         errorType: 'equalLength',
       },
       {
@@ -74,8 +73,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 3,
-    message: `Partager une photo lisible en recto uniquement de votre permis de conduire.
-            `,
+    message: `Etape 3 : Veuillez partager une photo lisible, recto uniquement, de votre permis de conduire`,
     expectedResponseType: StepExpectedResponseType.url,
     badResponseMessage: [
       {
@@ -91,7 +89,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   },
   {
     level: 4,
-    message: `Partager également une photo lisible en recto uniquement de la carte grise du véhicule auquel vous souhaitez être associé.`,
+    message: `Etape 4 : Veuillez partager une photo lisible, recto uniquement, de la carte grise du véhicule à associer à votre compte`,
     expectedResponseType: StepExpectedResponseType.image,
     badResponseMessage: [
       {
@@ -133,7 +131,8 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 20,
-    message: `Votre inscription à la plateforme a été effectué avec succès.`,
+    message: `Votre inscription chez MBP est validée ✅
+    Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo`,
     expectedResponseType: 'text',
     badResponseMessage: [],
     flowId: 1,
@@ -152,8 +151,8 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 1,
-    message: `D'accord, nous allons modifier le vehicule auquel vous êtes rattaché.
-            \nVeuillez saisir le numéro de téléphone associé à votre compte.`,
+    message: `Merci de suivre les étapes ci-dessous pour finaliser le changement de véhicule.
+    Étape 1 : Veuillez entrer votre numéro de téléphone.`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -169,11 +168,11 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 2,
-    message: `Veuillez renseigner le code reçu par message.`,
+    message: `Etape 2 : Veuillez saisir le code que vous avez reçu par SMS`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
-        message: 'Code incorrect',
+        message: 'Code incorrect.\nVeuillez saisir à nouveau le code.',
         errorType: 'equalLength',
       },
       {
@@ -185,7 +184,7 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 3,
-    message: `Partager une photo lisible en recto uniquement de la carte grise du véhicule auquel vous souhaitez être associé.`,
+    message: `Etape 3 : Veuillez partager une photo lisible, recto uniquement, de la carte grise du véhicule à associer à votre compte`,
     expectedResponseType: StepExpectedResponseType.image,
     badResponseMessage: [
       {
@@ -202,13 +201,64 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 6,
-    message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
+    message: `Merci ! Nous traitons maintenant votre demande...
+    Un retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
     flowId: 2,
   },
   {
     level: 7,
-    message: `Opération effectué avec succès.\nL'association au nouveau véhicule a été effectué avec succès.`,
+    message: `Opération effectué avec succès.
+    L'association au nouveau véhicule a été effectué avec succès.`,
     flowId: 2,
+  },
+  {
+    level: 1,
+    message: `Merci de suivre les étapes ci-dessous pour finaliser le changement de numéro.
+    Étape 1 : Veuillez entrer votre numéro de téléphone actuel.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
+        errorType: 'equalLength',
+      },
+      {
+        message: "Ce numéro de téléphone n'est pas associé à un chauffeur",
+        errorType: 'isNotExist',
+      },
+    ],
+    flowId: 3,
+  },
+  {
+    level: 2,
+    message: `Etape 2 : Veuillez saisir le code que vous avez reçu par SMS`,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Code incorrect.\nVeuillez saisir à nouveau le code.',
+        errorType: 'equalLength',
+      },
+      {
+        message: 'Code expiré',
+        errorType: 'isExpire',
+      },
+    ],
+    flowId: 3,
+  },
+  {
+    level: 3,
+    message: `Etape 3: Veuillez saisir le nouveau numéro`,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
+        errorType: 'equalLength',
+      },
+      {
+        message: "Ce numéro de téléphone n'est pas associé à un chauffeur",
+        errorType: 'isNotExist',
+      },
+    ],
+    flowId: 3,
   },
 ]

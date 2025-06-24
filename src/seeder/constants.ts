@@ -215,7 +215,7 @@ Pour reéssayer envoyer "Start"
   {
     level: 1,
     message: `Merci de suivre les étapes ci-dessous pour finaliser le changement de numéro.
-    Étape 1 : Veuillez entrer votre numéro de téléphone actuel.`,
+    Étape 1: Veuillez entrer votre numéro de téléphone actuel.`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -223,7 +223,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'equalLength',
       },
       {
-        message: "Ce numéro de téléphone n'est pas associé à un chauffeur",
+        message: "Votre numéro actuel n'est pas enregistré sur Yango. Veuillez vérifier le numéro saisi",
         errorType: 'isNotExist',
       },
     ],
@@ -231,7 +231,7 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 2,
-    message: `Etape 2 : Veuillez saisir le code que vous avez reçu par SMS`,
+    message: `Etape 2: Veuillez saisir le code que vous avez reçu par SMS`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -239,7 +239,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'equalLength',
       },
       {
-        message: 'Code expiré',
+        message: 'Code expiré.',
         errorType: 'isExpire',
       },
     ],
@@ -255,10 +255,31 @@ Pour reéssayer envoyer "Start"
         errorType: 'equalLength',
       },
       {
-        message: "Ce numéro de téléphone n'est pas associé à un chauffeur",
-        errorType: 'isNotExist',
+        message: "Ce numéro de téléphone est déjà associé à un chauffeur.\nVeuillez entrer un nouveau numéro",
+        errorType: 'isExist',
       },
     ],
     flowId: 3,
+  },
+  {
+    level: 4,
+    message: `Etape 4: Veuillez saisir le code que vous avez reçu par SMS`,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: 'Code incorrect.\nVeuillez saisir à nouveau le code.',
+        errorType: 'equalLength',
+      },
+      {
+        message: 'Code expiré.',
+        errorType: 'isExpire',
+      },
+    ],
+    flowId: 3,
+  },
+  {
+    level: 5,
+    message: `Votre numéro a été mis à jour avec succès.`,
+    flowId: 2,
   },
 ]

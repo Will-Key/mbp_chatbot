@@ -223,7 +223,8 @@ Pour reéssayer envoyer "Start"
         errorType: 'equalLength',
       },
       {
-        message: "Votre numéro actuel n'est pas enregistré sur Yango. Veuillez vérifier le numéro saisi",
+        message:
+          "Votre numéro actuel n'est pas enregistré sur Yango. Veuillez vérifier le numéro saisi",
         errorType: 'isNotExist',
       },
     ],
@@ -255,7 +256,8 @@ Pour reéssayer envoyer "Start"
         errorType: 'equalLength',
       },
       {
-        message: "Ce numéro de téléphone n'est pas valide.\nVeuillez entrer un nouveau numéro",
+        message:
+          "Ce numéro de téléphone n'est pas valide.\nVeuillez entrer un nouveau numéro",
         errorType: 'isExist',
       },
     ],

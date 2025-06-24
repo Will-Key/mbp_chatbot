@@ -61,8 +61,8 @@ export class RabbitmqService {
     private readonly ocrSpaceService: OcrSpaceService,
     private readonly yangoService: YangoService,
     private readonly historyConversationService: HistoryConversationService,
-    private readonly otpService: OtpService
-  ) { }
+    private readonly otpService: OtpService,
+  ) {}
 
   onModuleInit() {
     this.whapiReceivedQueueClient.connect()
@@ -125,6 +125,7 @@ export class RabbitmqService {
   private async handleExistingConversation(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _conversations: Conversation[],
   ) {
     if (lastConversation.step.level === 0) {
@@ -189,7 +190,9 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 1
-      const phoneNumber = this.cleanupPhoneNumver(newMessage.messages[0].text.body.trim())
+      const phoneNumber = this.cleanupPhoneNumver(
+        newMessage.messages[0].text.body.trim(),
+      )
       if (phoneNumber.length !== 10) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -214,7 +217,7 @@ export class RabbitmqService {
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
+        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
@@ -222,34 +225,49 @@ export class RabbitmqService {
       await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
     } catch (error) {
       let errorMessage = error.message
-      if (errorMessage != "OTP envoyé avec succès") 
+      if (errorMessage != 'OTP envoyé avec succès')
         errorMessage = "Erreur lors de l'envoie du OTP.\nVeuillez reéssayer."
-      
+
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
   }
 
   private cleanupPhoneNumver(numero: string): string {
-    return numero.replace(/\D/g, '');
+    return numero.replace(/\D/g, '')
   }
 
   private async handleOtpVerification(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number = 1
+    flowId: number = 1,
   ) {
     const whaPhoneNumber = newMessage.messages[0].from
     const otpEnter = newMessage.messages[0].text.body.trim()
 
     const step = await this.stepService.findOneBylevelAndFlowId(flowId, flowId)
 
-    const phoneNumber = flowId === 1 ? (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id + 1, whaPhoneNumber)).message
-      : (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id, whaPhoneNumber)).message
+    const phoneNumber =
+      flowId === 1
+        ? (
+            await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
+              step.id + 1,
+              whaPhoneNumber,
+            )
+          ).message
+        : (
+            await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
+              step.id,
+              whaPhoneNumber,
+            )
+          ).message
 
     const isVerified = await this.otpService.verifyOtp(phoneNumber, otpEnter)
     if (!isVerified) {
-      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectCode')
+      const errorMessage = this.getErrorMessage(
+        lastConversation,
+        'incorrectCode',
+      )
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -260,7 +278,7 @@ export class RabbitmqService {
     )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: otpEnter,//newMessage.messages[0].text.body,
+      convMessage: otpEnter, //newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
@@ -272,12 +290,16 @@ export class RabbitmqService {
     documentSide: 'FRONT' | 'BACK',
     documentType: 'DRIVER_LICENSE' | 'CAR_REGISTRATION',
     nextStepLevel: number,
-    flowId: number = 1
+    flowId: number = 1,
   ) {
-    const whaPhoneNumber = newMessage.messages[0].from;
+    const whaPhoneNumber = newMessage.messages[0].from
 
-    const checkImageValidityResponse = await this.checkImageValidity(lastConversation, newMessage);
-    if (checkImageValidityResponse === 0) throw Error("L'élément partagé n'est pas une image")
+    const checkImageValidityResponse = await this.checkImageValidity(
+      lastConversation,
+      newMessage,
+    )
+    if (checkImageValidityResponse === 0)
+      throw Error("L'élément partagé n'est pas une image")
 
     const link = newMessage.messages[0].image.link
 
@@ -286,58 +308,59 @@ export class RabbitmqService {
       documentSide,
       documentType,
       whaPhoneNumber,
-    };
-    const doc = await this.documentFileService.create(createDocumentFile);
+    }
+    const doc = await this.documentFileService.create(createDocumentFile)
     if (!doc) {
-      const errorMessage = documentType === "DRIVER_LICENSE"
-        ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-        : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle.";
-      await this.updateMessage(lastConversation, errorMessage);
+      const errorMessage =
+        documentType === 'DRIVER_LICENSE'
+          ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+          : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+      await this.updateMessage(lastConversation, errorMessage)
       throw Error("Veuillez vérifier l'image fournie.")
     }
 
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc, flowId);
+    const ocrResponse = await this.ocrSpaceService.sendFile(doc, flowId)
     this.logger.error(`ocrResponse ${ocrResponse}`)
     if (ocrResponse === 0) {
       await this.documentFileService.remove(doc.id)
-      const errorMessage = documentType === "DRIVER_LICENSE"
-      ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-        : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle.";
-      await this.updateMessage(lastConversation, errorMessage);
+      const errorMessage =
+        documentType === 'DRIVER_LICENSE'
+          ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+          : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+      await this.updateMessage(lastConversation, errorMessage)
       throw Error("Veuillez vérifier l'image fournie.")
     }
 
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
       nextStepLevel,
       flowId,
-    );
+    )
 
     await this.saveMessage({
       whaPhoneNumber,
       convMessage: newMessage.messages[0].image.link,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
-    });
+    })
   }
 
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto
+    newMessage: NewMessageWebhookDto,
   ) {
     await this.handleDocumentUpload(
       lastConversation,
       newMessage,
       'FRONT',
       'DRIVER_LICENSE',
-      lastConversation.step.level + 1
-    );
+      lastConversation.step.level + 1,
+    )
   }
-
 
   private async handleCarRegistrationUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number = 1
+    flowId: number = 1,
   ) {
     try {
       const stepId = flowId === 1 ? 19 : 6
@@ -347,13 +370,13 @@ export class RabbitmqService {
         'FRONT',
         'CAR_REGISTRATION',
         stepId,
-        flowId
-      );
+        flowId,
+      )
       console.log('flowId', flowId)
 
       await this.delay(30000)
       if (flowId === 1) {
-        await this.sendDataToYango(lastConversation, newMessage);
+        await this.sendDataToYango(lastConversation, newMessage)
       } else {
         await this.sendSecondFlowDataToYango(lastConversation, newMessage)
       }
@@ -362,13 +385,21 @@ export class RabbitmqService {
     }
   }
 
-  private async checkImageValidity(lastConversation: ConversationType, newMessage: NewMessageWebhookDto) {
-
+  private async checkImageValidity(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
     const regex = /^(http|https):\/\/[^ "]+$/
-    if (newMessage.messages[0].type !== StepExpectedResponseType.image ||
-      !newMessage.messages[0].image.link || !regex.test(newMessage.messages[0].image.link) ||
-      !newMessage.messages[0].image.preview.includes('data:image')) {
-      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectChoice')
+    if (
+      newMessage.messages[0].type !== StepExpectedResponseType.image ||
+      !newMessage.messages[0].image.link ||
+      !regex.test(newMessage.messages[0].image.link) ||
+      !newMessage.messages[0].image.preview.includes('data:image')
+    ) {
+      const errorMessage = this.getErrorMessage(
+        lastConversation,
+        'incorrectChoice',
+      )
       await this.updateMessage(lastConversation, errorMessage)
       return 0
     }
@@ -384,9 +415,9 @@ export class RabbitmqService {
 
   private async sendDataToYango(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto
+    newMessage: NewMessageWebhookDto,
   ) {
-    this.pushCreateYangoProfileToQueue({lastConversation, newMessage})
+    this.pushCreateYangoProfileToQueue({ lastConversation, newMessage })
   }
 
   private async getSecondFlowSteps(
@@ -413,11 +444,13 @@ export class RabbitmqService {
 
   private async handleSecondFlowPhoneNumber(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto
+    newMessage: NewMessageWebhookDto,
   ) {
     try {
       const flowId = 2
-      const phoneNumber = this.cleanupPhoneNumver(newMessage.messages[0].text.body.trim())
+      const phoneNumber = this.cleanupPhoneNumver(
+        newMessage.messages[0].text.body.trim(),
+      )
       if (phoneNumber.length !== 10) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -431,7 +464,10 @@ export class RabbitmqService {
           `225${phoneNumber}`,
         )
       if (!driver) {
-        const errorMessage = this.getErrorMessage(lastConversation, 'isNotExist')
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'isNotExist',
+        )
         await this.updateMessage(lastConversation, errorMessage)
         return
       }
@@ -444,15 +480,14 @@ export class RabbitmqService {
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
+        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
     } catch (error) {
       let errorMessage = error.message
-      if (errorMessage != "OTP envoyé avec succès") 
+      if (errorMessage !== 'OTP envoyé avec succès')
         errorMessage = "Erreur lors de l'envoie du OTP.\nVeuillez reéssayer."
-      
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -464,7 +499,10 @@ export class RabbitmqService {
   ) {
     switch (lastConversation.step.level) {
       case 1:
-        await this.handleThirdFlowStepOnePhoneNumber(lastConversation, newMessage)
+        await this.handleThirdFlowStepOnePhoneNumber(
+          lastConversation,
+          newMessage,
+        )
         break
       case 2:
         await this.handleThirdFlowOtpVerification(lastConversation, newMessage)
@@ -482,11 +520,13 @@ export class RabbitmqService {
 
   private async handleThirdFlowStepOnePhoneNumber(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto
+    newMessage: NewMessageWebhookDto,
   ) {
     try {
       const flowId = 3
-      const phoneNumber = this.cleanupPhoneNumver(newMessage.messages[0].text.body.trim())
+      const phoneNumber = this.cleanupPhoneNumver(
+        newMessage.messages[0].text.body.trim(),
+      )
       if (phoneNumber.length !== 10) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -500,7 +540,10 @@ export class RabbitmqService {
           `225${phoneNumber}`,
         )
       if (!driver) {
-        const errorMessage = this.getErrorMessage(lastConversation, 'isNotExist')
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'isNotExist',
+        )
         await this.updateMessage(lastConversation, errorMessage)
         return
       }
@@ -513,15 +556,15 @@ export class RabbitmqService {
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
+        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
     } catch (error) {
       let errorMessage = error.message
-      if (errorMessage != "OTP envoyé avec succès") 
+      if (errorMessage != 'OTP envoyé avec succès')
         errorMessage = "Erreur lors de l'envoie du OTP.\nVeuillez reéssayer."
-      
+
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -535,13 +578,24 @@ export class RabbitmqService {
     const whaPhoneNumber = newMessage.messages[0].from
     const otpEnter = newMessage.messages[0].text.body.trim()
 
-    const step = await this.stepService.findOneBylevelAndFlowId(lastConversation.step.level, flowId)
+    const step = await this.stepService.findOneBylevelAndFlowId(
+      lastConversation.step.level,
+      flowId,
+    )
 
-    const phoneNumber = (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id, whaPhoneNumber)).message
+    const phoneNumber = (
+      await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
+        step.id,
+        whaPhoneNumber,
+      )
+    ).message
 
     const isVerified = await this.otpService.verifyOtp(phoneNumber, otpEnter)
     if (!isVerified) {
-      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectCode')
+      const errorMessage = this.getErrorMessage(
+        lastConversation,
+        'incorrectCode',
+      )
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -552,7 +606,7 @@ export class RabbitmqService {
     )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
-      convMessage: otpEnter,//newMessage.messages[0].text.body,
+      convMessage: otpEnter, //newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
@@ -560,7 +614,7 @@ export class RabbitmqService {
 
   private async sendSecondFlowDataToYango(
     lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto
+    newMessage: NewMessageWebhookDto,
   ) {
     console.log('pushCreateYangoCarToQueue')
     this.pushCreateYangoCarToQueue({ lastConversation, newMessage })
@@ -601,7 +655,7 @@ export class RabbitmqService {
       await this.editHistoryConversation({
         whaPhoneNumber: conv.whaPhoneNumber,
         status: HistoryConversationStatus.IN_PROGRESS,
-        stepId: conv.stepId
+        stepId: conv.stepId,
       })
       await this.delay(5000)
       await this.pushMessageToSent({
@@ -627,7 +681,7 @@ export class RabbitmqService {
         whaPhoneNumber: conversation.whaPhoneNumber,
         status: HistoryConversationStatus.IN_PROGRESS,
         reason: HistoryConversationReasonForEnding.ERROR,
-        stepId: conversation.stepId
+        stepId: conversation.stepId,
       })
       await this.handleMessageToSent({
         to: conversation.whaPhoneNumber,
@@ -644,9 +698,9 @@ export class RabbitmqService {
       whaPhoneNumber: conversation.whaPhoneNumber,
       status: HistoryConversationStatus.FAIL,
       reason: HistoryConversationReasonForEnding.ERROR,
-      stepId: conversation.stepId
+      stepId: conversation.stepId,
     })
-    
+
     const errorStep = await this.stepService.findOneByLevel(15)
     // Push message to whapi queue to demand to driver to go on MBP local
     await this.handleMessageToSent({
@@ -663,16 +717,19 @@ export class RabbitmqService {
     if (payload.stepId === 1) {
       await this.historyConversationService.create(payload)
     } else {
-      const stepId = (payload.reason === HistoryConversationReasonForEnding.ERROR ||
+      const stepId =
+        payload.reason === HistoryConversationReasonForEnding.ERROR ||
         payload.reason === HistoryConversationReasonForEnding.TIME_LIMIT_REACHED
-      )
-        ? payload.stepId : payload.stepId - 1
-      const history = await this.historyConversationService.findOneByWhaPhoneNumberAndStepId(
-        payload.whaPhoneNumber,
-        stepId
-      )
+          ? payload.stepId
+          : payload.stepId - 1
+      const history =
+        await this.historyConversationService.findOneByWhaPhoneNumberAndStepId(
+          payload.whaPhoneNumber,
+          stepId,
+        )
       console.log('history', history)
-      if (history) await this.historyConversationService.update(history?.id, payload)
+      if (history)
+        await this.historyConversationService.update(history?.id, payload)
     }
   }
 
@@ -684,13 +741,21 @@ export class RabbitmqService {
 
   private async deleteInfoCollected(conversation: Conversation) {
     console.log('deleteInfoCollected', conversation.whaPhoneNumber)
-    const phoneNumber = (await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(conversation.whaPhoneNumber)).phoneNumber
+    const phoneNumber = (
+      await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
+        conversation.whaPhoneNumber,
+      )
+    ).phoneNumber
     console.log('deleteInfoCollected.phoneNumber', phoneNumber)
-    const carId = (await this.carInfoService.findRecentByPhoneNumver(phoneNumber)).id
+    const carId = (
+      await this.carInfoService.findRecentByPhoneNumver(phoneNumber)
+    ).id
     console.log('deleteInfoCollected.carId', carId)
     await this.carInfoService.remove(carId)
     await this.driverLicenseInfoService.deleteByPhoneNumber(phoneNumber)
-    await this.driverPersonalInfoService.deleteByWhaPhoneNumber(conversation.whaPhoneNumber)
+    await this.driverPersonalInfoService.deleteByWhaPhoneNumber(
+      conversation.whaPhoneNumber,
+    )
     //await this.driverCarService.deleteByDriverId(personalInfo.id)
   }
 
@@ -748,13 +813,18 @@ export class RabbitmqService {
     }
   }
 
-  async handleOcrResponsePushedQueue() { }
+  async handleOcrResponsePushedQueue() {}
 
-  async pushCreateYangoProfileToQueue(payload: {lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto}) {
+  async pushCreateYangoProfileToQueue(payload: {
+    lastConversation: ConversationType
+    newMessage: NewMessageWebhookDto
+  }) {
     try {
       await firstValueFrom(
-        this.whapiSentQueueClient.emit(CREATE_YANGO_PROFILE_SENT_QUEUE_NAME, payload),
+        this.whapiSentQueueClient.emit(
+          CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+          payload,
+        ),
       )
       this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
     } catch (error) {
@@ -763,12 +833,12 @@ export class RabbitmqService {
   }
 
   async handleCreateYangoProfile({
-      lastConversation,
-      newMessage
-    }: {
-      lastConversation: ConversationType,
-      newMessage: NewMessageWebhookDto
-    }) {
+    lastConversation,
+    newMessage,
+  }: {
+    lastConversation: ConversationType
+    newMessage: NewMessageWebhookDto
+  }) {
     const abortData = {
       id: lastConversation.id,
       createdAt: lastConversation.createdAt,
@@ -776,34 +846,47 @@ export class RabbitmqService {
       whaPhoneNumber: lastConversation.whaPhoneNumber,
       message: lastConversation.message,
       badResponseCount: lastConversation.badResponseCount,
-      stepId: lastConversation.stepId
+      stepId: lastConversation.stepId,
     }
     try {
       const whaPhoneNumber = newMessage.messages[0].from
       this.logger.log(`Create Yango profile for ${whaPhoneNumber}`)
       const step = await this.stepService.findOneBylevelAndFlowId(1, 1)
       this.logger.log(`Create Yango profile step id ${step.id}`)
-      const phoneNumber = (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id + 1, whaPhoneNumber)).message
+      const phoneNumber = (
+        await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
+          step.id + 1,
+          whaPhoneNumber,
+        )
+      ).message
       this.logger.log(`Create Yango profile for ${phoneNumber}`)
 
-      const createYangoCar: CreateYangoCarDto = await this.buildCreateCarPayload(phoneNumber)
-      
-      const carId = (await this.yangoService.createCar(createYangoCar)).vehicle_id
+      const createYangoCar: CreateYangoCarDto =
+        await this.buildCreateCarPayload(phoneNumber)
+
+      const carId = (await this.yangoService.createCar(createYangoCar))
+        .vehicle_id
       this.logger.log('Create Yango profile carId', carId)
-      if (!carId) 
-        return await this.abortConversation(abortData)
+      if (!carId) return await this.abortConversation(abortData)
 
-      const createYangoDto: CreateYangoProfileDto = await this.buildCreateProfilePayload(phoneNumber, carId)
-      const profileId = (await this.yangoService.createProfile(createYangoDto)).contractor_profile_id
+      const createYangoDto: CreateYangoProfileDto =
+        await this.buildCreateProfilePayload(phoneNumber, carId)
+      const profileId = (await this.yangoService.createProfile(createYangoDto))
+        .contractor_profile_id
       this.logger.log('Create Yango profile profileId', profileId)
-      if (!profileId) 
-        return await this.abortConversation(abortData)
+      if (!profileId) return await this.abortConversation(abortData)
 
-      const carInfo = await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+      const carInfo =
+        await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
       await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
 
-      const driverInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
-      await this.driverPersonalInfoService.update(driverInfo.id, { yangoProfileId: profileId })
+      const driverInfo =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          phoneNumber,
+        )
+      await this.driverPersonalInfoService.update(driverInfo.id, {
+        yangoProfileId: profileId,
+      })
 
       await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
 
@@ -819,44 +902,58 @@ export class RabbitmqService {
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData)
-      this.logger.error(`Error processing during yango profile creation: ${error}`)
+      this.logger.error(
+        `Error processing during yango profile creation: ${error}`,
+      )
     }
   }
 
-  private async buildCreateCarPayload(phoneNumber: string): Promise<CreateYangoCarDto> {
-    const carInfo = await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+  private async buildCreateCarPayload(
+    phoneNumber: string,
+  ): Promise<CreateYangoCarDto> {
+    const carInfo =
+      await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
     return {
       park_profile: {
         callsign: carInfo.code,
         fuel_type: 'petrol',
         status: 'unknown',
-        categories: ["econom", "comfort"]
+        categories: ['econom', 'comfort'],
       },
       vehicule_licenses: {
-        licence_plate_number: carInfo.plateNumber
+        licence_plate_number: carInfo.plateNumber,
       },
       vehicule_specifications: {
         brand: carInfo.brand,
         color: carInfo.color,
         model: carInfo.model,
         transmission: 'mechanical',
-        year: 0
-      }
+        year: 0,
+      },
     }
   }
 
-  private async buildCreateProfilePayload(phoneNumber: string, carId: string): Promise<CreateYangoProfileDto> {
-    const driverPersonalInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
-    const driverLicenseInfo = await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(phoneNumber)
+  private async buildCreateProfilePayload(
+    phoneNumber: string,
+    carId: string,
+  ): Promise<CreateYangoProfileDto> {
+    const driverPersonalInfo =
+      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+        phoneNumber,
+      )
+    const driverLicenseInfo =
+      await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(
+        phoneNumber,
+      )
     return {
       order_provider: {
         partner: true,
-        platform: true
+        platform: true,
       },
       person: {
         contact_info: {
-          phone: phoneNumber
-        }
+          phone: phoneNumber,
+        },
       },
       driver_license: {
         country: 'civ',
@@ -866,31 +963,39 @@ export class RabbitmqService {
       },
       full_name: {
         first_name: driverPersonalInfo.firstName,
-        last_name: driverPersonalInfo.lastName
+        last_name: driverPersonalInfo.lastName,
       },
       profile: {
-        hire_date: new Date().toISOString()
+        hire_date: new Date().toISOString(),
       },
-      carId
+      carId,
     }
   }
 
-  private async makeAssociationBetweenDriverAndCar(idDriver: number, idCar: number) {
+  private async makeAssociationBetweenDriverAndCar(
+    idDriver: number,
+    idCar: number,
+  ) {
     console.log('idDriver', idDriver, 'idCar', idCar)
     const association = await this.driverCarService.findOneByDriverId(idDriver)
     console.log('association', association)
     if (association) {
       await this.driverCarService.update(association.id, { idDriver, idCar })
-    } else{
+    } else {
       await this.driverCarService.create({ idDriver, idCar })
     }
   }
-  
-  async pushCreateYangoCarToQueue(payload: {lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto}) {
+
+  async pushCreateYangoCarToQueue(payload: {
+    lastConversation: ConversationType
+    newMessage: NewMessageWebhookDto
+  }) {
     try {
       await firstValueFrom(
-        this.whapiSentQueueClient.emit(CREATE_YANGO_CAR_SENT_QUEUE_NAME, payload),
+        this.whapiSentQueueClient.emit(
+          CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+          payload,
+        ),
       )
       this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
     } catch (error) {
@@ -900,11 +1005,11 @@ export class RabbitmqService {
 
   async handleCreateYangoCar({
     lastConversation,
-    newMessage
+    newMessage,
   }: {
-    lastConversation: ConversationType,
+    lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
-    }) {
+  }) {
     const abortData = {
       id: lastConversation.id,
       createdAt: lastConversation.createdAt,
@@ -912,27 +1017,37 @@ export class RabbitmqService {
       whaPhoneNumber: lastConversation.whaPhoneNumber,
       message: lastConversation.message,
       badResponseCount: lastConversation.badResponseCount,
-      stepId: lastConversation.stepId
+      stepId: lastConversation.stepId,
     }
     try {
       const whaPhoneNumber = newMessage.messages[0].from
 
       const step = await this.stepService.findOneBylevelAndFlowId(2, 2)
       console.log('step', step)
-      const phoneNumber = (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id, whaPhoneNumber)).message
+      const phoneNumber = (
+        await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
+          step.id,
+          whaPhoneNumber,
+        )
+      ).message
       console.log('phoneNumber', phoneNumber)
-      const createYangoCar: CreateYangoCarDto = await this.buildCreateCarPayload(phoneNumber)
+      const createYangoCar: CreateYangoCarDto =
+        await this.buildCreateCarPayload(phoneNumber)
 
-      const carId = (await this.yangoService.createCar(createYangoCar)).vehicle_id
+      const carId = (await this.yangoService.createCar(createYangoCar))
+        .vehicle_id
       console.log('carId', carId)
-      if (!carId) 
-        return await this.abortConversation(abortData)
-      
-      const carInfo = await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
-      console.log('carInfo', )
+      if (!carId) return await this.abortConversation(abortData)
+
+      const carInfo =
+        await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+      console.log('carInfo')
       await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
 
-      const driverInfo = await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(phoneNumber)
+      const driverInfo =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          phoneNumber,
+        )
 
       await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
 
@@ -947,14 +1062,19 @@ export class RabbitmqService {
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData)
-      this.logger.error(`Error processing during yango profile creation: ${error}`)
+      this.logger.error(
+        `Error processing during yango profile creation: ${error}`,
+      )
     }
   }
-  
+
   async pushUpdateYangoDriverInfoToQueue(payload: CreateYangoProfileDto) {
     try {
       await firstValueFrom(
-        this.whapiSentQueueClient.emit(UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME, payload),
+        this.whapiSentQueueClient.emit(
+          UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
+          payload,
+        ),
       )
       this.logger.log(`Emitting doc to queue: ${JSON.stringify(payload)}`)
     } catch (error) {
@@ -962,33 +1082,38 @@ export class RabbitmqService {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async handleUpdateYangoDriverInfo(_payload: CreateYangoProfileDto) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async deleteOldConversations() {
     this.logger.log("I'am the old conversations undertaker")
-    const fiveMinutesAgo = subMinutes(new Date(), 5);
+    const fiveMinutesAgo = subMinutes(new Date(), 5)
 
-    const phoneNumbers = await this.conversationService.getPhoneNumbers();
+    const phoneNumbers = await this.conversationService.getPhoneNumbers()
     console.log('phoneNumbers', phoneNumbers)
     for (const { whaPhoneNumber } of phoneNumbers) {
-      const lastConversation = await this.conversationService.findPhoneNumberLastConversation(whaPhoneNumber);
+      const lastConversation =
+        await this.conversationService.findPhoneNumberLastConversation(
+          whaPhoneNumber,
+        )
       console.log('lastConversation', lastConversation)
       if (lastConversation && lastConversation.updatedAt < fiveMinutesAgo) {
-        await this.conversationService.removeAllByPhoneNumber(whaPhoneNumber);
-        this.logger.log(`Conversations deleted for phone number: ${whaPhoneNumber}`);
+        await this.conversationService.removeAllByPhoneNumber(whaPhoneNumber)
+        this.logger.log(
+          `Conversations deleted for phone number: ${whaPhoneNumber}`,
+        )
         await this.editHistoryConversation({
           whaPhoneNumber,
           status: HistoryConversationStatus.FAIL,
           reason: HistoryConversationReasonForEnding.TIME_LIMIT_REACHED,
-          stepId: lastConversation.stepId
+          stepId: lastConversation.stepId,
         })
       }
     }
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
-

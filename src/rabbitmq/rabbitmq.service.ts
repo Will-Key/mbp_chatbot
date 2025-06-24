@@ -1168,7 +1168,10 @@ export class RabbitmqService {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async handleUpdateYangoDriverInfo(_payload: CreateYangoProfileDto) {}
+  async handleUpdateYangoDriverInfo(_payload: {
+    lastConversation: ConversationType
+    newMessage: NewMessageWebhookDto
+  }) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async deleteOldConversations() {

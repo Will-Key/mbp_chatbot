@@ -1,14 +1,15 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import {
-  Conversation,
-  DocumentFile,
-  HistoryConversationReasonForEnding,
-  HistoryConversationStatus,
-  StepBadResponseMessageErrorType,
-  StepExpectedResponseType,
-} from '@prisma/client'
+import
+  {
+    Conversation,
+    DocumentFile,
+    HistoryConversationReasonForEnding,
+    HistoryConversationStatus,
+    StepBadResponseMessageErrorType,
+    StepExpectedResponseType,
+  } from '@prisma/client'
 import { subMinutes } from 'date-fns'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
@@ -32,14 +33,15 @@ import { HistoryConversationService } from '../history-conversation/history-conv
 import { ConversationType } from '../shared/types'
 import { StepService } from '../step/step.service'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
-import {
-  CREATE_YANGO_CAR_SENT_QUEUE_NAME,
-  CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
-  OCR_SENT_QUEUE_NAME,
-  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
-  WHAPI_RECEIVED_QUEUE_NAME,
-  WHAPI_SENT_QUEUE_NAME,
-} from './constants'
+import
+  {
+    CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+    CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+    OCR_SENT_QUEUE_NAME,
+    UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
+    WHAPI_RECEIVED_QUEUE_NAME,
+    WHAPI_SENT_QUEUE_NAME,
+  } from './constants'
 
 @Injectable()
 export class RabbitmqService {
@@ -1167,7 +1169,6 @@ export class RabbitmqService {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async handleUpdateYangoDriverInfo(_payload: {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto

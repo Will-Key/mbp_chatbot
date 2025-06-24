@@ -66,7 +66,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
       },
       {
         message: 'Code expiré',
-        errorType: 'isExpire',
+        errorType: 'isExpired',
       },
     ],
     flowId: 1,
@@ -177,7 +177,7 @@ Pour reéssayer envoyer "Start"
       },
       {
         message: 'Code expiré',
-        errorType: 'isExpire',
+        errorType: 'isExpired',
       },
     ],
     flowId: 2,
@@ -241,7 +241,7 @@ Pour reéssayer envoyer "Start"
       },
       {
         message: 'Code expiré.',
-        errorType: 'isExpire',
+        errorType: 'isExpired',
       },
     ],
     flowId: 3,
@@ -274,13 +274,20 @@ Pour reéssayer envoyer "Start"
       },
       {
         message: 'Code expiré.',
-        errorType: 'isExpire',
+        errorType: 'isExpired',
       },
     ],
     flowId: 3,
   },
   {
     level: 5,
+    message: `Merci ! Nous traitons maintenant votre demande...
+    Un retour vous sera fait dans 5 minutes.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    flowId: 3,
+  },
+  {
+    level: 6,
     message: `Votre numéro a été mis à jour avec succès.`,
     flowId: 2,
   },

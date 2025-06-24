@@ -262,12 +262,14 @@ export class RabbitmqService {
             )
           ).message
 
-    const isVerified = await this.otpService.verifyOtp(phoneNumber, otpEnter)
-    if (!isVerified) {
+    const response = await this.otpService.verifyOtp(phoneNumber, otpEnter)
+    if (response === 'OTP_NOT_FOUND' || response === 'OTP_EXPIRED') {
       const errorMessage = this.getErrorMessage(
         lastConversation,
-        'incorrectCode',
+        response === 'OTP_NOT_FOUND' ? 'incorrectCode' : 'isExpired',
       )
+      if (response === 'OTP_EXPIRED')
+        await this.otpService.generateAndSendOtp(phoneNumber)
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -508,10 +510,16 @@ export class RabbitmqService {
         await this.handleThirdFlowOtpVerification(lastConversation, newMessage)
         break
       case 3:
-        await this.handleCarRegistrationUpload(lastConversation, newMessage, 2)
+        await this.handleThirdFlowStepThreePhoneNumber(
+          lastConversation,
+          newMessage,
+        )
         break
-      case 7:
-        await this.handleSecondFlowFinalStep(newMessage, 2)
+      case 4:
+        await this.handleThirdFlowOtpVerification(lastConversation, newMessage)
+        break
+      case 5:
+        await this.handleThirdFlowFinalStep(newMessage, 3)
         break
       default:
         this.updateMessage(lastConversation, newMessage.messages[0].text.body)
@@ -590,12 +598,14 @@ export class RabbitmqService {
       )
     ).message
 
-    const isVerified = await this.otpService.verifyOtp(phoneNumber, otpEnter)
-    if (!isVerified) {
+    const response = await this.otpService.verifyOtp(phoneNumber, otpEnter)
+    if (response === 'OTP_NOT_FOUND' || response === 'OTP_EXPIRED') {
       const errorMessage = this.getErrorMessage(
         lastConversation,
-        'incorrectCode',
+        response === 'OTP_NOT_FOUND' ? 'incorrectCode' : 'isExpired',
       )
+      if (response === 'OTP_EXPIRED')
+        await this.otpService.generateAndSendOtp(phoneNumber)
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -612,6 +622,65 @@ export class RabbitmqService {
     })
   }
 
+  private async handleThirdFlowStepThreePhoneNumber(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    try {
+      const flowId = 3
+      const phoneNumber = this.cleanupPhoneNumver(
+        newMessage.messages[0].text.body.trim(),
+      )
+      if (phoneNumber.length !== 10) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+      const driver =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          `225${phoneNumber}`,
+        )
+      if (driver) {
+        const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
+      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
+
+      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+        lastConversation.step.level + 1,
+        flowId,
+      )
+      await this.saveMessage({
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
+        nextMessage: nextStep.message,
+        stepId: nextStep.id,
+      })
+      await this.delay(30000)
+      await this.sendThirdFlowDataToYango(lastConversation, newMessage)
+    } catch (error) {
+      let errorMessage = error.message
+      if (errorMessage != 'OTP envoyé avec succès')
+        errorMessage = "Erreur lors de l'envoie du OTP.\nVeuillez reéssayer."
+
+      await this.updateMessage(lastConversation, errorMessage)
+      return
+    }
+  }
+
+  private async sendThirdFlowDataToYango(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    console.log('pushUpdateYangoDriverInfoToQueue')
+    this.pushUpdateYangoDriverInfoToQueue({ lastConversation, newMessage })
+  }
+
   private async sendSecondFlowDataToYango(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
@@ -625,6 +694,19 @@ export class RabbitmqService {
     flowId: number,
   ) {
     const nextStep = await this.stepService.findOneBylevelAndFlowId(6, flowId)
+    await this.saveMessage({
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: newMessage.messages[0].text.body,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
+  }
+
+  private async handleThirdFlowFinalStep(
+    newMessage: NewMessageWebhookDto,
+    flowId: number,
+  ) {
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(5, flowId)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
@@ -1068,7 +1150,10 @@ export class RabbitmqService {
     }
   }
 
-  async pushUpdateYangoDriverInfoToQueue(payload: CreateYangoProfileDto) {
+  async pushUpdateYangoDriverInfoToQueue(payload: {
+    lastConversation: ConversationType
+    newMessage: NewMessageWebhookDto
+  }) {
     try {
       await firstValueFrom(
         this.whapiSentQueueClient.emit(

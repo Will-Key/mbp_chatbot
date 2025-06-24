@@ -255,7 +255,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'equalLength',
       },
       {
-        message: "Ce numéro de téléphone est déjà associé à un chauffeur.\nVeuillez entrer un nouveau numéro",
+        message: "Ce numéro de téléphone n'est pas valide.\nVeuillez entrer un nouveau numéro",
         errorType: 'isExist',
       },
     ],

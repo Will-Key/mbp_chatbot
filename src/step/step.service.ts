@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
+import { Step } from '@prisma/client'
+import { PrismaService } from 'prisma/prisma.service'
 import { CreateStepDto } from './dto/create-step.dto'
 import { UpdateStepDto } from './dto/update-step.dto'
-import { PrismaService } from 'prisma/prisma.service'
-import { Step } from '@prisma/client'
 
 @Injectable()
 export class StepService {
@@ -42,13 +42,12 @@ export class StepService {
   findOneBylevelAndFlowId(level: number, flowId: number): Promise<Step | null> {
     return this.prismaService.step.findFirst({
       where: {
-        AND: [
-          {
-            level,
-          },
-          { flowId },
-        ],
+        level,
+        flowId
       },
+      include: {
+        stepBadResponseMessage: true
+      }
     })
   }
 
@@ -58,6 +57,22 @@ export class StepService {
       where: { id },
     })
   }
+
+  // Dans step.service.ts
+async updateStep(id: number, updateData: CreateStepDto) {
+  const { badResponseMessage, ...stepData } = updateData
+  
+  return this.prismaService.step.update({
+    where: { id },
+    data: {
+      ...stepData,
+      stepBadResponseMessage: {
+        deleteMany: {}, // Supprime les anciens messages
+        create: badResponseMessage || [] // Crée les nouveaux
+      }
+    }
+  })
+}
 
   remove(id: number) {
     return this.prismaService.step.delete({ where: { id } })

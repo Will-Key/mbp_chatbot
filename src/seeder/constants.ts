@@ -62,7 +62,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     badResponseMessage: [
       {
         message: 'Code incorrect.\nVeuillez saisir à nouveau le code reçu.',
-        errorType: 'equalLength',
+        errorType: 'incorrectCode',
       },
       {
         message: 'Code expiré',
@@ -173,7 +173,7 @@ Pour reéssayer envoyer "Start"
     badResponseMessage: [
       {
         message: 'Code incorrect.\nVeuillez saisir à nouveau le code.',
-        errorType: 'equalLength',
+        errorType: 'incorrectCode',
       },
       {
         message: 'Code expiré',
@@ -236,7 +236,7 @@ Pour reéssayer envoyer "Start"
     badResponseMessage: [
       {
         message: 'Code incorrect.\nVeuillez saisir à nouveau le code.',
-        errorType: 'equalLength',
+        errorType: 'incorrectCode',
       },
       {
         message: 'Code expiré.',
@@ -268,7 +268,7 @@ Pour reéssayer envoyer "Start"
     badResponseMessage: [
       {
         message: 'Code incorrect.\nVeuillez saisir à nouveau le code.',
-        errorType: 'equalLength',
+        errorType: 'incorrectCode',
       },
       {
         message: 'Code expiré.',

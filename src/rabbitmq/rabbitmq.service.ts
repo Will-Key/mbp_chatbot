@@ -143,6 +143,8 @@ export class RabbitmqService {
       await this.getFirstFlowSteps(lastConversation, newMessage)
     } else if (lastConversation.step.flowId === 2) {
       await this.getSecondFlowSteps(lastConversation, newMessage)
+    } else if (lastConversation.step.flowId === 3) {
+      await this.getThirdFlowSteps(lastConversation, newMessage)
     }
   }
 
@@ -247,7 +249,7 @@ export class RabbitmqService {
 
     const isVerified = await this.otpService.verifyOtp(phoneNumber, otpEnter)
     if (!isVerified) {
-      const errorMessage = "Code incorrect"
+      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectCode')
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
@@ -454,6 +456,106 @@ export class RabbitmqService {
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
+  }
+
+  private async getThirdFlowSteps(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    switch (lastConversation.step.level) {
+      case 1:
+        await this.handleThirdFlowStepOnePhoneNumber(lastConversation, newMessage)
+        break
+      case 2:
+        await this.handleThirdFlowOtpVerification(lastConversation, newMessage)
+        break
+      case 3:
+        await this.handleCarRegistrationUpload(lastConversation, newMessage, 2)
+        break
+      case 7:
+        await this.handleSecondFlowFinalStep(newMessage, 2)
+        break
+      default:
+        this.updateMessage(lastConversation, newMessage.messages[0].text.body)
+    }
+  }
+
+  private async handleThirdFlowStepOnePhoneNumber(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto
+  ) {
+    try {
+      const flowId = 3
+      const phoneNumber = this.cleanupPhoneNumver(newMessage.messages[0].text.body.trim())
+      if (phoneNumber.length !== 10) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+      const driver =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          `225${phoneNumber}`,
+        )
+      if (!driver) {
+        const errorMessage = this.getErrorMessage(lastConversation, 'isNotExist')
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
+      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
+
+      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+        lastConversation.step.level + 1,
+        flowId,
+      )
+      await this.saveMessage({
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: `225${phoneNumber}`,//newMessage.messages[0].text.body,
+        nextMessage: nextStep.message,
+        stepId: nextStep.id,
+      })
+    } catch (error) {
+      let errorMessage = error.message
+      if (errorMessage != "OTP envoyé avec succès") 
+        errorMessage = "Erreur lors de l'envoie du OTP.\nVeuillez reéssayer."
+      
+      await this.updateMessage(lastConversation, errorMessage)
+      return
+    }
+  }
+
+  private async handleThirdFlowOtpVerification(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    const flowId = 3
+    const whaPhoneNumber = newMessage.messages[0].from
+    const otpEnter = newMessage.messages[0].text.body.trim()
+
+    const step = await this.stepService.findOneBylevelAndFlowId(lastConversation.step.level, flowId)
+
+    const phoneNumber = (await this.conversationService.findOneByStepIdAndWhaPhoneNumber(step.id, whaPhoneNumber)).message
+
+    const isVerified = await this.otpService.verifyOtp(phoneNumber, otpEnter)
+    if (!isVerified) {
+      const errorMessage = this.getErrorMessage(lastConversation, 'incorrectCode')
+      await this.updateMessage(lastConversation, errorMessage)
+      return
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      lastConversation.step.level + 1,
+      flowId,
+    )
+    await this.saveMessage({
+      whaPhoneNumber: newMessage.messages[0].from,
+      convMessage: otpEnter,//newMessage.messages[0].text.body,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
   }
 
   private async sendSecondFlowDataToYango(

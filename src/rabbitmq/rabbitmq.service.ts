@@ -1170,7 +1170,9 @@ export class RabbitmqService {
   async handleUpdateYangoDriverInfo(_payload: {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
-  }) {}
+  }) {
+    console.log(_payload)
+  }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async deleteOldConversations() {

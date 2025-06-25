@@ -6,6 +6,7 @@ import {
   CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
   OCR_RECEIVED_QUEUE_NAME,
   OCR_SENT_QUEUE_NAME,
+  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './rabbitmq/constants'
@@ -53,6 +54,13 @@ async function bootstrap() {
     options: {
       urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
       queue: CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+    },
+  })
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
+      queue: UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
     },
   })
   await app.startAllMicroservices()

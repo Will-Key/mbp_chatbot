@@ -16,6 +16,7 @@ import {
   CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
   OCR_RECEIVED_QUEUE_NAME,
   OCR_SENT_QUEUE_NAME,
+  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
@@ -86,6 +87,17 @@ import { RabbitmqService } from './rabbitmq.service'
         options: {
           urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
           queue: CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+          queueOptions: {
+            durable: true,
+          },
+        },
+      },
+      {
+        name: 'UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME',
+        transport: Transport.RMQ,
+        options: {
+          urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
+          queue: UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
           queueOptions: {
             durable: true,
           },

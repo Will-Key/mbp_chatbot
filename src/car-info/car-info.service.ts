@@ -6,7 +6,7 @@ import { UpdateCarInfoDto } from './dto/update-car-info.dto'
 
 @Injectable()
 export class CarInfoService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createCarInfoDto: CreateCarInfoDto) {
     return this.prismaService.carInfo.create({
@@ -26,14 +26,14 @@ export class CarInfoService {
     return this.prismaService.carInfo.findFirst({
       where: { driverPhoneNumber },
       orderBy: {
-        createdAt: 'desc'
-      }  
+        createdAt: 'desc',
+      },
     })
   }
 
   findCarInfoByYangoCarId(yangoCarId: string) {
     return this.prismaService.carInfo.findUnique({
-      where: { yangoCarId }
+      where: { yangoCarId },
     })
   }
 
@@ -53,9 +53,9 @@ export class CarInfoService {
       where: {
         driverPhoneNumber,
         createdAt: {
-          gt: subMinutes(new Date(), 5)
-        }
-      }
+          gt: subMinutes(new Date(), 5),
+        },
+      },
     })
   }
 

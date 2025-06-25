@@ -7,4 +7,4 @@ import { PrismaService } from 'prisma/prisma.service'
   //controllers: [CarInfoController],
   providers: [CarInfoService, PrismaService],
 })
-export class CarInfoModule { }
+export class CarInfoModule {}

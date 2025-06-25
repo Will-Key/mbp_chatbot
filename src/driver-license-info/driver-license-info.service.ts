@@ -6,7 +6,7 @@ import { UpdateDriverLicenseInfoDto } from './dto/update-driver-license-info.dto
 
 @Injectable()
 export class DriverLicenseInfoService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createDriverLicenseInfoDto: CreateDriverLicenseInfoDto) {
     return this.prismaService.driverLicenseInfo.create({
@@ -24,7 +24,7 @@ export class DriverLicenseInfoService {
 
   findLicenseInfoByPhoneNumber(phoneNumber: string) {
     return this.prismaService.driverLicenseInfo.findUnique({
-      where: { driverPhoneNumber: phoneNumber }
+      where: { driverPhoneNumber: phoneNumber },
     })
   }
 
@@ -46,9 +46,9 @@ export class DriverLicenseInfoService {
       where: {
         driverPhoneNumber,
         createdAt: {
-          gt: subMinutes(new Date(), 5)
-        }
-      }
+          gt: subMinutes(new Date(), 5),
+        },
+      },
     })
   }
 }

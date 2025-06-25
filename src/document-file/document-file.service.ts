@@ -5,7 +5,7 @@ import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class DocumentFileService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createDocumentFileDto: CreateDocumentFileDto) {
     return this.prismaService.documentFile.create({

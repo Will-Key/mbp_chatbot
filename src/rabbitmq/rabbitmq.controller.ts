@@ -51,19 +51,31 @@ export class RabbitmqController {
   }
 
   @EventPattern(CREATE_YANGO_PROFILE_SENT_QUEUE_NAME)
-  async createYangoProfile(@Payload() payload: {lastConversation: ConversationType,
-      newMessage: NewMessageWebhookDto}) {
+  async createYangoProfile(
+    @Payload()
+    payload: {
+      lastConversation: ConversationType
+      newMessage: NewMessageWebhookDto
+    },
+  ) {
     try {
       this.logger.log(`Create yango profile: ${JSON.stringify(payload)}`)
       await this.rabbitmqService.handleCreateYangoProfile(payload)
     } catch (error) {
-      this.logger.error(`Error processing during yango profile creation: ${error}`)
+      this.logger.error(
+        `Error processing during yango profile creation: ${error}`,
+      )
     }
   }
 
   @EventPattern(CREATE_YANGO_CAR_SENT_QUEUE_NAME)
-  async createYangoCar(@Payload() data: {lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto}) {
+  async createYangoCar(
+    @Payload()
+    data: {
+      lastConversation: ConversationType
+      newMessage: NewMessageWebhookDto
+    },
+  ) {
     try {
       this.logger.log(`Create Yango car: ${data}`)
       await this.rabbitmqService.handleCreateYangoCar(data)
@@ -73,10 +85,16 @@ export class RabbitmqController {
   }
 
   @EventPattern(UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME)
-  async updateYangoDriverInfo(@Payload() data: DocumentFile, flowId: number) {
+  async updateYangoDriverInfo(
+    @Payload()
+    data: {
+      lastConversation: ConversationType
+      newMessage: NewMessageWebhookDto
+    },
+  ) {
     try {
       this.logger.log(`New message to send: ${data}`)
-      await this.rabbitmqService.handleDocumentPushed(data, flowId)
+      await this.rabbitmqService.handleUpdateYangoDriverInfo(data)
     } catch (error) {
       this.logger.error(`Error processing message to sent: ${error}`)
     }

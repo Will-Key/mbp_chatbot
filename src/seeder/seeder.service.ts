@@ -9,7 +9,7 @@ export class SeederService {
   constructor(
     private readonly flowService: FlowService,
     private readonly stepService: StepService,
-  ) { }
+  ) {}
 
   async seed() {
     await this.createFlowsSeed()
@@ -30,13 +30,44 @@ export class SeederService {
   }
 
   private async createStepsSeed() {
-    const seeds = await this.stepService.findAll()
-    if (!seeds.length) {
-      for (const step of INITIAL_STEPS) {
-        await this.stepService.createWithBadResponseMessage(step)
+    for (const initialStep of INITIAL_STEPS) {
+      const existingStep = await this.stepService.findOneBylevelAndFlowId(
+        initialStep.level,
+        initialStep.flowId,
+      )
+
+      if (!existingStep) {
+        await this.stepService.createWithBadResponseMessage(initialStep)
+      } else if (this.hasStepChanged(existingStep, initialStep)) {
+        await this.stepService.updateStep(existingStep.id, initialStep)
       }
-      return
     }
-    this.logger.error('Steps already created')
+  }
+
+  private hasStepChanged(existingStep: any, initialStep: any): boolean {
+    // Comparaison des champs principaux
+    if (existingStep.message !== initialStep.message) return true
+    if (existingStep.expectedResponse !== initialStep.expectedResponse)
+      return true
+    if (existingStep.expectedResponseType !== initialStep.expectedResponseType)
+      return true
+
+    // Comparaison des messages de mauvaise réponse
+    const existingMessages = existingStep.stepBadResponseMessage || []
+    const initialMessages = initialStep.badResponseMessage || []
+
+    if (existingMessages.length !== initialMessages.length) return true
+
+    // Vérification détaillée des messages
+    for (let i = 0; i < initialMessages.length; i++) {
+      const existing = existingMessages.find(
+        (m) => m.errorType === initialMessages[i].errorType,
+      )
+      if (!existing || existing.message !== initialMessages[i].message) {
+        return true
+      }
+    }
+
+    return false
   }
 }

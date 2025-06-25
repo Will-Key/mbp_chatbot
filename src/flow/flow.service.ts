@@ -5,7 +5,7 @@ import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class FlowService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createFlowDto: CreateFlowDto) {
     return this.prismaService.flow.create({ data: createFlowDto })

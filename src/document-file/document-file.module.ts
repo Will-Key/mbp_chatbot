@@ -7,4 +7,4 @@ import { PrismaService } from 'prisma/prisma.service'
   //controllers: [DocumentFileController],
   providers: [DocumentFileService, PrismaService],
 })
-export class DocumentFileModule { }
+export class DocumentFileModule {}

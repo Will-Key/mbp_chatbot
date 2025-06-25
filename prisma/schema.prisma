@@ -71,7 +71,8 @@ enum StepBadResponseMessageErrorType {
   isNotExist
   incorrectChoice
   isDate
-  isExpire
+  isExpired
+  incorrectCode
 }
 
 enum HistoryConversationStatus {

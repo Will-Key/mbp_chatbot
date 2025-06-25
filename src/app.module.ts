@@ -15,10 +15,10 @@ import { PrismaService } from '../prisma/prisma.service'
 import { WebhookModule } from './webhook/webhook.module'
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module'
 import { ExternalApiModule } from './external-api/external-api.module'
-import { StepBadResponseMessageModule } from './step-bad-response-message/step-bad-response-message.module';
-import { HistoryConversationModule } from './history-conversation/history-conversation.module';
+import { StepBadResponseMessageModule } from './step-bad-response-message/step-bad-response-message.module'
+import { HistoryConversationModule } from './history-conversation/history-conversation.module'
 import { ScheduleModule } from '@nestjs/schedule'
-import { OtpVerificationModule } from './otp-verification/otp-verification.module';
+import { OtpVerificationModule } from './otp-verification/otp-verification.module'
 import { DriverPersonalInfoModule } from './driver-personal-info/driver-personal-info.module'
 
 @Module({
@@ -39,13 +39,13 @@ import { DriverPersonalInfoModule } from './driver-personal-info/driver-personal
     StepBadResponseMessageModule,
     HistoryConversationModule,
     ScheduleModule.forRoot(),
-    OtpVerificationModule
+    OtpVerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private readonly seederService: SeederService) { }
+  constructor(private readonly seederService: SeederService) {}
 
   async onModuleInit() {
     await this.seederService.seed()

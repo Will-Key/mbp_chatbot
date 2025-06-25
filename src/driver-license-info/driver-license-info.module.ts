@@ -7,4 +7,4 @@ import { PrismaService } from 'prisma/prisma.service'
   //controllers: [DriverLicenseInfoController],
   providers: [DriverLicenseInfoService, PrismaService],
 })
-export class DriverLicenseInfoModule { }
+export class DriverLicenseInfoModule {}

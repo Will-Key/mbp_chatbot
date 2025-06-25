@@ -1,11 +1,14 @@
-import { HistoryConversationReasonForEnding, HistoryConversationStatus } from "@prisma/client"
+import {
+  HistoryConversationReasonForEnding,
+  HistoryConversationStatus,
+} from '@prisma/client'
 
 export class CreateHistoryConversationDto {
-    whaPhoneNumber: string
+  whaPhoneNumber: string
 
-    stepId?: number
+  stepId?: number
 
-    status: HistoryConversationStatus
+  status: HistoryConversationStatus
 
-    reason?: HistoryConversationReasonForEnding
+  reason?: HistoryConversationReasonForEnding
 }

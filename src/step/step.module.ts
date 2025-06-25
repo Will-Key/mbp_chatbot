@@ -7,4 +7,4 @@ import { PrismaService } from 'prisma/prisma.service'
   //controllers: [StepController],
   providers: [StepService, PrismaService],
 })
-export class StepModule { }
+export class StepModule {}

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common'
+import { Step } from '@prisma/client'
+import { PrismaService } from 'prisma/prisma.service'
 import { CreateStepDto } from './dto/create-step.dto'
 import { UpdateStepDto } from './dto/update-step.dto'
-import { PrismaService } from 'prisma/prisma.service'
-import { Step } from '@prisma/client'
 
 @Injectable()
 export class StepService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createStepDto: CreateStepDto) {
     return this.prismaService.step.create({
@@ -14,14 +14,17 @@ export class StepService {
     })
   }
 
-  createWithBadResponseMessage({ badResponseMessage, ...createStepDto }: CreateStepDto) {
+  createWithBadResponseMessage({
+    badResponseMessage,
+    ...createStepDto
+  }: CreateStepDto) {
     return this.prismaService.step.create({
       data: {
         ...createStepDto,
         stepBadResponseMessage: {
-          create: badResponseMessage
-        }
-      }
+          create: badResponseMessage,
+        },
+      },
     })
   }
 
@@ -42,12 +45,11 @@ export class StepService {
   findOneBylevelAndFlowId(level: number, flowId: number): Promise<Step | null> {
     return this.prismaService.step.findFirst({
       where: {
-        AND: [
-          {
-            level,
-          },
-          { flowId },
-        ],
+        level,
+        flowId,
+      },
+      include: {
+        stepBadResponseMessage: true,
       },
     })
   }
@@ -56,6 +58,22 @@ export class StepService {
     return this.prismaService.step.update({
       data,
       where: { id },
+    })
+  }
+
+  // Dans step.service.ts
+  async updateStep(id: number, updateData: CreateStepDto) {
+    const { badResponseMessage, ...stepData } = updateData
+
+    return this.prismaService.step.update({
+      where: { id },
+      data: {
+        ...stepData,
+        stepBadResponseMessage: {
+          deleteMany: {}, // Supprime les anciens messages
+          create: badResponseMessage || [], // Crée les nouveaux
+        },
+      },
     })
   }
 

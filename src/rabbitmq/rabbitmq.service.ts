@@ -1171,17 +1171,15 @@ export class RabbitmqService {
 
   async handleUpdateYangoDriverInfo({
     lastConversation,
-    newMessage,
   }: {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
   }) {
     try {
-      console.log(newMessage)
       const previousPhoneNumberStep =
-        await this.stepService.findOneBylevelAndFlowId(1, 3)
+        await this.stepService.findOneBylevelAndFlowId(2, 3)
       const currentPhoneNumberStep =
-        await this.stepService.findOneBylevelAndFlowId(3, 3)
+        await this.stepService.findOneBylevelAndFlowId(4, 3)
       const previousPhoneNumber = (
         await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
           previousPhoneNumberStep.id,
@@ -1214,6 +1212,7 @@ export class RabbitmqService {
 
       this.deleteAllConversations(lastConversation)
     } catch (error) {
+      this.deleteAllConversations(lastConversation)
       console.error(error)
     }
   }

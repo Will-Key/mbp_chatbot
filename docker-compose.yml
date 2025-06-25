@@ -30,23 +30,23 @@ services:
     networks:
       - mbp_chatbot_go_net
 
-  # bot-app:
-  #   build: .
-  #   container_name: mbp_chatbot_app
-  #   restart: always
-  #   ports:
-  #     - '3001:3001'
-  #   depends_on:
-  #     - mbp_chatbot_db
-  #     - mbp_chatbot_rabbitmq
-  #   environment:
-  #     - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/mbp_chatbot_db
-  #     - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:5672
-  #   networks:
-  #     - mbp_chatbot_go_net
-  #   #volumes:
-  #     #- ./entrypoint.sh:/usr/src/app/entrypoint.sh
-  #   command: ["sh", "entrypoint.sh"]
+  bot-app:
+    build: .
+    container_name: mbp_chatbot_app
+    restart: always
+    ports:
+      - '3001:3001'
+    depends_on:
+      - mbp_chatbot_db
+      - mbp_chatbot_rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/mbp_chatbot_db
+      - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:5672
+    networks:
+      - mbp_chatbot_go_net
+    #volumes:
+      #- ./entrypoint.sh:/usr/src/app/entrypoint.sh
+    command: ["sh", "entrypoint.sh"]
 
 volumes:
   mbp_chatbot_db:

@@ -49,6 +49,15 @@ export class DriverPersonalInfoService {
     })
   }
 
+  updateByPhoneNumber(previousPhoneNumber: string, currentPhoneNumber: string) {
+    return this.prismaService.driverPersonnalInfo.update({
+      data: {
+        phoneNumber: currentPhoneNumber,
+      },
+      where: { phoneNumber: previousPhoneNumber },
+    })
+  }
+
   deleteByWhaPhoneNumber(whaPhoneNumber: string) {
     return this.prismaService.driverPersonnalInfo.delete({
       where: {

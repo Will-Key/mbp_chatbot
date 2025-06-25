@@ -133,6 +133,8 @@ export class RabbitmqService {
         await this.startFlow(newMessage, 1)
       } else if (newMessage.messages[0].text.body.includes('2')) {
         await this.startFlow(newMessage, 2)
+      } else if (newMessage.messages[0].text.body.includes('3')) {
+        await this.startFlow(newMessage, 3)
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -556,8 +558,6 @@ export class RabbitmqService {
         return
       }
 
-      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
-
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
         lastConversation.step.level + 1,
         flowId,
@@ -568,6 +568,8 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
+      await this.delay(10000)
+      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
     } catch (error) {
       let errorMessage = error.message
       if (errorMessage != 'OTP envoyé avec succès')
@@ -620,6 +622,11 @@ export class RabbitmqService {
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+
+    if (step.level === 4) {
+      await this.delay(10000)
+      await this.sendThirdFlowDataToYango(lastConversation, newMessage)
+    }
   }
 
   private async handleThirdFlowStepThreePhoneNumber(
@@ -649,6 +656,7 @@ export class RabbitmqService {
         return
       }
 
+      await this.delay(10000)
       await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
 
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -661,8 +669,6 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      await this.delay(30000)
-      await this.sendThirdFlowDataToYango(lastConversation, newMessage)
     } catch (error) {
       let errorMessage = error.message
       if (errorMessage != 'OTP envoyé avec succès')
@@ -673,20 +679,20 @@ export class RabbitmqService {
     }
   }
 
-  private async sendThirdFlowDataToYango(
-    lastConversation: ConversationType,
-    newMessage: NewMessageWebhookDto,
-  ) {
-    console.log('pushUpdateYangoDriverInfoToQueue')
-    this.pushUpdateYangoDriverInfoToQueue({ lastConversation, newMessage })
-  }
-
   private async sendSecondFlowDataToYango(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
   ) {
     console.log('pushCreateYangoCarToQueue')
     this.pushCreateYangoCarToQueue({ lastConversation, newMessage })
+  }
+
+  private async sendThirdFlowDataToYango(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    console.log('pushUpdateYangoDriverInfoToQueue')
+    this.pushUpdateYangoDriverInfoToQueue({ lastConversation, newMessage })
   }
 
   private async handleSecondFlowFinalStep(
@@ -921,15 +927,7 @@ export class RabbitmqService {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
   }) {
-    const abortData = {
-      id: lastConversation.id,
-      createdAt: lastConversation.createdAt,
-      updatedAt: lastConversation.updatedAt,
-      whaPhoneNumber: lastConversation.whaPhoneNumber,
-      message: lastConversation.message,
-      badResponseCount: lastConversation.badResponseCount,
-      stepId: lastConversation.stepId,
-    }
+    const abortData = this.buildAbortionPayload(lastConversation)
     try {
       const whaPhoneNumber = newMessage.messages[0].from
       this.logger.log(`Create Yango profile for ${whaPhoneNumber}`)
@@ -1068,6 +1066,18 @@ export class RabbitmqService {
     }
   }
 
+  private buildAbortionPayload(lastConversation: ConversationType) {
+    return {
+      id: lastConversation.id,
+      createdAt: lastConversation.createdAt,
+      updatedAt: lastConversation.updatedAt,
+      whaPhoneNumber: lastConversation.whaPhoneNumber,
+      message: lastConversation.message,
+      badResponseCount: lastConversation.badResponseCount,
+      stepId: lastConversation.stepId,
+    }
+  }
+
   async pushCreateYangoCarToQueue(payload: {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
@@ -1092,15 +1102,7 @@ export class RabbitmqService {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
   }) {
-    const abortData = {
-      id: lastConversation.id,
-      createdAt: lastConversation.createdAt,
-      updatedAt: lastConversation.updatedAt,
-      whaPhoneNumber: lastConversation.whaPhoneNumber,
-      message: lastConversation.message,
-      badResponseCount: lastConversation.badResponseCount,
-      stepId: lastConversation.stepId,
-    }
+    const abortData = this.buildAbortionPayload(lastConversation)
     try {
       const whaPhoneNumber = newMessage.messages[0].from
 
@@ -1167,11 +1169,53 @@ export class RabbitmqService {
     }
   }
 
-  async handleUpdateYangoDriverInfo(_payload: {
+  async handleUpdateYangoDriverInfo({
+    lastConversation,
+    newMessage,
+  }: {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
   }) {
-    console.log(_payload)
+    try {
+      console.log(newMessage)
+      const previousPhoneNumberStep =
+        await this.stepService.findOneBylevelAndFlowId(1, 3)
+      const currentPhoneNumberStep =
+        await this.stepService.findOneBylevelAndFlowId(3, 3)
+      const previousPhoneNumber = (
+        await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
+          previousPhoneNumberStep.id,
+          lastConversation.whaPhoneNumber,
+        )
+      ).message
+      const currentPhoneNumber = (
+        await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
+          currentPhoneNumberStep.id,
+          lastConversation.whaPhoneNumber,
+        )
+      ).message
+      const response = await this.yangoService.updateDriverPhone()
+      if (response !== 200) {
+        const abortPayload = this.buildAbortionPayload(lastConversation)
+        return await this.abortConversation(abortPayload)
+      }
+
+      await this.driverPersonalInfoService.updateByPhoneNumber(
+        previousPhoneNumber,
+        currentPhoneNumber,
+      )
+      const successStep = await this.stepService.findOneByLevel(7)
+
+      await this.handleMessageToSent({
+        to: lastConversation.whaPhoneNumber,
+        body: successStep.message,
+        typing_time: 5,
+      })
+
+      this.deleteAllConversations(lastConversation)
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   @Cron(CronExpression.EVERY_MINUTE)

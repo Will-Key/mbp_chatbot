@@ -35,7 +35,7 @@ export class SeederService {
         initialStep.level,
         initialStep.flowId,
       )
-      console.log('existingStep', existingStep)
+
       if (!existingStep) {
         await this.stepService.createWithBadResponseMessage(initialStep)
       } else if (this.hasStepChanged(existingStep, initialStep)) {

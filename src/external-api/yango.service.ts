@@ -1,6 +1,4 @@
-import { HttpService } from '@nestjs/axios'
 import { Injectable } from '@nestjs/common'
-import { lastValueFrom } from 'rxjs'
 import { v4 as uuidv4 } from 'uuid'
 import { CarInfoService } from '../car-info/car-info.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
@@ -9,12 +7,8 @@ import { CreateYangoProfileDto } from './dto/create-yango-profile.dto'
 
 @Injectable()
 export class YangoService {
-  PROFILE_CREATION_PATH = 'contractors/driver-profile'
-  CAR_CREATION_PATH = 'vehicles/car'
-  GET_DRIVER_PROFILE: string = 'contractors/driver-profile'
 
   constructor(
-    private readonly httpService: HttpService,
     private readonly driverPersonnalInforService: DriverPersonalInfoService,
     private readonly carInfoService: CarInfoService,
   ) {}
@@ -79,20 +73,24 @@ export class YangoService {
   }
 
   async getDriverProfile(contractor_profile_id: string) {
-    return await lastValueFrom(
-      this.httpService.post(
-        `${process.env.YANGO_API_URL}/${this.GET_DRIVER_PROFILE}/${contractor_profile_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.WHAPI_TOKEN}`,
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          timeout: 15000,
-        },
-      ),
-    )
+    console.log(contractor_profile_id)
+    return 200
+    // return await lastValueFrom(
+    //   this.httpService.post(
+    //     `${process.env.YANGO_API_URL}/${this.GET_DRIVER_PROFILE}/${contractor_profile_id}`,
+    //     {
+    //       headers: {
+    //         Authorization: `Bearer ${process.env.WHAPI_TOKEN}`,
+    //         accept: 'application/json',
+    //         'content-type': 'application/json',
+    //       },
+    //       timeout: 15000,
+    //     },
+    //   ),
+    // )
   }
 
-  async updateDriverPhone() {}
+  async updateDriverPhone() {
+    return 200
+  }
 }

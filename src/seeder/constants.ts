@@ -18,10 +18,10 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   {
     level: 0,
     message: `Merci d'avoir choisi le partenaire MBP pour vous connecter à votre compte Yango.
-              Veuillez sélectionner l'un des services suivant:
-              1-Ouverture de compte MBP
-              2-Changement de véhicule
-              3-Modification du numéro de téléphone
+Veuillez sélectionner l'un des services suivant :
+1-Ouverture de compte MBP
+2-Changement de véhicule
+3-Modification du numéro de téléphone
             `,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -39,7 +39,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   {
     level: 1,
     message: `Merci de suivre les étapes ci-dessous pour finaliser votre inscription. 
-              Étape 1 : Veuillez entrer votre numéro de téléphone 
+Étape 1 : Veuillez entrer votre numéro de téléphone 
             `,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -114,8 +114,8 @@ export const INITIAL_STEPS: CreateStepDto[] = [
   {
     level: 15,
     message: `L'opération a échoué, vous pouvez contacter un agent à partir de ce numéro +225 0710825902.\n
-Pour vous rendre dans nos locaux suivez cette localisation.\n
-https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n\n
+Pour vous rendre dans nos locaux suivez cette localisation:
+https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n
 Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
@@ -132,7 +132,7 @@ Pour reéssayer envoyer "Start"
   {
     level: 20,
     message: `Votre inscription chez MBP est validée ✅
-    Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo`,
+Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo`,
     expectedResponseType: 'text',
     badResponseMessage: [],
     flowId: 1,
@@ -151,8 +151,7 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 1,
-    message: `Merci de suivre les étapes ci-dessous pour finaliser le changement de véhicule.
-    Étape 1 : Veuillez entrer votre numéro de téléphone.`,
+    message: `Merci de suivre les étapes ci-dessous pour finaliser le changement de véhicule.\nÉtape 1 : Veuillez entrer votre numéro de téléphone.`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -201,21 +200,18 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 6,
-    message: `Merci ! Nous traitons maintenant votre demande...
-    Un retour vous sera fait dans 5 minutes.`,
+    message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
     flowId: 2,
   },
   {
     level: 7,
-    message: `Opération effectué avec succès.
-    L'association au nouveau véhicule a été effectué avec succès.`,
+    message: `Opération effectué avec succès.\nL'association au nouveau véhicule a été effectué avec succès.`,
     flowId: 2,
   },
   {
     level: 1,
-    message: `Merci de suivre les étapes ci-dessous pour finaliser le changement de numéro.
-    Étape 1: Veuillez entrer votre numéro de téléphone actuel.`,
+    message: `Merci de suivre les étapes ci-dessous pour finaliser le changement de numéro.\nÉtape 1: Veuillez entrer votre numéro de téléphone actuel.`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -281,8 +277,7 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 5,
-    message: `Merci ! Nous traitons maintenant votre demande...
-    Un retour vous sera fait dans 5 minutes.`,
+    message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
     flowId: 3,
   },

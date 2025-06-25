@@ -7,4 +7,4 @@ import { PrismaService } from 'prisma/prisma.service'
   //controllers: [FlowController],
   providers: [FlowService, PrismaService],
 })
-export class FlowModule { }
+export class FlowModule {}

@@ -40,7 +40,7 @@ import { OtpVerificationService } from '../otp-verification/otp-verification.ser
     YangoService,
     OtpService,
     OpenAIService,
-    OtpVerificationService
+    OtpVerificationService,
   ],
 })
-export class ExternalApiModule { }
+export class ExternalApiModule {}

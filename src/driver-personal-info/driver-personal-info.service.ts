@@ -6,7 +6,7 @@ import { UpdateDriverPersonalInfoDto } from './dto/update-driver-personal-info.d
 
 @Injectable()
 export class DriverPersonalInfoService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createDriverPersonalInfoDto: CreateDriverPersonalInfoDto) {
     return this.prismaService.driverPersonnalInfo.create({
@@ -37,15 +37,12 @@ export class DriverPersonalInfoService {
   findDriverPersonnalInfoByYangoProfileID(yangoProfileId: string) {
     return this.prismaService.driverPersonnalInfo.findUnique({
       where: {
-        yangoProfileId
-      }
+        yangoProfileId,
+      },
     })
   }
 
-  update(
-    id: number,
-    updateDriverPersonalInfoDto: UpdateDriverPersonalInfoDto,
-  ) {
+  update(id: number, updateDriverPersonalInfoDto: UpdateDriverPersonalInfoDto) {
     return this.prismaService.driverPersonnalInfo.update({
       data: updateDriverPersonalInfoDto,
       where: { id },
@@ -57,9 +54,9 @@ export class DriverPersonalInfoService {
       where: {
         whaPhoneNumber,
         createdAt: {
-          gt: subMinutes(new Date(), 5)
-        }
-      }
+          gt: subMinutes(new Date(), 5),
+        },
+      },
     })
   }
 

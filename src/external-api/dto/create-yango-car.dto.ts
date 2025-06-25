@@ -11,9 +11,9 @@ class VehiculeLicenses {
 
 class VehiculeSpecifications {
   brand: string
-  color: string//"Белый" | "Желтый" | "Бежевый" | "Черный" | "Голубой" | "Серый" | "Красный" | "Оранжевый" | "Синий" | "Зеленый" | "Коричневый" | "Фиолетовый" | "Розовый"
+  color: string //"Белый" | "Желтый" | "Бежевый" | "Черный" | "Голубой" | "Серый" | "Красный" | "Оранжевый" | "Синий" | "Зеленый" | "Коричневый" | "Фиолетовый" | "Розовый"
   model: string
-  transmission: "mechanical" | "automatic" | "robotic" | "variator"
+  transmission: 'mechanical' | 'automatic' | 'robotic' | 'variator'
   year: number
 }
 

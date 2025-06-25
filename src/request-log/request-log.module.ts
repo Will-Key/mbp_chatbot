@@ -8,4 +8,4 @@ import { PrismaService } from 'prisma/prisma.service'
   providers: [RequestLogService, PrismaService],
   exports: [RequestLogService],
 })
-export class RequestLogModule { }
+export class RequestLogModule {}

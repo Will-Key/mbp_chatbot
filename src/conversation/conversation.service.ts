@@ -6,7 +6,7 @@ import { UpdateConversationDto } from './dto/update-conversation.dto'
 @Injectable()
 export class ConversationService {
   logger = new Logger()
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createConversationDto: CreateConversationDto) {
     return this.prismaService.conversation.create({
@@ -26,20 +26,24 @@ export class ConversationService {
     return this.prismaService.conversation.findFirst({
       where: {
         stepId,
-        whaPhoneNumber
-      }
+        whaPhoneNumber,
+      },
     })
   }
 
-  findOneByStepLevelAndWhaPhoneNumber(level: number, flowId: number, whaPhoneNumber: string) {
+  findOneByStepLevelAndWhaPhoneNumber(
+    level: number,
+    flowId: number,
+    whaPhoneNumber: string,
+  ) {
     return this.prismaService.conversation.findFirst({
       where: {
         step: {
           level,
-          flowId
+          flowId,
         },
-        whaPhoneNumber
-      }
+        whaPhoneNumber,
+      },
     })
   }
 
@@ -90,7 +94,7 @@ export class ConversationService {
         whaPhoneNumber: true,
       },
       distinct: ['whaPhoneNumber'],
-    });
+    })
   }
 
   findPhoneNumberLastConversation(whaPhoneNumber: string) {
@@ -99,6 +103,6 @@ export class ConversationService {
       orderBy: {
         createdAt: 'desc',
       },
-    });
+    })
   }
 }

@@ -5,7 +5,7 @@ import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class RequestLogService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(createRequestLogDto: CreateRequestLogDto) {
     return this.prismaService.requestLog.create({ data: createRequestLogDto })

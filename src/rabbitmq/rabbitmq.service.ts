@@ -1202,7 +1202,7 @@ export class RabbitmqService {
         previousPhoneNumber,
         currentPhoneNumber,
       )
-      const successStep = await this.stepService.findOneByLevel(7)
+      const successStep = await this.stepService.findOneByLevel(6)
 
       await this.handleMessageToSent({
         to: lastConversation.whaPhoneNumber,

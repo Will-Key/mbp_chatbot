@@ -112,7 +112,7 @@ export class RabbitmqService {
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
     const initialStep = await this.stepService.findOneByLevel(0)
     const message = newMessage.messages[0].text.body
-    if (message === 'Start' || message === 'start') {
+    if (message.toLowerCase() === 'commencer') {
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
         convMessage: newMessage.messages[0].text.body,

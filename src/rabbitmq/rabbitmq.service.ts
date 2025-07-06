@@ -656,9 +656,6 @@ export class RabbitmqService {
         return
       }
 
-      await this.delay(10000)
-      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
-
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
         lastConversation.step.level + 1,
         flowId,
@@ -669,6 +666,9 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
+
+      await this.delay(10000)
+      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
     } catch (error) {
       let errorMessage = error.message
       if (errorMessage != 'OTP envoyé avec succès')

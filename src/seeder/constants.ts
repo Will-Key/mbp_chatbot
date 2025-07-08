@@ -251,7 +251,7 @@ Pour reéssayer envoyer "Start"
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
-        message: 'Veuillez saisir les 10 chiffres de votre numéro de téléphone',
+        message: 'Veuillez saisir les 10 chiffres de votre nouveau numéro',
         errorType: 'equalLength',
       },
       {

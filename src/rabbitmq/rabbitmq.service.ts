@@ -10,6 +10,7 @@ import {
   StepExpectedResponseType,
 } from '@prisma/client'
 import { subMinutes } from 'date-fns'
+import parsePhoneNumberFromString from 'libphonenumber-js'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -192,10 +193,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 1
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -233,10 +234,6 @@ export class RabbitmqService {
       await this.updateMessage(lastConversation, errorMessage)
       return
     }
-  }
-
-  private cleanupPhoneNumver(numero: string): string {
-    return numero.replace(/\D/g, '')
   }
 
   private async handleOtpVerification(
@@ -454,10 +451,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 2
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -536,10 +533,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -639,10 +636,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',

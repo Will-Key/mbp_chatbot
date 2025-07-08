@@ -603,10 +603,12 @@ export class RabbitmqService {
     ).message
 
     const response = await this.otpService.verifyOtp(phoneNumber, otpEnter)
-    if (response === 'OTP_NOT_FOUND' || response === 'OTP_EXPIRED') {
+    if (['OTP_NOT_FOUND', 'OTP_EXPIRED', 'OTP_INVALID'].includes(response)) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
-        response === 'OTP_NOT_FOUND' ? 'incorrectCode' : 'isExpired',
+        response === 'OTP_NOT_FOUND' || 'OTP_INVALID'
+          ? 'incorrectCode'
+          : 'isExpired',
       )
       if (response === 'OTP_EXPIRED')
         await this.otpService.generateAndSendOtp(phoneNumber)

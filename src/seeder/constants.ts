@@ -133,7 +133,7 @@ Pour reéssayer envoyer "Start"
   {
     level: 20,
     message: `Votre inscription chez MBP est validée ✅
-Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo`,
+Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo.\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
     flowId: 1,
@@ -144,7 +144,7 @@ Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour final
 Vous pouvez contacter un agent à partir de ce numéro +225 0710825902.
 Pour vous rendre dans nos locaux suivez cette localisation
 https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.
-Pour reéssayer envoyer "Start"
+Pour reéssayer envoyer "Commencer"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
@@ -208,7 +208,7 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 7,
-    message: `Opération effectué avec succès.\nL'association au nouveau véhicule a été effectué avec succès.`,
+    message: `Opération effectué avec succès.\nL'association au nouveau véhicule a été effectué avec succès.\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
     flowId: 2,
   },
   {
@@ -287,7 +287,7 @@ Pour reéssayer envoyer "Start"
   },
   {
     level: 6,
-    message: `Votre numéro a été mis à jour avec succès.`,
+    message: `Votre numéro a été mis à jour avec succès.\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
     flowId: 2,
   },
 ]

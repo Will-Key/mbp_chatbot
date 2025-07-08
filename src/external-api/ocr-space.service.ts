@@ -57,7 +57,11 @@ export class OcrSpaceService {
         status: 'FAIL',
         initiator: 'MBP',
         data: JSON.stringify(file),
-        response: JSON.stringify(error),
+        response: `{
+          ErrorMessage: ${error?.errorMessage}, 
+          ErrorDetails: ${error?.ErrorDetails},
+          error: ${error}
+        }`,
       })
       return 0
     }

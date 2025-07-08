@@ -65,7 +65,8 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'incorrectCode',
       },
       {
-        message: 'Code expiré',
+        message:
+          'Code expiré.\nUn nouveau code vous a été envoyé.\nVeuillez saisir le nouveau code.',
         errorType: 'isExpired',
       },
     ],
@@ -175,7 +176,8 @@ Pour reéssayer envoyer "Start"
         errorType: 'incorrectCode',
       },
       {
-        message: 'Code expiré',
+        message:
+          'Code expiré.\nUn nouveau code vous a été envoyé.\nVeuillez saisir le nouveau code.',
         errorType: 'isExpired',
       },
     ],
@@ -236,7 +238,8 @@ Pour reéssayer envoyer "Start"
         errorType: 'incorrectCode',
       },
       {
-        message: 'Code expiré.',
+        message:
+          'Code expiré.\nUn nouveau code vous a été envoyé.\nVeuillez saisir le nouveau code.',
         errorType: 'isExpired',
       },
     ],
@@ -269,7 +272,8 @@ Pour reéssayer envoyer "Start"
         errorType: 'incorrectCode',
       },
       {
-        message: 'Code expiré.',
+        message:
+          'Code expiré.\nUn nouveau code vous a été envoyé.\nVeuillez saisir le nouveau code.',
         errorType: 'isExpired',
       },
     ],

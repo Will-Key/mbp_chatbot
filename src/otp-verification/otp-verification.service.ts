@@ -15,6 +15,13 @@ export class OtpVerificationService {
     return this.prismaService.otpVerification.findFirst({ where: data })
   }
 
+  findLast(data: VerifyOtpVerificationDto) {
+    return this.prismaService.otpVerification.findFirst({
+      where: data,
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
   update(id: number, isUsed: boolean) {
     return this.prismaService.otpVerification.update({
       where: { id },

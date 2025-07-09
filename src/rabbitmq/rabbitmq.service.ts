@@ -334,6 +334,13 @@ export class RabbitmqService {
       throw Error("Veuillez vérifier l'image fournie.")
     }
 
+    if (ocrResponse === -1) {
+      const errorMessage =
+        "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
+      await this.updateMessage(lastConversation, errorMessage)
+      throw Error('Vous êtes déjà associé à ce véhicule')
+    }
+
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
       nextStepLevel,
       flowId,
@@ -1057,9 +1064,7 @@ export class RabbitmqService {
     idDriver: number,
     idCar: number,
   ) {
-    console.log('idDriver', idDriver, 'idCar', idCar)
     const association = await this.driverCarService.findOneByDriverId(idDriver)
-    console.log('association', association)
     if (association) {
       await this.driverCarService.update(association.id, { idDriver, idCar })
     } else {

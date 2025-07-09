@@ -4,6 +4,7 @@ import { addYears } from 'date-fns'
 import { ocrSpace } from 'ocr-space-api-wrapper'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
+import { DriverCarService } from '../driver-car/driver-car.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { RequestLogService } from '../request-log/request-log.service'
@@ -24,6 +25,7 @@ export class OcrSpaceService {
     private readonly driverLicenseInfoService: DriverLicenseInfoService,
     private readonly carInfoService: CarInfoService,
     private readonly openAiService: OpenAIService,
+    private readonly driverCarService: DriverCarService,
   ) {}
 
   async sendFile(file: DocumentFile, flowId: number) {
@@ -146,10 +148,36 @@ export class OcrSpaceService {
     flowId: number,
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, flowId)
-    let carId: number
 
     try {
-      carId = (
+      if (flowId === 2) {
+        const associatedCar =
+          await this.carInfoService.findByPlateNumberAndPhoneNumber(
+            plateNumber,
+            phoneNumber,
+          )
+        if (associatedCar) return -1 // Indicates that the car already exists for this driver
+
+        const { id: idCar } =
+          await this.carInfoService.findByPlateNumber(plateNumber)
+
+        if (idCar) {
+          const idDriver = (
+            await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+              phoneNumber,
+            )
+          ).id
+          const association =
+            await this.driverCarService.findOneByDriverId(idDriver)
+          await this.driverCarService.update(association.id, {
+            idDriver,
+            idCar,
+          })
+          return idCar
+        } // Return existing car ID if found
+      }
+
+      return (
         await this.carInfoService.create({
           brand,
           color,
@@ -158,35 +186,8 @@ export class OcrSpaceService {
           status: 'unknown',
           code: plateNumber,
           model,
-          driverPhoneNumber: phoneNumber,
         })
       ).id
-      /*if (flowId === 1) {
-        carId = (await this.carInfoService.create({
-          brand,
-          color,
-          year: firstRegistrationDate.split('-')[0],
-          plateNumber,
-          status: 'unknown',
-          code: plateNumber,
-          model,
-          driverPhoneNumber: phoneNumber,
-        })).id
-      } else {
-        carId = (await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)).id
-        await this.carInfoService.update(carId, {
-          brand,
-          color,
-          year: firstRegistrationDate.split('-')[0],
-          plateNumber,
-          status: 'unknown',
-          code: plateNumber,
-          model,
-          driverPhoneNumber: phoneNumber,
-        })
-      }*/
-
-      return carId
     } catch (error) {
       this.logger.error(error)
       return 0

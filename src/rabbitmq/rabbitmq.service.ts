@@ -335,6 +335,7 @@ export class RabbitmqService {
     }
 
     if (ocrResponse === -1) {
+      await this.documentFileService.remove(doc.id)
       const errorMessage =
         "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
       await this.updateMessage(lastConversation, errorMessage)

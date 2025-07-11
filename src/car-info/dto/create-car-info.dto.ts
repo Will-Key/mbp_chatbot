@@ -1,5 +1,5 @@
 import { CarStatus } from '@prisma/client'
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator'
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class CreateCarInfoDto {
   @IsNotEmpty()
@@ -30,9 +30,9 @@ export class CreateCarInfoDto {
   @IsString()
   model: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  driverPhoneNumber: string
+  driverPhoneNumber?: string
 
   @IsString()
   yangoCarId?: string

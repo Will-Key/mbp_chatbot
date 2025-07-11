@@ -10,6 +10,7 @@ import {
   StepExpectedResponseType,
 } from '@prisma/client'
 import { subMinutes } from 'date-fns'
+import parsePhoneNumberFromString from 'libphonenumber-js'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -192,10 +193,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 1
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -235,10 +236,6 @@ export class RabbitmqService {
     }
   }
 
-  private cleanupPhoneNumver(numero: string): string {
-    return numero.replace(/\D/g, '')
-  }
-
   private async handleOtpVerification(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
@@ -265,10 +262,12 @@ export class RabbitmqService {
           ).message
 
     const response = await this.otpService.verifyOtp(phoneNumber, otpEnter)
-    if (response === 'OTP_NOT_FOUND' || response === 'OTP_EXPIRED') {
+    if (['OTP_NOT_FOUND', 'OTP_EXPIRED', 'OTP_INVALID'].includes(response)) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
-        response === 'OTP_NOT_FOUND' ? 'incorrectCode' : 'isExpired',
+        response === 'OTP_NOT_FOUND' || 'OTP_INVALID'
+          ? 'incorrectCode'
+          : 'isExpired',
       )
       if (response === 'OTP_EXPIRED')
         await this.otpService.generateAndSendOtp(phoneNumber)
@@ -335,6 +334,14 @@ export class RabbitmqService {
       throw Error("Veuillez vérifier l'image fournie.")
     }
 
+    if (ocrResponse === -1) {
+      await this.documentFileService.remove(doc.id)
+      const errorMessage =
+        "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
+      await this.updateMessage(lastConversation, errorMessage)
+      throw Error('Vous êtes déjà associé à ce véhicule')
+    }
+
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
       nextStepLevel,
       flowId,
@@ -346,6 +353,19 @@ export class RabbitmqService {
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+
+    if (flowId === 2 && ocrResponse === -2) {
+      const message = (
+        await this.stepService.findOneBylevelAndFlowId(7, flowId)
+      ).message
+      await this.saveMessage({
+        whaPhoneNumber,
+        convMessage: newMessage.messages[0].image.link,
+        nextMessage: message,
+        stepId: 7,
+      })
+      return ocrResponse
+    }
   }
 
   private async handleDriverLicenseFrontUpload(
@@ -368,7 +388,7 @@ export class RabbitmqService {
   ) {
     try {
       const stepId = flowId === 1 ? 19 : 6
-      await this.handleDocumentUpload(
+      const ocrResponse = await this.handleDocumentUpload(
         lastConversation,
         newMessage,
         'FRONT',
@@ -381,7 +401,9 @@ export class RabbitmqService {
       await this.delay(30000)
       if (flowId === 1) {
         await this.sendDataToYango(lastConversation, newMessage)
-      } else {
+      }
+
+      if (flowId === 2 && ocrResponse !== -2) {
         await this.sendSecondFlowDataToYango(lastConversation, newMessage)
       }
     } catch (error) {
@@ -452,10 +474,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 2
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -534,10 +556,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -601,10 +623,12 @@ export class RabbitmqService {
     ).message
 
     const response = await this.otpService.verifyOtp(phoneNumber, otpEnter)
-    if (response === 'OTP_NOT_FOUND' || response === 'OTP_EXPIRED') {
+    if (['OTP_NOT_FOUND', 'OTP_EXPIRED', 'OTP_INVALID'].includes(response)) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
-        response === 'OTP_NOT_FOUND' ? 'incorrectCode' : 'isExpired',
+        response === 'OTP_NOT_FOUND' || 'OTP_INVALID'
+          ? 'incorrectCode'
+          : 'isExpired',
       )
       if (response === 'OTP_EXPIRED')
         await this.otpService.generateAndSendOtp(phoneNumber)
@@ -635,10 +659,10 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = this.cleanupPhoneNumver(
-        newMessage.messages[0].text.body.trim(),
+      const phoneNumber = parsePhoneNumberFromString(
+        `+225${newMessage.messages[0].text.body.trim()}`,
       )
-      if (phoneNumber.length !== 10) {
+      if (phoneNumber && !phoneNumber.isValid()) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -1056,9 +1080,7 @@ export class RabbitmqService {
     idDriver: number,
     idCar: number,
   ) {
-    console.log('idDriver', idDriver, 'idCar', idCar)
     const association = await this.driverCarService.findOneByDriverId(idDriver)
-    console.log('association', association)
     if (association) {
       await this.driverCarService.update(association.id, { idDriver, idCar })
     } else {

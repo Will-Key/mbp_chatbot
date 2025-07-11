@@ -191,7 +191,7 @@ model CarInfo {
   status            CarStatus
   code              String
   model             String?
-  driverPhoneNumber String
+  driverPhoneNumber String?
   yangoCarId        String?   @unique
 }
 
@@ -200,7 +200,7 @@ model DriverCar {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   idDriver  Int      @unique
-  idCar     Int      @unique
+  idCar     Int
 }
 
 model HistoryConversation {

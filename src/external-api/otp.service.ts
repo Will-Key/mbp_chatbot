@@ -42,15 +42,16 @@ export class OtpService {
     }
   }
 
-  async verifyOtp(phoneNumber: string, otpCode: string): Promise<string> {
-    const otpRecord = await this.otpVerificationService.findFirst({
+  async verifyOtp(phoneNumber: string, _otpCode: string): Promise<string> {
+    const otpRecord = await this.otpVerificationService.findLast({
       phoneNumber,
-      otpCode,
     })
     if (!otpRecord) {
       return 'OTP_NOT_FOUND'
     }
-    console.log('isExpired', this.isExpired(otpRecord.expiresAt))
+
+    if (otpRecord.otpCode !== _otpCode) return 'OTP_INVALID'
+
     if (this.isExpired(otpRecord.expiresAt)) return 'OTP_EXPIRED'
 
     await this.otpVerificationService.setOtpToUsed(otpRecord.id)

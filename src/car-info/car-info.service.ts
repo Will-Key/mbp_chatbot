@@ -59,6 +59,21 @@ export class CarInfoService {
     })
   }
 
+  findByPlateNumberAndPhoneNumber(plateNumber: string, phoneNumber: string) {
+    return this.prismaService.carInfo.findFirst({
+      where: {
+        plateNumber,
+        driverPhoneNumber: phoneNumber,
+      },
+    })
+  }
+
+  findByPlateNumber(plateNumber: string) {
+    return this.prismaService.carInfo.findFirst({
+      where: { plateNumber },
+    })
+  }
+
   // deleteByPhoneNumber(driverPhoneNumber: string) {
   //   return this.prismaService.carInfo.delete({
   //     where: {

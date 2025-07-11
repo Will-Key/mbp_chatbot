@@ -353,6 +353,19 @@ export class RabbitmqService {
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+
+    if (flowId === 2 && ocrResponse === -2) {
+      const message = (
+        await this.stepService.findOneBylevelAndFlowId(7, flowId)
+      ).message
+      await this.saveMessage({
+        whaPhoneNumber,
+        convMessage: newMessage.messages[0].image.link,
+        nextMessage: message,
+        stepId: 7,
+      })
+      return ocrResponse
+    }
   }
 
   private async handleDriverLicenseFrontUpload(
@@ -375,7 +388,7 @@ export class RabbitmqService {
   ) {
     try {
       const stepId = flowId === 1 ? 19 : 6
-      await this.handleDocumentUpload(
+      const ocrResponse = await this.handleDocumentUpload(
         lastConversation,
         newMessage,
         'FRONT',
@@ -388,7 +401,9 @@ export class RabbitmqService {
       await this.delay(30000)
       if (flowId === 1) {
         await this.sendDataToYango(lastConversation, newMessage)
-      } else {
+      }
+
+      if (flowId === 2 && ocrResponse !== -2) {
         await this.sendSecondFlowDataToYango(lastConversation, newMessage)
       }
     } catch (error) {

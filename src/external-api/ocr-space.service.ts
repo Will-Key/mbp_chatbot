@@ -173,7 +173,7 @@ export class OcrSpaceService {
             idDriver,
             idCar,
           })
-          return idCar
+          return -2 // Don't need to create this car on Yango
         } // Return existing car ID if found
       }
 

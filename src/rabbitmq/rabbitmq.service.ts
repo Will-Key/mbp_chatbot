@@ -10,7 +10,7 @@ import {
   StepExpectedResponseType,
 } from '@prisma/client'
 import { subMinutes } from 'date-fns'
-import parsePhoneNumberFromString from 'libphonenumber-js'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -193,10 +193,9 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 1
-      const phoneNumber = parsePhoneNumberFromString(
-        `+225${newMessage.messages[0].text.body.trim()}`,
-      )
-      if (phoneNumber && !phoneNumber.isValid()) {
+      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+
+      if (isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -206,7 +205,7 @@ export class RabbitmqService {
       }
       const driver =
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-          `225${phoneNumber}`,
+          phoneNumber,
         )
       if (driver) {
         const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
@@ -220,12 +219,12 @@ export class RabbitmqService {
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
+        convMessage: phoneNumber, //newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
       await this.delay(30000)
-      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
+      await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
       if (errorMessage != 'OTP envoyé avec succès')
@@ -335,7 +334,6 @@ export class RabbitmqService {
     }
 
     if (ocrResponse === -1) {
-      await this.documentFileService.remove(doc.id)
       const errorMessage =
         "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
       await this.updateMessage(lastConversation, errorMessage)
@@ -353,19 +351,6 @@ export class RabbitmqService {
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
-
-    if (flowId === 2 && ocrResponse === -2) {
-      const message = (
-        await this.stepService.findOneBylevelAndFlowId(7, flowId)
-      ).message
-      await this.saveMessage({
-        whaPhoneNumber,
-        convMessage: newMessage.messages[0].image.link,
-        nextMessage: message,
-        stepId: 7,
-      })
-      return ocrResponse
-    }
   }
 
   private async handleDriverLicenseFrontUpload(
@@ -388,7 +373,7 @@ export class RabbitmqService {
   ) {
     try {
       const stepId = flowId === 1 ? 19 : 6
-      const ocrResponse = await this.handleDocumentUpload(
+      await this.handleDocumentUpload(
         lastConversation,
         newMessage,
         'FRONT',
@@ -401,9 +386,7 @@ export class RabbitmqService {
       await this.delay(30000)
       if (flowId === 1) {
         await this.sendDataToYango(lastConversation, newMessage)
-      }
-
-      if (flowId === 2 && ocrResponse !== -2) {
+      } else {
         await this.sendSecondFlowDataToYango(lastConversation, newMessage)
       }
     } catch (error) {
@@ -474,10 +457,9 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 2
-      const phoneNumber = parsePhoneNumberFromString(
-        `+225${newMessage.messages[0].text.body.trim()}`,
-      )
-      if (phoneNumber && !phoneNumber.isValid()) {
+      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+
+      if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -487,7 +469,7 @@ export class RabbitmqService {
       }
       const driver =
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-          `225${phoneNumber}`,
+          phoneNumber,
         )
       if (!driver) {
         const errorMessage = this.getErrorMessage(
@@ -498,18 +480,18 @@ export class RabbitmqService {
         return
       }
 
-      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
-
       const nextStep = await this.stepService.findOneBylevelAndFlowId(
         lastConversation.step.level + 1,
         flowId,
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
+        convMessage: phoneNumber, //newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
+      await this.delay(10000)
+      await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
       if (errorMessage !== 'OTP envoyé avec succès')
@@ -556,10 +538,9 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = parsePhoneNumberFromString(
-        `+225${newMessage.messages[0].text.body.trim()}`,
-      )
-      if (phoneNumber && !phoneNumber.isValid()) {
+      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+
+      if (isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -569,7 +550,7 @@ export class RabbitmqService {
       }
       const driver =
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-          `225${phoneNumber}`,
+          phoneNumber,
         )
       if (!driver) {
         const errorMessage = this.getErrorMessage(
@@ -586,12 +567,12 @@ export class RabbitmqService {
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
+        convMessage: phoneNumber, //newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
       await this.delay(10000)
-      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
+      await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
       if (errorMessage != 'OTP envoyé avec succès')
@@ -659,10 +640,9 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = parsePhoneNumberFromString(
-        `+225${newMessage.messages[0].text.body.trim()}`,
-      )
-      if (phoneNumber && !phoneNumber.isValid()) {
+      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+
+      if (isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -672,7 +652,7 @@ export class RabbitmqService {
       }
       const driver =
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-          `225${phoneNumber}`,
+          phoneNumber,
         )
       if (driver) {
         const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
@@ -686,13 +666,13 @@ export class RabbitmqService {
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
-        convMessage: `225${phoneNumber}`, //newMessage.messages[0].text.body,
+        convMessage: phoneNumber, //newMessage.messages[0].text.body,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
 
       await this.delay(10000)
-      await this.otpService.generateAndSendOtp(`225${phoneNumber}`)
+      await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
       if (errorMessage != 'OTP envoyé avec succès')

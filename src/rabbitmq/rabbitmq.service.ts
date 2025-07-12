@@ -195,7 +195,7 @@ export class RabbitmqService {
       const flowId = 1
       const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
 
-      if (isValidPhoneNumber(`+${phoneNumber}`)) {
+      if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -540,7 +540,7 @@ export class RabbitmqService {
       const flowId = 3
       const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
 
-      if (isValidPhoneNumber(`+${phoneNumber}`)) {
+      if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',
@@ -642,7 +642,7 @@ export class RabbitmqService {
       const flowId = 3
       const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
 
-      if (isValidPhoneNumber(`+${phoneNumber}`)) {
+      if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
           'equalLength',

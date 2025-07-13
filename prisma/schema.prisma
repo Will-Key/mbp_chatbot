@@ -161,7 +161,7 @@ model DriverPersonnalInfo {
   firstName         String
   licenseNumber     String             @unique
   phoneNumber       String             @unique
-  whaPhoneNumber    String             @unique
+  whaPhoneNumber    String
   address           String?
   collectMethod     CollectMethod?
   yangoProfileId    String?            @unique

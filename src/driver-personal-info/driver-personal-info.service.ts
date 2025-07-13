@@ -23,8 +23,10 @@ export class DriverPersonalInfoService {
   }
 
   findDriverPersonalInfoByWhaPhoneNumber(whaPhoneNumber: string) {
-    return this.prismaService.driverPersonnalInfo.findUnique({
+    return this.prismaService.driverPersonnalInfo.findFirst({
       where: { whaPhoneNumber },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
     })
   }
 
@@ -58,10 +60,12 @@ export class DriverPersonalInfoService {
     })
   }
 
-  deleteByWhaPhoneNumber(whaPhoneNumber: string) {
+  async deleteByWhaPhoneNumber(whaPhoneNumber: string) {
+    const driverPersonalInfo =
+      await this.findDriverPersonalInfoByWhaPhoneNumber(whaPhoneNumber)
     return this.prismaService.driverPersonnalInfo.delete({
       where: {
-        whaPhoneNumber,
+        id: driverPersonalInfo.id,
         createdAt: {
           gt: subMinutes(new Date(), 5),
         },

@@ -187,6 +187,7 @@ export class OcrSpaceService {
           status: 'unknown',
           code: plateNumber,
           model,
+          driverPhoneNumber: phoneNumber,
         })
       ).id
     } catch (error) {

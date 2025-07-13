@@ -148,7 +148,7 @@ export class OcrSpaceService {
     flowId: number,
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, flowId)
-
+    console.log('phoneNumber', phoneNumber)
     try {
       if (flowId === 2) {
         const associatedCar =
@@ -156,11 +156,12 @@ export class OcrSpaceService {
             plateNumber,
             phoneNumber,
           )
+        console.log('associatedCar', associatedCar)
         if (associatedCar) return -1 // Indicates that the car already exists for this driver
-
+        console.log('plateNumber', plateNumber)
         const { id: idCar } =
           await this.carInfoService.findByPlateNumber(plateNumber)
-
+        console.log('idCar', idCar)
         if (idCar) {
           const idDriver = (
             await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
@@ -198,19 +199,23 @@ export class OcrSpaceService {
     whaPhoneNumber: string,
     flowId: number,
   ): Promise<string> {
-    return flowId === 1
-      ? (
-          await this.conversationService.findManyByWhaPhoneNumber(
-            whaPhoneNumber,
-          )
-        ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId)
-          .message
-      : (
-          await this.conversationService.findManyByWhaPhoneNumber(
-            whaPhoneNumber,
-          )
-        ).find((conv) => conv.step.level === 1 && conv.step.flowId === flowId)
-          .message
+    return (
+      await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
+    ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId)
+      .message
+    // return flowId === 1
+    //   ? (
+    //       await this.conversationService.findManyByWhaPhoneNumber(
+    //         whaPhoneNumber,
+    //       )
+    //     ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId)
+    //       .message
+    //   : (
+    //       await this.conversationService.findManyByWhaPhoneNumber(
+    //         whaPhoneNumber,
+    //       )
+    //     ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId)
+    //       .message
   }
 
   private convertToISOString(dateString: string): string {

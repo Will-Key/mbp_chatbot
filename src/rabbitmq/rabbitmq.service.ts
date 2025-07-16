@@ -193,7 +193,7 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 1
-      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+      const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
@@ -457,7 +457,7 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 2
-      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+      const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
@@ -538,7 +538,7 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+      const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
@@ -640,7 +640,7 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
-      const phoneNumber = `225${newMessage.messages[0].text.body.trim()}`
+      const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
         const errorMessage = this.getErrorMessage(
@@ -1249,5 +1249,9 @@ export class RabbitmqService {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  private removeAllSpaces(str: string): string {
+    return str.replace(/\s+/g, '')
   }
 }

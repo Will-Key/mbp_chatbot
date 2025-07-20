@@ -159,10 +159,8 @@ export class OcrSpaceService {
         console.log('associatedCar', associatedCar)
         if (associatedCar) return -1 // Indicates that the car already exists for this driver
         console.log('plateNumber', plateNumber)
-        const { id: idCar } =
-          await this.carInfoService.findByPlateNumber(plateNumber)
-        console.log('idCar', idCar)
-        if (idCar) {
+        const carInfo = await this.carInfoService.findByPlateNumber(plateNumber)
+        if (carInfo) {
           const idDriver = (
             await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
               phoneNumber,
@@ -172,7 +170,7 @@ export class OcrSpaceService {
             await this.driverCarService.findOneByDriverId(idDriver)
           await this.driverCarService.update(association.id, {
             idDriver,
-            idCar,
+            idCar: carInfo.id,
           })
           return -2 // Don't need to create this car on Yango
         } // Return existing car ID if found

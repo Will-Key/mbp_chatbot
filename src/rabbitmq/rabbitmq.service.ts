@@ -1122,11 +1122,16 @@ export class RabbitmqService {
           phoneNumber,
         )
       console.log('driverInfo', driverInfo)
+      const driverAssociatedCarId = (
+        await this.driverCarService.findOneByDriverId(driverInfo.id)
+      )?.idCar
+      console.log('driverAssociatedCarId', driverAssociatedCarId)
       const createYangoCar: CreateYangoCarDto =
         await this.buildCreateCarPayload(phoneNumber)
 
-      const carId = (await this.yangoService.createCar(createYangoCar))
-        .vehicle_id
+      const carId =
+        (await this.carInfoService.findOne(driverAssociatedCarId)).yangoCarId ??
+        (await this.yangoService.createCar(createYangoCar)).vehicle_id
       if (!carId) {
         const lastCarInfo =
           await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
@@ -1149,15 +1154,14 @@ export class RabbitmqService {
         return await this.abortConversation(abortData)
       }
 
-      const carInfo =
-        await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
-          phoneNumber,
-          'working',
-        )
-      console.log('carInfo', carInfo)
-      await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
+      await this.carInfoService.update(driverAssociatedCarId, {
+        yangoCarId: carId,
+      })
 
-      await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
+      await this.makeAssociationBetweenDriverAndCar(
+        driverInfo.id,
+        driverAssociatedCarId,
+      )
 
       const successStep = await this.stepService.findOneByLevel(7)
 

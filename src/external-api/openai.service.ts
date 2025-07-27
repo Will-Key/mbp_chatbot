@@ -1,9 +1,9 @@
+import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { lastValueFrom } from 'rxjs'
-import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
-import { HttpService } from '@nestjs/axios'
 import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
 import { ExtractVehiculeRegistrationDto } from './dto/extract-vehicule-registration.dto'
+import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
 
 @Injectable()
 export class OpenAIService {
@@ -81,7 +81,6 @@ export class OpenAIService {
         Les dates doivent être converties au format YYYY-MM-DD.
         Le numéro d'immatriculation doit être au format standard (par exemple: 1234 AB 01).
       `
-
       return await this.makeOpenAiRequest(systemPrompt, ocrData)
     } catch (error) {
       this.logger.error(

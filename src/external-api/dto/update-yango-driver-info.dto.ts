@@ -36,7 +36,7 @@ class Profile {
   work_status: 'working' | 'not_working' | 'fired'
 }
 
-export class DriverPhoneFromYango {
+export class UpdateYangoDriverInfoDto {
   account: Account
   order_provider: OrderProvider
   person: Person

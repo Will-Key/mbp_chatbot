@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import {
@@ -42,7 +42,6 @@ import {
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 
-@Injectable()
 export class RabbitmqService {
   private readonly logger = new Logger(RabbitmqService.name)
 
@@ -1004,15 +1003,15 @@ export class RabbitmqService {
         status: 'unknown',
         categories: ['econom', 'comfort'],
       },
-      vehicule_licenses: {
+      vehicle_licenses: {
         licence_plate_number: carInfo.plateNumber,
       },
-      vehicule_specifications: {
+      vehicle_specifications: {
         brand: carInfo.brand,
         color: carInfo.color,
         model: carInfo.model,
         transmission: 'mechanical',
-        year: 0,
+        year: carInfo.year ? +carInfo.year : 2020, // Default to 2020 if year is not provided
       },
     }
   }
@@ -1220,7 +1219,18 @@ export class RabbitmqService {
           lastConversation.whaPhoneNumber,
         )
       ).message
-      const response = await this.yangoService.updateDriverPhone()
+      const driverContractorId = (
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          previousPhoneNumber,
+        )
+      ).yangoProfileId
+      const driverProfileInfos =
+        await this.yangoService.getDriverProfile(driverContractorId)
+      driverProfileInfos.person.contact_info.phone = currentPhoneNumber
+      const response = await this.yangoService.updateDriverPhone(
+        driverContractorId,
+        driverProfileInfos,
+      )
       if (response !== 200) {
         const abortPayload = this.buildAbortionPayload(lastConversation)
         return await this.abortConversation(abortPayload)

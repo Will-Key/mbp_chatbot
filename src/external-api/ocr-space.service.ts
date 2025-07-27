@@ -151,43 +151,80 @@ export class OcrSpaceService {
     console.log('phoneNumber', phoneNumber)
     try {
       if (flowId === 2) {
-        const associatedCar =
-          await this.carInfoService.findByPlateNumberAndPhoneNumber(
-            plateNumber,
+        const carId = (await this.carInfoService.findByPlateNumber(plateNumber))
+          ?.id
+        console.log('carInfo', carId)
+        console.log('plateNumber', plateNumber)
+        const idDriver = (
+          await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
             phoneNumber,
           )
-        console.log('associatedCar', associatedCar)
-        if (associatedCar) return -1 // Indicates that the car already exists for this driver
-        console.log('plateNumber', plateNumber)
-        const carInfo = await this.carInfoService.findByPlateNumber(plateNumber)
-        if (carInfo) {
-          const idDriver = (
-            await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-              phoneNumber,
+        ).id
+        console.log('idDriver', idDriver)
+
+        if (carId) {
+          const associatedCar =
+            await this.driverCarService.findOneByDriverIdAndCarId(
+              idDriver,
+              carId,
             )
-          ).id
-          const association =
+          console.log('associatedCar', associatedCar)
+          if (associatedCar) return -1 // Indicates that the car already exists for this driver
+
+          console.log('carInfo', carId)
+          const lastAssociation =
             await this.driverCarService.findOneByDriverId(idDriver)
-          await this.driverCarService.update(association.id, {
+
+          await this.carInfoService.update(lastAssociation.idCar, {
+            status: 'not_working',
+          })
+
+          await this.carInfoService.update(carId, {
+            status: 'working',
+          })
+          await this.driverCarService.update(lastAssociation.id, {
             idDriver,
-            idCar: carInfo.id,
+            idCar: carId,
           })
           return -2 // Don't need to create this car on Yango
         } // Return existing car ID if found
-      }
 
-      return (
-        await this.carInfoService.create({
-          brand,
-          color,
-          year: firstRegistrationDate.split('-')[0],
-          plateNumber,
-          status: 'unknown',
-          code: plateNumber,
-          model,
-          driverPhoneNumber: phoneNumber,
+        const newCarId = (
+          await this.carInfoService.create({
+            brand,
+            color,
+            year: firstRegistrationDate.split('-')[0],
+            plateNumber,
+            status: 'working',
+            code: plateNumber,
+            model,
+            driverPhoneNumber: phoneNumber,
+          })
+        ).id
+
+        const lastAssociation =
+          await this.driverCarService.findOneByDriverId(idDriver)
+
+        await this.driverCarService.update(lastAssociation.id, {
+          idDriver,
+          idCar: newCarId,
         })
-      ).id
+
+        return newCarId
+      } else {
+        return (
+          await this.carInfoService.create({
+            brand,
+            color,
+            year: firstRegistrationDate.split('-')[0],
+            plateNumber,
+            status: 'working',
+            code: plateNumber,
+            model,
+            driverPhoneNumber: phoneNumber,
+          })
+        ).id
+      }
     } catch (error) {
       this.logger.error(error)
       return 0

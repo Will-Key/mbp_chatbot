@@ -117,7 +117,7 @@ Veuillez sélectionner l'un des services suivant :
     message: `L'opération a échoué, vous pouvez contacter un agent à partir de ce numéro +225 0710825902.\n
 Pour vous rendre dans nos locaux suivez cette localisation:
 https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n
-Pour reéssayer envoyer "Start"
+Pour reéssayer envoyer "Commencer"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
@@ -288,6 +288,6 @@ Pour reéssayer envoyer "Commencer"
   {
     level: 6,
     message: `Votre numéro a été mis à jour avec succès.\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
-    flowId: 2,
+    flowId: 3,
   },
 ]

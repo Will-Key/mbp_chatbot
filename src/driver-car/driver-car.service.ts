@@ -33,10 +33,10 @@ export class DriverCarService {
     })
   }
 
-  update(idDriver: number, updateDriverCarDto: UpdateDriverCarDto) {
+  update(id: number, updateDriverCarDto: UpdateDriverCarDto) {
     return this.prismaService.driverCar.update({
       data: updateDriverCarDto,
-      where: { idDriver },
+      where: { id },
     })
   }
 

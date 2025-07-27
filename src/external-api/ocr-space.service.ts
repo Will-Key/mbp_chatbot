@@ -201,10 +201,13 @@ export class OcrSpaceService {
             driverPhoneNumber: phoneNumber,
           })
         ).id
-
+        console.log('newCarId', newCarId)
         const lastAssociation =
           await this.driverCarService.findOneByDriverId(idDriver)
-
+        console.log('lastAssociation', lastAssociation)
+        await this.carInfoService.update(lastAssociation.idCar, {
+          status: 'not_working',
+        })
         await this.driverCarService.update(lastAssociation.id, {
           idDriver,
           idCar: newCarId,

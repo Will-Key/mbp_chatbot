@@ -1107,7 +1107,7 @@ export class RabbitmqService {
     const abortData = this.buildAbortionPayload(lastConversation)
     try {
       const whaPhoneNumber = newMessage.messages[0].from
-
+      console.log(`Create Yango car for ${whaPhoneNumber}`)
       const step = await this.stepService.findOneBylevelAndFlowId(2, 2)
       console.log('step', step)
       const phoneNumber = (
@@ -1117,23 +1117,45 @@ export class RabbitmqService {
         )
       ).message
       console.log('phoneNumber', phoneNumber)
+      const driverInfo =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          phoneNumber,
+        )
+      console.log('driverInfo', driverInfo)
       const createYangoCar: CreateYangoCarDto =
         await this.buildCreateCarPayload(phoneNumber)
 
       const carId = (await this.yangoService.createCar(createYangoCar))
         .vehicle_id
-      console.log('carId', carId)
-      if (!carId) return await this.abortConversation(abortData)
+      if (!carId) {
+        const lastCarInfo =
+          await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
+            phoneNumber,
+            'not_working',
+          )
+        await this.makeAssociationBetweenDriverAndCar(
+          driverInfo.id,
+          lastCarInfo.id,
+        )
+
+        const carInfo =
+          await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
+            phoneNumber,
+            'working',
+          )
+        await this.carInfoService.update(carInfo.id, { status: 'not_working' })
+
+        await this.carInfoService.update(lastCarInfo.id, { status: 'working' })
+        return await this.abortConversation(abortData)
+      }
 
       const carInfo =
-        await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
-      console.log('carInfo')
-      await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
-
-      const driverInfo =
-        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+        await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
           phoneNumber,
+          'working',
         )
+      console.log('carInfo', carInfo)
+      await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
 
       await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
 

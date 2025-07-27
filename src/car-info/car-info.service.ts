@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { CarStatus } from '@prisma/client'
 import { subMinutes } from 'date-fns'
 import { PrismaService } from 'prisma/prisma.service'
 import { CreateCarInfoDto } from './dto/create-car-info.dto'
@@ -25,6 +26,18 @@ export class CarInfoService {
   findCarInfoByDriverPhoneNumber(driverPhoneNumber: string) {
     return this.prismaService.carInfo.findFirst({
       where: { driverPhoneNumber },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+  }
+
+  findCarInfoByDriverPhoneNumberAndStatus(
+    driverPhoneNumber: string,
+    status: CarStatus,
+  ) {
+    return this.prismaService.carInfo.findFirst({
+      where: { driverPhoneNumber, status },
       orderBy: {
         createdAt: 'desc',
       },

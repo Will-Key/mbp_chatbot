@@ -27,6 +27,12 @@ export class DriverCarService {
     })
   }
 
+  findOneByDriverIdAndCarId(idDriver: number, idCar: number) {
+    return this.prismaService.driverCar.findFirst({
+      where: { idDriver, idCar },
+    })
+  }
+
   update(idDriver: number, updateDriverCarDto: UpdateDriverCarDto) {
     return this.prismaService.driverCar.update({
       data: updateDriverCarDto,

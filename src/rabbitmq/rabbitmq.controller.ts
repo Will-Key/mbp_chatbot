@@ -74,6 +74,7 @@ export class RabbitmqController {
     data: {
       lastConversation: ConversationType
       newMessage: NewMessageWebhookDto
+      carSTATUS: 'EXISTING' | 'NEW'
     },
   ) {
     try {

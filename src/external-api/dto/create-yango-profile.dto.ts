@@ -9,6 +9,8 @@ class ContactInfo {
 
 class Person {
   contact_info: ContactInfo
+  driver_license: DriverLicense
+  full_name: DriverInfo
 }
 
 class DriverLicense {
@@ -23,6 +25,11 @@ class DriverInfo {
   last_name: string
 }
 
+class Account {
+  balance_limit: string
+  work_rule_id: string
+}
+
 class Profile {
   hire_date: string = new Date().toISOString()
 }
@@ -30,8 +37,7 @@ class Profile {
 export class CreateYangoProfileDto {
   order_provider: OrderProvide
   person: Person
-  driver_license: DriverLicense
-  full_name: DriverInfo
   profile: Profile
+  account: Account
   carId: string
 }

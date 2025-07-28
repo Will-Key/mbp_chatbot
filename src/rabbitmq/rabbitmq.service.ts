@@ -1035,21 +1035,27 @@ export class RabbitmqService {
       },
       person: {
         contact_info: {
-          phone: phoneNumber,
+          phone: `+${phoneNumber}`,
+        },
+        driver_license: {
+          country: 'civ',
+          expiry_date: driverLicenseInfo.expiryDate.toISOString().split('T')[0],
+          issue_date: driverLicenseInfo.deliveryDate
+            .toISOString()
+            .split('T')[0],
+          number: driverPersonalInfo.licenseNumber,
+        },
+        full_name: {
+          first_name: driverPersonalInfo.firstName,
+          last_name: driverPersonalInfo.lastName,
         },
       },
-      driver_license: {
-        country: 'civ',
-        expiry_date: driverLicenseInfo.expiryDate.toISOString(),
-        issue_date: driverLicenseInfo.deliveryDate.toISOString(),
-        number: driverPersonalInfo.licenseNumber,
-      },
-      full_name: {
-        first_name: driverPersonalInfo.firstName,
-        last_name: driverPersonalInfo.lastName,
-      },
       profile: {
-        hire_date: new Date().toISOString(),
+        hire_date: new Date().toISOString().split('T')[0],
+      },
+      account: {
+        balance_limit: '100',
+        work_rule_id: 'e436b59cdab447ab9a39fbda0ea71a67',
       },
       carId,
     }

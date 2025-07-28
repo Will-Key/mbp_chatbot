@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import {
@@ -42,7 +42,6 @@ import {
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 
-@Injectable()
 export class RabbitmqService {
   private readonly logger = new Logger(RabbitmqService.name)
 
@@ -1004,15 +1003,15 @@ export class RabbitmqService {
         status: 'unknown',
         categories: ['econom', 'comfort'],
       },
-      vehicule_licenses: {
+      vehicle_licenses: {
         licence_plate_number: carInfo.plateNumber,
       },
-      vehicule_specifications: {
+      vehicle_specifications: {
         brand: carInfo.brand,
         color: carInfo.color,
         model: carInfo.model,
         transmission: 'mechanical',
-        year: 0,
+        year: carInfo.year ? +carInfo.year : 2020, // Default to 2020 if year is not provided
       },
     }
   }
@@ -1036,21 +1035,27 @@ export class RabbitmqService {
       },
       person: {
         contact_info: {
-          phone: phoneNumber,
+          phone: `+${phoneNumber}`,
+        },
+        driver_license: {
+          country: 'civ',
+          expiry_date: driverLicenseInfo.expiryDate.toISOString().split('T')[0],
+          issue_date: driverLicenseInfo.deliveryDate
+            .toISOString()
+            .split('T')[0],
+          number: driverPersonalInfo.licenseNumber,
+        },
+        full_name: {
+          first_name: driverPersonalInfo.firstName,
+          last_name: driverPersonalInfo.lastName,
         },
       },
-      driver_license: {
-        country: 'civ',
-        expiry_date: driverLicenseInfo.expiryDate.toISOString(),
-        issue_date: driverLicenseInfo.deliveryDate.toISOString(),
-        number: driverPersonalInfo.licenseNumber,
-      },
-      full_name: {
-        first_name: driverPersonalInfo.firstName,
-        last_name: driverPersonalInfo.lastName,
-      },
       profile: {
-        hire_date: new Date().toISOString(),
+        hire_date: new Date().toISOString().split('T')[0],
+      },
+      account: {
+        balance_limit: '100',
+        work_rule_id: 'e436b59cdab447ab9a39fbda0ea71a67',
       },
       carId,
     }
@@ -1122,11 +1127,16 @@ export class RabbitmqService {
           phoneNumber,
         )
       console.log('driverInfo', driverInfo)
+      const driverAssociatedCarId = (
+        await this.driverCarService.findOneByDriverId(driverInfo.id)
+      )?.idCar
+      console.log('driverAssociatedCarId', driverAssociatedCarId)
       const createYangoCar: CreateYangoCarDto =
         await this.buildCreateCarPayload(phoneNumber)
 
-      const carId = (await this.yangoService.createCar(createYangoCar))
-        .vehicle_id
+      const carId =
+        (await this.carInfoService.findOne(driverAssociatedCarId)).yangoCarId ??
+        (await this.yangoService.createCar(createYangoCar)).vehicle_id
       if (!carId) {
         const lastCarInfo =
           await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
@@ -1149,15 +1159,14 @@ export class RabbitmqService {
         return await this.abortConversation(abortData)
       }
 
-      const carInfo =
-        await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
-          phoneNumber,
-          'working',
-        )
-      console.log('carInfo', carInfo)
-      await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
+      await this.carInfoService.update(driverAssociatedCarId, {
+        yangoCarId: carId,
+      })
 
-      await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
+      await this.makeAssociationBetweenDriverAndCar(
+        driverInfo.id,
+        driverAssociatedCarId,
+      )
 
       const successStep = await this.stepService.findOneByLevel(7)
 
@@ -1216,7 +1225,18 @@ export class RabbitmqService {
           lastConversation.whaPhoneNumber,
         )
       ).message
-      const response = await this.yangoService.updateDriverPhone()
+      const driverContractorId = (
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          previousPhoneNumber,
+        )
+      ).yangoProfileId
+      const driverProfileInfos =
+        await this.yangoService.getDriverProfile(driverContractorId)
+      driverProfileInfos.person.contact_info.phone = currentPhoneNumber
+      const response = await this.yangoService.updateDriverPhone(
+        driverContractorId,
+        driverProfileInfos,
+      )
       if (response !== 200) {
         const abortPayload = this.buildAbortionPayload(lastConversation)
         return await this.abortConversation(abortPayload)

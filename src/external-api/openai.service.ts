@@ -1,9 +1,9 @@
+import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { lastValueFrom } from 'rxjs'
-import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
-import { HttpService } from '@nestjs/axios'
 import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
 import { ExtractVehiculeRegistrationDto } from './dto/extract-vehicule-registration.dto'
+import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
 
 @Injectable()
 export class OpenAIService {
@@ -71,7 +71,7 @@ export class OpenAIService {
         Tu es un expert en extraction de données de carte grise ivoirienne.
         Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
         - plateNumber: numéro d'immatriculation
-        - brand: marque du véhicule
+        - brand: marque du véhicule (retourne une marque qui existe sur le marché)
         - model: Type commercial
         - color: couleur du véhicule (retourne la couleur récupérer en russe entre ces valeurs "Белый" | "Желтый" | "Бежевый" | "Черный" | "Голубой" | "Серый" | "Красный" | "Оранжевый" | "Синий" | "Зеленый" | "Коричневый" | "Фиолетовый" | "Розовый")
         - firstRegistrationDate: date de première mise en circulation (au format YYYY-MM-DD)
@@ -81,7 +81,6 @@ export class OpenAIService {
         Les dates doivent être converties au format YYYY-MM-DD.
         Le numéro d'immatriculation doit être au format standard (par exemple: 1234 AB 01).
       `
-
       return await this.makeOpenAiRequest(systemPrompt, ocrData)
     } catch (error) {
       this.logger.error(

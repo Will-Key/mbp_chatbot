@@ -78,7 +78,7 @@ export class OtpService {
               await this.requestLogService.create({
                 direction: 'OUT',
                 status: 'SUCCESS',
-                initiator: 'MBP',
+                initiator: 'OTP',
                 data: JSON.stringify({ phoneNumber, content }),
                 response: JSON.stringify(response),
               })
@@ -87,7 +87,7 @@ export class OtpService {
               await this.requestLogService.create({
                 direction: 'OUT',
                 status: 'FAIL',
-                initiator: 'MBP',
+                initiator: 'OTP',
                 data: JSON.stringify({ phoneNumber, content }),
                 response: JSON.stringify(error),
               })

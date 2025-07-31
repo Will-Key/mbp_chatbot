@@ -2,8 +2,9 @@ import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { randomInt } from 'crypto'
 import { addMinutes, isAfter } from 'date-fns'
-import { lastValueFrom } from 'rxjs'
+import { catchError, lastValueFrom, map } from 'rxjs'
 import { OtpVerificationService } from '../otp-verification/otp-verification.service'
+import { RequestLogService } from '../request-log/request-log.service'
 
 @Injectable()
 export class OtpService {
@@ -15,6 +16,7 @@ export class OtpService {
   constructor(
     private readonly httpService: HttpService,
     private readonly otpVerificationService: OtpVerificationService,
+    private readonly requestLogService: RequestLogService,
   ) {
     this.smsApiKey = process.env.SMS_API_KEY
     this.smsApiUrl = process.env.SMS_API_URL
@@ -62,14 +64,36 @@ export class OtpService {
   private async sendSms(phoneNumber: string, content: string): Promise<void> {
     try {
       await lastValueFrom(
-        this.httpService.get(this.smsApiUrl, {
-          params: {
-            token: this.smsApiKey,
-            from: this.smsApiSender,
-            to: phoneNumber,
-            content: content,
-          },
-        }),
+        this.httpService
+          .get(this.smsApiUrl, {
+            params: {
+              token: this.smsApiKey,
+              from: this.smsApiSender,
+              to: phoneNumber,
+              content: content,
+            },
+          })
+          .pipe(
+            map(async (response) => {
+              await this.requestLogService.create({
+                direction: 'OUT',
+                status: 'SUCCESS',
+                initiator: 'MBP',
+                data: JSON.stringify({ phoneNumber, content }),
+                response: JSON.stringify(response),
+              })
+            }),
+            catchError(async (error) => {
+              await this.requestLogService.create({
+                direction: 'OUT',
+                status: 'FAIL',
+                initiator: 'MBP',
+                data: JSON.stringify({ phoneNumber, content }),
+                response: JSON.stringify(error),
+              })
+              throw error
+            }),
+          ),
       )
     } catch (error) {
       console.log(error)

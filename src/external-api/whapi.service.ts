@@ -1,8 +1,8 @@
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { catchError, lastValueFrom, map } from 'rxjs'
-import { SendMessageDto } from './dto/send-message.dto'
 import { RequestLogService } from '../request-log/request-log.service'
+import { SendMessageDto } from './dto/send-message.dto'
 
 @Injectable()
 export class WhapiService {

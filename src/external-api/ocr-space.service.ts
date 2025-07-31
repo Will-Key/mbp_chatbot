@@ -46,9 +46,9 @@ export class OcrSpaceService {
       await this.requestLogService.create({
         direction: 'OUT',
         status: 'SUCCESS',
-        initiator: 'MBP',
-        data: JSON.stringify(response.ParsedResults),
-        response: response.ErrorMessage,
+        initiator: 'OCR_SPACE',
+        data: file.dataImageUrl,
+        response: JSON.stringify(response),
       })
       console.log('ocrResponse', ocrResponse)
       return ocrResponse
@@ -57,13 +57,9 @@ export class OcrSpaceService {
       await this.requestLogService.create({
         direction: 'OUT',
         status: 'FAIL',
-        initiator: 'MBP',
-        data: JSON.stringify(file),
-        response: `{
-          ErrorMessage: ${error?.errorMessage}, 
-          ErrorDetails: ${error?.ErrorDetails},
-          error: ${error}
-        }`,
+        initiator: 'OCR_SPACE',
+        data: file.dataImageUrl,
+        response: JSON.stringify(error),
       })
       return 0
     }

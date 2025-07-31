@@ -1,6 +1,8 @@
 import { HttpService } from '@nestjs/axios'
 import { Injectable } from '@nestjs/common'
+import { RequestStatus } from '@prisma/client'
 import { lastValueFrom } from 'rxjs'
+import { RequestLogService } from '../request-log/request-log.service'
 import { CreateYangoCarDto } from './dto/create-yango-car.dto'
 import { CreateYangoProfileDto } from './dto/create-yango-profile.dto'
 import { UpdateYangoDriverInfoDto } from './dto/update-yango-driver-info.dto'
@@ -9,7 +11,10 @@ import { UpdateYangoDriverInfoDto } from './dto/update-yango-driver-info.dto'
 export class YangoService {
   private readonly PROFILE_PATH: string
   private readonly CAR_PATH: string
-  constructor(private readonly httpService: HttpService) {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly requestLog: RequestLogService,
+  ) {
     this.PROFILE_PATH = 'contractors/driver-profile'
     this.CAR_PATH = 'vehicles/car'
   }
@@ -43,6 +48,7 @@ export class YangoService {
         throw new Error('Invalid response format from Yango API')
       }
 
+      await this.logRequest(RequestStatus.SUCCESS, _payload, response.data)
       // Return the contractor_profile_id with HTTP status from response
       return {
         status: response.status, // HTTP status code (200)
@@ -50,6 +56,7 @@ export class YangoService {
       }
     } catch (error) {
       // Re-throw with more context if needed
+      await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
         // HTTP error response
         throw new Error(
@@ -94,7 +101,7 @@ export class YangoService {
       if (!data || !data.vehicle_id) {
         throw new Error('Invalid response format from Yango API')
       }
-
+      await this.logRequest(RequestStatus.SUCCESS, _payload, response.data)
       // Return the contractor_profile_id with HTTP status from response
       return {
         status: response.status, // HTTP status code (200)
@@ -102,6 +109,7 @@ export class YangoService {
       }
     } catch (error) {
       // Re-throw with more context if needed
+      await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
         // HTTP error response
         throw new Error(
@@ -144,11 +152,20 @@ export class YangoService {
       if (!data) {
         throw new Error('Invalid response format from Yango API')
       }
-
+      await this.logRequest(
+        RequestStatus.SUCCESS,
+        { contractor_profile_id },
+        response.data,
+      )
       // Return the contractor_profile_id with HTTP status from response
       return data as UpdateYangoDriverInfoDto
     } catch (error) {
       // Re-throw with more context if needed
+      await this.logRequest(
+        RequestStatus.FAIL,
+        { contractor_profile_id },
+        error,
+      )
       if (error.response) {
         // HTTP error response
         throw new Error(
@@ -185,7 +202,22 @@ export class YangoService {
         },
       ),
     )
+    await this.logRequest(
+      RequestStatus.SUCCESS,
+      { contractor_profile_id },
+      response.data,
+    )
     console.log('Update driver phone response:', response)
     return response.status
+  }
+
+  private async logRequest(status: RequestStatus, data: any, response: any) {
+    await this.requestLog.create({
+      direction: 'OUT',
+      initiator: 'YANGO',
+      data: JSON.stringify(data),
+      response: JSON.stringify(response),
+      status,
+    })
   }
 }

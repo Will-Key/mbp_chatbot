@@ -29,6 +29,7 @@ enum RequestInitiator {
   YANGO
   OCR_SPACE
   OTP
+  OPENAI
 }
 
 enum CollectMethod {

@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
-import { lastValueFrom } from 'rxjs'
+import { catchError, lastValueFrom, map } from 'rxjs'
+import { RequestLogService } from '../request-log/request-log.service'
 import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
 import { ExtractVehiculeRegistrationDto } from './dto/extract-vehicule-registration.dto'
 import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
@@ -10,7 +11,10 @@ export class OpenAIService {
   private readonly apiKey: string
   private readonly logger = new Logger(OpenAIService.name)
 
-  constructor(private readonly httpService: HttpService) {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly requestLogService: RequestLogService,
+  ) {
     this.apiKey = process.env.OPENAI_API_KEY
   }
 
@@ -95,27 +99,50 @@ export class OpenAIService {
     ocrData: GetOcrResponseDto,
   ): Promise<any> {
     const response = await lastValueFrom(
-      this.httpService.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model: 'gpt-4-turbo',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            {
-              role: 'user',
-              content: `Extrait le texte suivant du OCR: ${JSON.stringify(ocrData.ParsedResults[0].ParsedText)}`,
-            },
-          ],
-          temperature: 0.1,
-          response_format: { type: 'json_object' },
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.apiKey}`,
+      this.httpService
+        .post(
+          'https://api.openai.com/v1/chat/completions',
+          {
+            model: 'gpt-4-turbo',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              {
+                role: 'user',
+                content: `Extrait le texte suivant du OCR: ${JSON.stringify(ocrData.ParsedResults[0].ParsedText)}`,
+              },
+            ],
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
           },
-        },
-      ),
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${this.apiKey}`,
+            },
+          },
+        )
+        .pipe(
+          map(async (response) => {
+            await this.requestLogService.create({
+              direction: 'OUT',
+              status: 'SUCCESS',
+              initiator: 'OPENAI',
+              data: JSON.stringify(ocrData.ParsedResults[0].ParsedText),
+              response: JSON.stringify(response),
+            })
+            return response
+          }),
+          catchError(async (error) => {
+            await this.requestLogService.create({
+              direction: 'OUT',
+              status: 'FAIL',
+              initiator: 'OPENAI',
+              data: JSON.stringify(ocrData.ParsedResults[0].ParsedText),
+              response: JSON.stringify(error),
+            })
+            throw error
+          }),
+        ),
     )
     console.log('makeOpenAiRequest', response)
     return JSON.parse(response.data.choices[0].message.content)

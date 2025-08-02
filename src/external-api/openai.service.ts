@@ -128,7 +128,7 @@ export class OpenAIService {
               status: 'SUCCESS',
               initiator: 'OPENAI',
               data: JSON.stringify(ocrData.ParsedResults[0].ParsedText),
-              response: JSON.stringify(response),
+              response: `${response}`,
             })
             return response
           }),
@@ -138,7 +138,7 @@ export class OpenAIService {
               status: 'FAIL',
               initiator: 'OPENAI',
               data: JSON.stringify(ocrData.ParsedResults[0].ParsedText),
-              response: JSON.stringify(error),
+              response: `${error}`,
             })
             throw error
           }),

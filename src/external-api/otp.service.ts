@@ -80,7 +80,7 @@ export class OtpService {
                 status: 'SUCCESS',
                 initiator: 'OTP',
                 data: JSON.stringify({ phoneNumber, content }),
-                response: JSON.stringify(response),
+                response: `${response}`,
               })
             }),
             catchError(async (error) => {

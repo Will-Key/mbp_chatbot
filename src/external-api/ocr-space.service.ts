@@ -48,7 +48,7 @@ export class OcrSpaceService {
         status: 'SUCCESS',
         initiator: 'OCR_SPACE',
         data: file.dataImageUrl,
-        response: JSON.stringify(response),
+        response: `${response}`,
       })
       console.log('ocrResponse', ocrResponse)
       return ocrResponse
@@ -59,7 +59,7 @@ export class OcrSpaceService {
         status: 'FAIL',
         initiator: 'OCR_SPACE',
         data: file.dataImageUrl,
-        response: JSON.stringify(error),
+        response: `${error}`,
       })
       return 0
     }
@@ -144,6 +144,12 @@ export class OcrSpaceService {
     flowId: number,
   ) {
     const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, flowId)
+    const idDriver = (
+      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+        phoneNumber,
+      )
+    ).id
+    console.log('idDriver', idDriver)
     console.log('phoneNumber', phoneNumber)
     try {
       if (flowId === 2) {
@@ -151,12 +157,6 @@ export class OcrSpaceService {
           ?.id
         console.log('carInfo', carId)
         console.log('plateNumber', plateNumber)
-        const idDriver = (
-          await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-            phoneNumber,
-          )
-        ).id
-        console.log('idDriver', idDriver)
 
         if (carId) {
           const associatedCar =
@@ -225,6 +225,24 @@ export class OcrSpaceService {
         ).id
       }
     } catch (error) {
+      const lastAdded =
+        await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
+          phoneNumber,
+          'working',
+        )
+      await this.carInfoService.remove(lastAdded.id)
+      const currentCarInfo =
+        await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+      await this.carInfoService.update(currentCarInfo.id, {
+        status: 'working',
+      })
+      await this.driverCarService.update(
+        (await this.driverCarService.findOneByDriverId(idDriver)).id,
+        {
+          idDriver,
+          idCar: currentCarInfo.id,
+        },
+      )
       this.logger.error(error)
       return 0
     }

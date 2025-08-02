@@ -2,6 +2,7 @@ import { HttpService } from '@nestjs/axios'
 import { Injectable } from '@nestjs/common'
 import { RequestStatus } from '@prisma/client'
 import { lastValueFrom } from 'rxjs'
+import { v4 as uuidv4 } from 'uuid'
 import { RequestLogService } from '../request-log/request-log.service'
 import { CreateYangoCarDto } from './dto/create-yango-car.dto'
 import { CreateYangoProfileDto } from './dto/create-yango-profile.dto'
@@ -31,7 +32,7 @@ export class YangoService {
           {
             headers: {
               'X-API-Key': process.env.YANGO_API_KEY,
-              'X-Idempotency-Token': process.env.YANGO_IDEMPOTENCY_TOKEN,
+              'X-Idempotency-Token': uuidv4(),
               'X-Park-ID': process.env.YANGO_PARK_ID,
               'X-Client-ID': process.env.YANGO_CLIENT_ID,
               accept: 'application/json',
@@ -84,7 +85,7 @@ export class YangoService {
           {
             headers: {
               'X-API-Key': process.env.YANGO_API_KEY,
-              'X-Idempotency-Token': process.env.YANGO_IDEMPOTENCY_TOKEN,
+              'X-Idempotency-Token': uuidv4(),
               'X-Park-ID': process.env.YANGO_PARK_ID,
               'X-Client-ID': process.env.YANGO_CLIENT_ID,
               accept: 'application/json',
@@ -136,7 +137,7 @@ export class YangoService {
           {
             headers: {
               'X-API-Key': process.env.YANGO_API_KEY,
-              'X-Idempotency-Token': process.env.YANGO_IDEMPOTENCY_TOKEN,
+              'X-Idempotency-Token': uuidv4(),
               'X-Park-ID': process.env.YANGO_PARK_ID,
               'X-Client-ID': process.env.YANGO_CLIENT_ID,
               accept: 'application/json',
@@ -192,8 +193,37 @@ export class YangoService {
         {
           headers: {
             'X-API-Key': process.env.YANGO_API_KEY,
-            'X-Idempotency-Token': process.env.YANGO_IDEMPOTENCY_TOKEN,
+            'X-Idempotency-Token': uuidv4(),
             'X-Park-ID': process.env.YANGO_PARK_ID,
+            'X-Client-ID': process.env.YANGO_CLIENT_ID,
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          timeout: 15000,
+        },
+      ),
+    )
+    await this.logRequest(
+      RequestStatus.SUCCESS,
+      { contractor_profile_id },
+      response.data,
+    )
+    console.log('Update driver phone response:', response)
+    return response.status
+  }
+
+  async bindingDriverToCar(
+    contractor_profile_id: string,
+    yango_vehicle_id: string,
+  ): Promise<number> {
+    const response = await lastValueFrom(
+      this.httpService.put(
+        `https://fleet.api.yango.com/v1/parks/driver-profiles/car-bindings?driver_profile_id=${contractor_profile_id}&car_id=${yango_vehicle_id}&park_id=${process.env.YANGO_PARK_ID}`,
+        {
+          headers: {
+            'X-API-Key': process.env.YANGO_API_KEY,
+            'X-Idempotency-Token': uuidv4(),
+            // 'X-Park-ID': process.env.YANGO_PARK_ID,
             'X-Client-ID': process.env.YANGO_CLIENT_ID,
             accept: 'application/json',
             'content-type': 'application/json',

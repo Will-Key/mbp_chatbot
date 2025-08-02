@@ -28,6 +28,8 @@ enum RequestInitiator {
   WHAPI
   YANGO
   OCR_SPACE
+  OTP
+  OPENAI
 }
 
 enum CollectMethod {

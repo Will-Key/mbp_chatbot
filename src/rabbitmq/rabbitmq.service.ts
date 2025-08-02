@@ -959,6 +959,13 @@ export class RabbitmqService {
       this.logger.log('Create Yango profile profileId', profileId)
       if (!profileId) return await this.abortConversation(abortData)
 
+      const bindingResponse = await this.yangoService.bindingDriverToCar(
+        profileId,
+        carId,
+      )
+      if (bindingResponse !== 200)
+        return await this.abortConversation(abortData)
+
       const carInfo =
         await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
       await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
@@ -1158,6 +1165,13 @@ export class RabbitmqService {
         await this.carInfoService.update(lastCarInfo.id, { status: 'working' })
         return await this.abortConversation(abortData)
       }
+
+      const bindingResponse = await this.yangoService.bindingDriverToCar(
+        driverInfo.yangoProfileId,
+        carId,
+      )
+      if (bindingResponse !== 200)
+        return await this.abortConversation(abortData)
 
       await this.carInfoService.update(driverAssociatedCarId, {
         yangoCarId: carId,

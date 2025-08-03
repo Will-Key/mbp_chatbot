@@ -1226,6 +1226,7 @@ export class RabbitmqService {
     lastConversation: ConversationType
     newMessage: NewMessageWebhookDto
   }) {
+    const abortData = this.buildAbortionPayload(lastConversation)
     try {
       const previousPhoneNumberStep =
         await this.stepService.findOneBylevelAndFlowId(2, 3)
@@ -1250,19 +1251,15 @@ export class RabbitmqService {
       ).yangoProfileId
       const driverProfileResponse =
         await this.yangoService.getDriverProfile(driverContractorId)
-      if (!driverProfileResponse || driverProfileResponse.status !== 200) {
-        const abortPayload = this.buildAbortionPayload(lastConversation)
-        return await this.abortConversation(abortPayload)
-      }
+      if (!driverProfileResponse || driverProfileResponse.status !== 200)
+        return await this.abortConversation(abortData)
+
       driverProfileResponse.data.person.contact_info.phone = currentPhoneNumber
       const response = await this.yangoService.updateDriverPhone(
         driverContractorId,
         driverProfileResponse.data,
       )
-      if (response !== 200) {
-        const abortPayload = this.buildAbortionPayload(lastConversation)
-        return await this.abortConversation(abortPayload)
-      }
+      if (response !== 200) return await this.abortConversation(abortData)
 
       await this.driverPersonalInfoService.updateByPhoneNumber(
         previousPhoneNumber,
@@ -1278,8 +1275,10 @@ export class RabbitmqService {
 
       this.deleteAllConversations(lastConversation)
     } catch (error) {
-      this.deleteAllConversations(lastConversation)
-      console.error(error)
+      await this.abortConversation(abortData)
+      this.logger.error(
+        `Error processing during yango phone updation: ${error}`,
+      )
     }
   }
 

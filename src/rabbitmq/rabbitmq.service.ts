@@ -1259,6 +1259,7 @@ export class RabbitmqService {
         driverContractorId,
         driverProfileResponse.data,
       )
+      console.log('response status', response)
       if (response !== 204) return await this.abortConversation(abortData)
 
       await this.driverPersonalInfoService.updateByPhoneNumber(
@@ -1266,13 +1267,14 @@ export class RabbitmqService {
         currentPhoneNumber,
       )
       const successStep = await this.stepService.findOneByLevel(6)
-
+      console.log('lastConversation', lastConversation.whaPhoneNumber)
+      console.log('successStep', successStep.message)
       await this.handleMessageToSent({
         to: lastConversation.whaPhoneNumber,
         body: successStep.message,
         typing_time: 5,
       })
-
+      console.log('message sent to driver')
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData)

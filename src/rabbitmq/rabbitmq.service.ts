@@ -963,6 +963,7 @@ export class RabbitmqService {
         profileId,
         carId,
       )
+      this.logger.log('Create Yango profile bindingResponse', bindingResponse)
       if (bindingResponse !== 200)
         return await this.abortConversation(abortData)
 

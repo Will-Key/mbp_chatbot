@@ -75,9 +75,9 @@ export class OpenAIService {
       const systemPrompt = `
         Tu es un expert en extraction de données de carte grise ivoirienne.
         Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
-        - plateNumber: numéro d'immatriculation
+        - plateNumber: numéro d'immatriculation (Tout en majuscule)
         - brand: marque du véhicule (retourne une marque qui existe sur le marché)
-        - model: Type commercial
+        - model: Type commercial (retourne la valeur sous le format Train-Case : par exemple "Mercedes-Benz" | "S-Presso")
         - color: couleur du véhicule (retourne la couleur récupérer en russe entre ces valeurs "Белый" | "Желтый" | "Бежевый" | "Черный" | "Голубой" | "Серый" | "Красный" | "Оранжевый" | "Синий" | "Зеленый" | "Коричневый" | "Фиолетовый" | "Розовый")
         - firstRegistrationDate: date de première mise en circulation (au format YYYY-MM-DD)
         - percentage: le pourcentage d'information récupéré sans rajouter le signe % en te basant sur les propriétés précédentes.
@@ -85,7 +85,6 @@ export class OpenAIService {
         Si une information n'est pas trouvée, renvoie null pour ce champ.
         Les dates doivent être converties au format YYYY-MM-DD.
         Le numéro d'immatriculation doit être au format standard (par exemple: 1234 AB 01).
-        Toutes les réponses doivent être en majuscules.
       `
       return await this.makeOpenAiRequest(systemPrompt, ocrData)
     } catch (error) {

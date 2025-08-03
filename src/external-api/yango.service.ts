@@ -216,9 +216,10 @@ export class YangoService {
     contractor_profile_id: string,
     yango_vehicle_id: string,
   ): Promise<number> {
+    const parkId = process.env.YANGO_PARK_ID
     const response = await lastValueFrom(
       this.httpService.put(
-        `https://fleet.api.yango.com/v1/parks/driver-profiles/car-bindings?driver_profile_id=${contractor_profile_id}&car_id=${yango_vehicle_id}&park_id=${process.env.YANGO_PARK_ID}`,
+        `https://fleet.api.yango.com/v1/parks/driver-profiles/car-bindings?driver_profile_id=${contractor_profile_id}&car_id=${yango_vehicle_id}&park_id=${parkId}`,
         {
           headers: {
             'X-API-Key': process.env.YANGO_API_KEY,
@@ -234,7 +235,11 @@ export class YangoService {
     )
     await this.logRequest(
       RequestStatus.SUCCESS,
-      { contractor_profile_id },
+      {
+        driver_profile_id: contractor_profile_id,
+        car_id: yango_vehicle_id,
+        park_id: parkId,
+      },
       response.data,
     )
     console.log('Update driver phone response:', response)

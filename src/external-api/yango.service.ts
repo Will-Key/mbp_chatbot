@@ -189,7 +189,7 @@ export class YangoService {
     try {
       const response = await lastValueFrom(
         this.httpService.put(
-          `${process.env.YANGO_API_URL}/${this.PROFILE_PATH}?contractor_profile_id=${contractor_profile_id}`,
+          `https://fleet.api.yango.com/v2/parks/contractors/driver-profile?contractor_profile_id=${contractor_profile_id}`,
           payload,
           {
             headers: {

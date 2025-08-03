@@ -217,33 +217,60 @@ export class YangoService {
     yango_vehicle_id: string,
   ): Promise<number> {
     const parkId = process.env.YANGO_PARK_ID
-    const response = await lastValueFrom(
-      this.httpService.put(
-        `https://fleet.api.yango.com/v1/parks/driver-profiles/car-bindings?driver_profile_id=${contractor_profile_id}&car_id=${yango_vehicle_id}&park_id=${parkId}`,
-        {
-          headers: {
-            'X-API-Key': process.env.YANGO_API_KEY,
-            'X-Idempotency-Token': uuidv4(),
-            // 'X-Park-ID': process.env.YANGO_PARK_ID,
-            'X-Client-ID': process.env.YANGO_CLIENT_ID,
-            accept: 'application/json',
-            'content-type': 'application/json',
+    console.log('Binding driver to car with IDs:', {
+      contractor_profile_id,
+      yango_vehicle_id,
+      parkId,
+    })
+    try {
+      const response = await lastValueFrom(
+        this.httpService.put(
+          `https://fleet.api.yango.com/v1/parks/driver-profiles/car-bindings?driver_profile_id=${contractor_profile_id}&car_id=${yango_vehicle_id}&park_id=${parkId}`,
+          {
+            headers: {
+              'X-API-Key': process.env.YANGO_API_KEY,
+              'X-Idempotency-Token': uuidv4(),
+              // 'X-Park-ID': process.env.YANGO_PARK_ID,
+              'X-Client-ID': process.env.YANGO_CLIENT_ID,
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            timeout: 15000,
           },
-          timeout: 15000,
+        ),
+      )
+      await this.logRequest(
+        RequestStatus.SUCCESS,
+        {
+          driver_profile_id: contractor_profile_id,
+          car_id: yango_vehicle_id,
+          park_id: parkId,
         },
-      ),
-    )
-    await this.logRequest(
-      RequestStatus.SUCCESS,
-      {
-        driver_profile_id: contractor_profile_id,
-        car_id: yango_vehicle_id,
-        park_id: parkId,
-      },
-      response.data,
-    )
-    console.log('Update driver phone response:', response)
-    return response.status
+        response.data,
+      )
+      console.log('Update driver phone response:', response)
+      return response.status
+    } catch (error) {
+      await this.logRequest(
+        RequestStatus.FAIL,
+        {
+          driver_profile_id: contractor_profile_id,
+          car_id: yango_vehicle_id,
+          park_id: parkId,
+        },
+        error,
+      )
+      console.error('Error binding driver to car:', error)
+      if (error.response) {
+        throw new Error(
+          `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
+        )
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('Yango API request timeout')
+      } else {
+        throw new Error(`Binding failed: ${error.message}`)
+      }
+    }
   }
 
   private async logRequest(status: RequestStatus, data: any, response: any) {

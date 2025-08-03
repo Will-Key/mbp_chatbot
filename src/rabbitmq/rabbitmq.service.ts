@@ -1184,10 +1184,13 @@ export class RabbitmqService {
       )
 
       const successStep = await this.stepService.findOneByLevel(7)
-
+      const message = successStep.message.replace(
+        '{carPlateNumber}',
+        createYangoCar.vehicle_licenses.licence_plate_number,
+      )
       await this.handleMessageToSent({
         to: whaPhoneNumber,
-        body: successStep.message,
+        body: message,
         typing_time: 5,
       })
 

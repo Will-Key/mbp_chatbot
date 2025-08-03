@@ -208,7 +208,7 @@ Pour reéssayer envoyer "Commencer"
   },
   {
     level: 7,
-    message: `Opération effectué avec succès.\nL'association au nouveau véhicule a été effectué avec succès.\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
+    message: `Opération effectué avec succès.\nVotre nouveau véhicule immatriculé {carPlateNumber} est associé à votre compte.\nVeuillez vous rendre sur l'application Yango pour la suite du processus\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
     flowId: 2,
   },
   {

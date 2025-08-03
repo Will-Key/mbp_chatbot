@@ -128,12 +128,12 @@ export class YangoService {
 
   async getDriverProfile(
     contractor_profile_id: string,
-  ): Promise<UpdateYangoDriverInfoDto> {
+  ): Promise<{ data: UpdateYangoDriverInfoDto; status: number }> {
     try {
       console.log('Fetching driver profile for ID:', contractor_profile_id)
       const response = await lastValueFrom(
         this.httpService.get(
-          `${process.env.YANGO_API_URL}/${this.PROFILE_PATH}?${contractor_profile_id}`,
+          `${process.env.YANGO_API_URL}/${this.PROFILE_PATH}?contractor_profile_id=${contractor_profile_id}`,
           {
             headers: {
               'X-API-Key': process.env.YANGO_API_KEY,
@@ -159,7 +159,7 @@ export class YangoService {
         response.data,
       )
       // Return the contractor_profile_id with HTTP status from response
-      return data as UpdateYangoDriverInfoDto
+      return { data: data as UpdateYangoDriverInfoDto, status: response.status } // HTTP status code (200)
     } catch (error) {
       // Re-throw with more context if needed
       await this.logRequest(

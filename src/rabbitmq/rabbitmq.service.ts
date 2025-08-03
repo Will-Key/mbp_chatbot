@@ -1245,12 +1245,16 @@ export class RabbitmqService {
           previousPhoneNumber,
         )
       ).yangoProfileId
-      const driverProfileInfos =
+      const driverProfileResponse =
         await this.yangoService.getDriverProfile(driverContractorId)
-      driverProfileInfos.person.contact_info.phone = currentPhoneNumber
+      if (!driverProfileResponse || driverProfileResponse.status !== 200) {
+        const abortPayload = this.buildAbortionPayload(lastConversation)
+        return await this.abortConversation(abortPayload)
+      }
+      driverProfileResponse.data.person.contact_info.phone = currentPhoneNumber
       const response = await this.yangoService.updateDriverPhone(
         driverContractorId,
-        driverProfileInfos,
+        driverProfileResponse.data,
       )
       if (response !== 200) {
         const abortPayload = this.buildAbortionPayload(lastConversation)

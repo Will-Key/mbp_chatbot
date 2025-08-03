@@ -1259,6 +1259,7 @@ export class RabbitmqService {
         driverContractorId,
         driverProfileResponse.data,
       )
+      console.log('response status', response)
       if (response !== 204) return await this.abortConversation(abortData)
 
       await this.driverPersonalInfoService.updateByPhoneNumber(

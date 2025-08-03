@@ -35,7 +35,8 @@ export class OpenAIService {
         
         Si une information n'est pas trouvée, renvoie null pour ce champ mais toute fois tient compte des erreurs des libellés des informations à récupérer.
         Les dates doivent être converties au format YYYY-MM-DD.
-        Assure-toi que les noms sont correctement formatés (première lettre en majuscule).
+        Assure-toi que les noms sont correctement formatés (Tout en majuscule).
+        Toutes les réponses doivent être en majuscules.
       `
 
       return await this.makeOpenAiRequest(systemPrompt, ocrData)
@@ -84,6 +85,7 @@ export class OpenAIService {
         Si une information n'est pas trouvée, renvoie null pour ce champ.
         Les dates doivent être converties au format YYYY-MM-DD.
         Le numéro d'immatriculation doit être au format standard (par exemple: 1234 AB 01).
+        Toutes les réponses doivent être en majuscules.
       `
       return await this.makeOpenAiRequest(systemPrompt, ocrData)
     } catch (error) {

@@ -1254,7 +1254,7 @@ export class RabbitmqService {
       if (!driverProfileResponse || driverProfileResponse.status !== 200)
         return await this.abortConversation(abortData)
 
-      driverProfileResponse.data.person.contact_info.phone = currentPhoneNumber
+      driverProfileResponse.data.person.contact_info.phone = `+${currentPhoneNumber}`
       const response = await this.yangoService.updateDriverPhone(
         driverContractorId,
         driverProfileResponse.data,

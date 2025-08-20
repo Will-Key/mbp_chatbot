@@ -766,7 +766,7 @@ export class RabbitmqService {
         },
       )
       if (updatedConversation.badResponseCount >= 2) {
-        return await this.abortConversation(conversation)
+        return await this.abortConversation(conversation, message)
       }
       await this.editHistoryConversation({
         whaPhoneNumber: conversation.whaPhoneNumber,
@@ -784,14 +784,21 @@ export class RabbitmqService {
     }
   }
 
-  private async abortConversation(conversation: Conversation) {
+  private async abortConversation(
+    conversation: Conversation,
+    message?: string,
+  ) {
     await this.editHistoryConversation({
       whaPhoneNumber: conversation.whaPhoneNumber,
       status: HistoryConversationStatus.FAIL,
       reason: HistoryConversationReasonForEnding.ERROR,
       stepId: conversation.stepId,
     })
-
+    await this.handleMessageToSent({
+      to: conversation.whaPhoneNumber,
+      body: message,
+      typing_time: 5,
+    })
     const errorStep = await this.stepService.findOneByLevel(15)
     // Push message to whapi queue to demand to driver to go on MBP local
     await this.handleMessageToSent({

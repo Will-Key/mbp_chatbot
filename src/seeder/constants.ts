@@ -49,7 +49,7 @@ Veuillez sélectionner l'un des services suivant :
       },
       {
         message:
-          'Ce numéro de téléphone est déjà associé à un chauffeur.\nVeuillez saisir un autre numéro.',
+          'Ce numéro de téléphone est déjà associé à un chauffeur.\nVeuillez entrer un nouveau numéro.',
         errorType: 'isExist',
       },
     ],

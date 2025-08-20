@@ -193,7 +193,6 @@ export class RabbitmqService {
     try {
       const flowId = 1
 
-      // TODO: check if newMessage.messages[0].type === StepExpectedResponseType.text
       if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -467,6 +466,16 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 2
+
+      if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
       const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
@@ -548,6 +557,16 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
+
+      if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
       const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
@@ -650,6 +669,16 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
+
+      if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
       const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {

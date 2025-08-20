@@ -48,7 +48,8 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'equalLength',
       },
       {
-        message: 'Ce numéro de téléphone est déjà associé à un chauffeur',
+        message:
+          'Ce numéro de téléphone est déjà associé à un chauffeur.\nVeuillez saisir un autre numéro.',
         errorType: 'isExist',
       },
     ],

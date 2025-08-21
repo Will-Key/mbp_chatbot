@@ -1349,6 +1349,7 @@ export class RabbitmqService {
         this.logger.log(
           `Conversations deleted for phone number: ${whaPhoneNumber}`,
         )
+        await this.sendErrorMessage(whaPhoneNumber)
         await this.editHistoryConversation({
           whaPhoneNumber,
           status: HistoryConversationStatus.FAIL,
@@ -1357,6 +1358,16 @@ export class RabbitmqService {
         })
       }
     }
+  }
+
+  private async sendErrorMessage(whaPhoneNumber: string) {
+    const stopMessage = await this.stepService.findOneByLevel(99)
+    const message = stopMessage.message
+    await this.handleMessageToSent({
+      to: whaPhoneNumber,
+      body: message,
+      typing_time: 5,
+    })
   }
 
   private delay(ms: number): Promise<void> {

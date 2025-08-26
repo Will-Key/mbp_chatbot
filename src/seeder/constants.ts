@@ -48,7 +48,8 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'equalLength',
       },
       {
-        message: 'Ce numéro de téléphone est déjà associé à un chauffeur',
+        message:
+          'Ce numéro de téléphone est déjà associé à un chauffeur.\nVeuillez entrer un nouveau numéro.',
         errorType: 'isExist',
       },
     ],
@@ -117,7 +118,7 @@ Veuillez sélectionner l'un des services suivant :
     message: `L'opération a échoué, vous pouvez contacter un agent à partir de ce numéro +225 0710825902.\n
 Pour vous rendre dans nos locaux suivez cette localisation:
 https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.\n
-Pour reéssayer envoyer "Commencer"
+Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
@@ -133,7 +134,7 @@ Pour reéssayer envoyer "Commencer"
   {
     level: 20,
     message: `Votre inscription chez MBP est validée ✅
-Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo.\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
+Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
     flowId: 1,
@@ -144,7 +145,7 @@ Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour final
 Vous pouvez contacter un agent à partir de ce numéro +225 0710825902.
 Pour vous rendre dans nos locaux suivez cette localisation
 https://maps.app.goo.gl/LwUK42zQMGmrBzFb8.
-Pour reéssayer envoyer "Commencer"
+Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
@@ -208,7 +209,7 @@ Pour reéssayer envoyer "Commencer"
   },
   {
     level: 7,
-    message: `Opération effectué avec succès.\nVotre nouveau véhicule immatriculé {carPlateNumber} est associé à votre compte.\nVeuillez vous rendre sur l'application Yango pour la suite du processus\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
+    message: `Opération effectué avec succès.\nVotre nouveau véhicule immatriculé {carPlateNumber} est associé à votre compte.\nVeuillez vous rendre sur l'application Yango pour la suite du processus\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     flowId: 2,
   },
   {
@@ -287,7 +288,11 @@ Pour reéssayer envoyer "Commencer"
   },
   {
     level: 6,
-    message: `Votre numéro a été mis à jour avec succès.\nEnvoyez "Commencer" pour démarrer un nouveau processus.`,
+    message: `Votre numéro a été mis à jour avec succès.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     flowId: 3,
+  },
+  {
+    level: 99,
+    message: `La durée de la conversation est terminée.\nPour recontacter votre assistant envoyer "Start"`,
   },
 ]

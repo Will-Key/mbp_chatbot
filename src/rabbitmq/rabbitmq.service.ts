@@ -112,7 +112,7 @@ export class RabbitmqService {
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
     const initialStep = await this.stepService.findOneByLevel(0)
     const message = newMessage.messages[0].text.body
-    if (message.toLowerCase() === 'commencer') {
+    if (message.toLowerCase() === 'start') {
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
         convMessage: newMessage.messages[0].text.body,
@@ -192,6 +192,16 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 1
+
+      if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
       const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
@@ -456,6 +466,16 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 2
+
+      if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
       const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
@@ -537,6 +557,16 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
+
+      if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
       const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
@@ -639,6 +669,16 @@ export class RabbitmqService {
   ) {
     try {
       const flowId = 3
+
+      if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'equalLength',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
       const phoneNumber = `225${this.removeAllSpaces(newMessage.messages[0].text.body)}`
 
       if (!isValidPhoneNumber(`+${phoneNumber}`)) {
@@ -766,7 +806,7 @@ export class RabbitmqService {
         },
       )
       if (updatedConversation.badResponseCount >= 2) {
-        return await this.abortConversation(conversation)
+        return await this.abortConversation(conversation, message)
       }
       await this.editHistoryConversation({
         whaPhoneNumber: conversation.whaPhoneNumber,
@@ -784,14 +824,21 @@ export class RabbitmqService {
     }
   }
 
-  private async abortConversation(conversation: Conversation) {
+  private async abortConversation(
+    conversation: Conversation,
+    message?: string,
+  ) {
     await this.editHistoryConversation({
       whaPhoneNumber: conversation.whaPhoneNumber,
       status: HistoryConversationStatus.FAIL,
       reason: HistoryConversationReasonForEnding.ERROR,
       stepId: conversation.stepId,
     })
-
+    await this.handleMessageToSent({
+      to: conversation.whaPhoneNumber,
+      body: message,
+      typing_time: 5,
+    })
     const errorStep = await this.stepService.findOneByLevel(15)
     // Push message to whapi queue to demand to driver to go on MBP local
     await this.handleMessageToSent({
@@ -1302,6 +1349,7 @@ export class RabbitmqService {
         this.logger.log(
           `Conversations deleted for phone number: ${whaPhoneNumber}`,
         )
+        await this.sendErrorMessage(whaPhoneNumber)
         await this.editHistoryConversation({
           whaPhoneNumber,
           status: HistoryConversationStatus.FAIL,
@@ -1310,6 +1358,16 @@ export class RabbitmqService {
         })
       }
     }
+  }
+
+  private async sendErrorMessage(whaPhoneNumber: string) {
+    const stopMessage = await this.stepService.findOneByLevel(99)
+    const message = stopMessage.message
+    await this.handleMessageToSent({
+      to: whaPhoneNumber,
+      body: message,
+      typing_time: 5,
+    })
   }
 
   private delay(ms: number): Promise<void> {

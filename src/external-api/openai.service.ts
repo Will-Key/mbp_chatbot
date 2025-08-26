@@ -27,8 +27,8 @@ export class OpenAIService {
         Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
         - imageType: doit contenir "PERMIS DE CONDUIRE"
         - licenseNumber: numéro du permis de conduire
-        - lastName: nom de famille du chauffeur
-        - firstName: prénom du chauffeur
+        - lastName: nom de famille du chauffeur (Tout en majuscule)
+        - firstName: prénom du chauffeur (Tout en majuscule)
         - deliveryDate: date de délivrance (au format YYYY-MM-DD)
         - deliveryPlace: lieu de délivrance
         - percentage: le pourcentage d'information récupéré sans rajouter le signe % en te basant sur les propriétés précédentes.

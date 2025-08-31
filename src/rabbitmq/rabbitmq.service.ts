@@ -1230,7 +1230,7 @@ export class RabbitmqService {
         driverAssociatedCarId,
       )
 
-      const successStep = await this.stepService.findOneByLevel(7)
+      const successStep = await this.stepService.findOneBylevelAndFlowId(7, 2)
       const message = successStep.message.replace(
         '{carPlateNumber}',
         createYangoCar.vehicle_licenses.licence_plate_number,
@@ -1313,7 +1313,7 @@ export class RabbitmqService {
         previousPhoneNumber,
         currentPhoneNumber,
       )
-      const successStep = await this.stepService.findOneByLevel(6)
+      const successStep = await this.stepService.findOneBylevelAndFlowId(6, 3)
       console.log('lastConversation', lastConversation.whaPhoneNumber)
       console.log('successStep', successStep.message)
       await this.handleMessageToSent({

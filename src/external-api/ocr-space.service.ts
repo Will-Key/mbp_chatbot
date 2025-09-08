@@ -194,7 +194,7 @@ export class OcrSpaceService {
             status: 'working',
             code: plateNumber,
             model,
-            driverPhoneNumber: phoneNumber,
+            //driverPhoneNumber: phoneNumber,
           })
         ).id
         console.log('newCarId', newCarId)
@@ -211,7 +211,7 @@ export class OcrSpaceService {
 
         return newCarId
       } else {
-        return (
+        const newCarId = (
           await this.carInfoService.create({
             brand,
             color,
@@ -220,9 +220,18 @@ export class OcrSpaceService {
             status: 'working',
             code: plateNumber,
             model,
-            driverPhoneNumber: phoneNumber,
+            //driverPhoneNumber: phoneNumber,
           })
         ).id
+
+        console.log('newCarId', newCarId)
+
+        await this.driverCarService.create({
+          idDriver,
+          idCar: newCarId,
+        })
+
+        return newCarId
       }
     } catch (error) {
       const lastAdded =

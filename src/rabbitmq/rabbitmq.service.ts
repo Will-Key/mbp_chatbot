@@ -827,6 +827,7 @@ export class RabbitmqService {
   private async abortConversation(
     conversation: Conversation,
     message?: string,
+    mode: 'CREATION' | 'UPDATE' = 'UPDATE',
   ) {
     await this.editHistoryConversation({
       whaPhoneNumber: conversation.whaPhoneNumber,
@@ -848,7 +849,7 @@ export class RabbitmqService {
     })
 
     await this.deleteAllConversations(conversation)
-    await this.deleteInfoCollected(conversation)
+    await this.deleteInfoCollected(conversation, mode)
   }
 
   private async editHistoryConversation(payload: CreateHistoryConversationDto) {
@@ -877,7 +878,10 @@ export class RabbitmqService {
     )
   }
 
-  private async deleteInfoCollected(conversation: Conversation) {
+  private async deleteInfoCollected(
+    conversation: Conversation,
+    mode: 'CREATION' | 'UPDATE' = 'UPDATE',
+  ) {
     console.log('deleteInfoCollected', conversation.whaPhoneNumber)
     const phoneNumber = (
       await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
@@ -885,17 +889,35 @@ export class RabbitmqService {
       )
     ).phoneNumber
     console.log('deleteInfoCollected.phoneNumber', phoneNumber)
-    const carId = (
-      await this.carInfoService.findRecentByPhoneNumver(phoneNumber)
-    ).id
-    console.log('deleteInfoCollected.carId', carId)
-    await this.carInfoService.remove(carId)
-    await this.driverLicenseInfoService.deleteByPhoneNumber(phoneNumber)
-    const personalInfo =
-      await this.driverPersonalInfoService.deleteByWhaPhoneNumber(
-        conversation.whaPhoneNumber,
+    const idDriver = (
+      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+        phoneNumber,
       )
-    await this.driverCarService.deleteByDriverId(personalInfo.id)
+    ).id
+    const driverLastAssociation =
+      await this.driverCarService.findDriverLastAssociation(idDriver)
+
+    await this.carInfoService.remove(driverLastAssociation.idCar)
+
+    if (mode === 'CREATION') {
+      await this.driverPersonalInfoService.remove(idDriver)
+      await this.driverLicenseInfoService.deleteByDriverId(idDriver)
+      await this.driverCarService.deleteByDriverId(idDriver)
+    }
+
+    if (mode === 'UPDATE') {
+      await this.driverCarService.remove(driverLastAssociation.id)
+
+      const { id, idCar: recentIdCar } =
+        await this.driverCarService.findDriverMostRecentAssociation(idDriver)
+
+      await this.driverCarService.update(id, {
+        idDriver,
+        idCar: recentIdCar,
+        endDate: '9999-12-31',
+      })
+    }
+    //await this.driverCarService.deleteByDriverId(personalInfo.id)
   }
 
   private getErrorMessage(
@@ -999,14 +1021,15 @@ export class RabbitmqService {
       const carId = (await this.yangoService.createCar(createYangoCar))
         .vehicle_id
       this.logger.log('Create Yango profile carId', carId)
-      if (!carId) return await this.abortConversation(abortData)
+      if (!carId) return await this.abortConversation(abortData, '', 'CREATION')
 
       const createYangoDto: CreateYangoProfileDto =
         await this.buildCreateProfilePayload(phoneNumber, carId)
       const profileId = (await this.yangoService.createProfile(createYangoDto))
         .contractor_profile_id
       this.logger.log('Create Yango profile profileId', profileId)
-      if (!profileId) return await this.abortConversation(abortData)
+      if (!profileId)
+        return await this.abortConversation(abortData, '', 'CREATION')
 
       const bindingResponse = await this.yangoService.bindingDriverToCar(
         profileId,
@@ -1014,7 +1037,7 @@ export class RabbitmqService {
       )
       this.logger.log('Create Yango profile bindingResponse', bindingResponse)
       if (bindingResponse !== 200)
-        return await this.abortConversation(abortData)
+        return await this.abortConversation(abortData, '', 'CREATION')
 
       const driverInfo =
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
@@ -1045,7 +1068,7 @@ export class RabbitmqService {
 
       this.deleteAllConversations(lastConversation)
     } catch (error) {
-      await this.abortConversation(abortData)
+      await this.abortConversation(abortData, '', 'CREATION')
       this.logger.error(
         `Error processing during yango profile creation: ${error}`,
       )
@@ -1055,8 +1078,14 @@ export class RabbitmqService {
   private async buildCreateCarPayload(
     phoneNumber: string,
   ): Promise<CreateYangoCarDto> {
-    const carInfo =
-      await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
+    const idDriver = (
+      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+        phoneNumber,
+      )
+    ).id
+    const { idCar } =
+      await this.driverCarService.findDriverLastAssociation(idDriver)
+    const carInfo = await this.carInfoService.findOne(idCar)
     return {
       park_profile: {
         callsign: carInfo.code,
@@ -1199,24 +1228,19 @@ export class RabbitmqService {
         (await this.carInfoService.findOne(driverAssociatedCarId)).yangoCarId ??
         (await this.yangoService.createCar(createYangoCar)).vehicle_id
       if (!carId) {
-        const lastCarInfo =
-          await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
+        const idDriver = (
+          await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
             phoneNumber,
-            'not_working',
           )
+        ).id
+        const { idCar: recentIdCar } =
+          await this.driverCarService.findDriverMostRecentAssociation(idDriver)
+
         await this.makeAssociationBetweenDriverAndCar(
           driverInfo.id,
-          lastCarInfo.id,
+          recentIdCar,
         )
 
-        const carInfo =
-          await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(
-            phoneNumber,
-            'working',
-          )
-        await this.carInfoService.update(carInfo.id, { status: 'not_working' })
-
-        await this.carInfoService.update(lastCarInfo.id, { status: 'working' })
         return await this.abortConversation(abortData)
       }
 

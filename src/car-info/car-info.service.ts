@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common'
 import { CarStatus } from '@prisma/client'
-import { subMinutes } from 'date-fns'
 import { PrismaService } from 'prisma/prisma.service'
 import { CreateCarInfoDto } from './dto/create-car-info.dto'
 import { UpdateCarInfoDto } from './dto/update-car-info.dto'
@@ -23,26 +22,26 @@ export class CarInfoService {
     return this.prismaService.carInfo.findUnique({ where: { id } })
   }
 
-  findCarInfoByDriverPhoneNumber(driverPhoneNumber: string) {
-    return this.prismaService.carInfo.findFirst({
-      where: { driverPhoneNumber },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
-  }
+  // findCarInfoByDriverPhoneNumber(driverPhoneNumber: string) {
+  //   return this.prismaService.carInfo.findFirst({
+  //     where: { driverPhoneNumber },
+  //     orderBy: {
+  //       createdAt: 'desc',
+  //     },
+  //   })
+  // }
 
-  findCarInfoByDriverPhoneNumberAndStatus(
-    driverPhoneNumber: string,
-    status: CarStatus,
-  ) {
-    return this.prismaService.carInfo.findFirst({
-      where: { driverPhoneNumber, status },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
-  }
+  // findCarInfoByDriverPhoneNumberAndStatus(
+  //   driverPhoneNumber: string,
+  //   status: CarStatus,
+  // ) {
+  //   return this.prismaService.carInfo.findFirst({
+  //     where: { driverPhoneNumber, status },
+  //     orderBy: {
+  //       createdAt: 'desc',
+  //     },
+  //   })
+  // }
 
   findCarInfoByYangoCarId(yangoCarId: string) {
     return this.prismaService.carInfo.findUnique({
@@ -61,29 +60,29 @@ export class CarInfoService {
     return this.prismaService.carInfo.delete({ where: { id } })
   }
 
-  findRecentByPhoneNumver(driverPhoneNumber: string) {
-    return this.prismaService.carInfo.findFirst({
-      where: {
-        driverPhoneNumber,
-        createdAt: {
-          gt: subMinutes(new Date(), 5),
-        },
-      },
-    })
-  }
+  // findRecentByPhoneNumver(driverPhoneNumber: string) {
+  //   return this.prismaService.carInfo.findFirst({
+  //     where: {
+  //       driverPhoneNumber,
+  //       createdAt: {
+  //         gt: subMinutes(new Date(), 5),
+  //       },
+  //     },
+  //   })
+  // }
 
-  findByPlateNumberAndPhoneNumber(plateNumber: string, phoneNumber: string) {
-    return this.prismaService.carInfo.findFirst({
-      where: {
-        plateNumber,
-        driverPhoneNumber: phoneNumber,
-      },
-    })
-  }
+  // findByPlateNumberAndPhoneNumber(plateNumber: string, phoneNumber: string) {
+  //   return this.prismaService.carInfo.findFirst({
+  //     where: {
+  //       plateNumber,
+  //       driverPhoneNumber: phoneNumber,
+  //     },
+  //   })
+  // }
 
-  findByPlateNumber(plateNumber: string) {
+  findByPlateNumber(plateNumber: string, status?: CarStatus) {
     return this.prismaService.carInfo.findFirst({
-      where: { plateNumber },
+      where: { plateNumber, status },
     })
   }
 

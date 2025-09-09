@@ -33,6 +33,19 @@ export class DriverCarService {
     })
   }
 
+  findDriverLastAssociation(idDriver: number) {
+    return this.prismaService.driverCar.findFirst({
+      where: { idDriver, endDate: '9999-12-31' },
+    })
+  }
+
+  findDriverMostRecentAssociation(idDriver: number) {
+    return this.prismaService.driverCar.findFirst({
+      where: { AND: [{ idDriver }, { endDate: { not: '9999-12-31' } }] },
+      orderBy: { updatedAt: 'desc' },
+    })
+  }
+
   update(id: number, updateDriverCarDto: UpdateDriverCarDto) {
     return this.prismaService.driverCar.update({
       data: updateDriverCarDto,

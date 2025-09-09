@@ -183,17 +183,17 @@ model DriverLicenseInfo {
 }
 
 model CarInfo {
-  id          Int       @id @default(autoincrement())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   brand       String
   color       String
   year        String
-  plateNumber String    @unique
-  status      CarStatus
+  plateNumber String     @unique
   code        String
+  status      CarStatus? @default(working)
   model       String?
-  yangoCarId  String?   @unique
+  yangoCarId  String?    @unique
 }
 
 model DriverCar {
@@ -202,6 +202,7 @@ model DriverCar {
   updatedAt DateTime @updatedAt
   idDriver  Int      @unique
   idCar     Int
+  endDate   String?  @default("9999-12-31")
 }
 
 model HistoryConversation {

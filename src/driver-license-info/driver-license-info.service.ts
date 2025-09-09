@@ -41,6 +41,12 @@ export class DriverLicenseInfoService {
     })
   }
 
+  deleteByDriverId(idDriver: number) {
+    return this.prismaService.driverLicenseInfo.deleteMany({
+      where: { idDriverPersInfo: idDriver },
+    })
+  }
+
   deleteByPhoneNumber(driverPhoneNumber: string) {
     return this.prismaService.driverLicenseInfo.delete({
       where: {

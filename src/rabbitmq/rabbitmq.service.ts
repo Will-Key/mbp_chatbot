@@ -891,10 +891,11 @@ export class RabbitmqService {
     console.log('deleteInfoCollected.carId', carId)
     await this.carInfoService.remove(carId)
     await this.driverLicenseInfoService.deleteByPhoneNumber(phoneNumber)
-    await this.driverPersonalInfoService.deleteByWhaPhoneNumber(
-      conversation.whaPhoneNumber,
-    )
-    //await this.driverCarService.deleteByDriverId(personalInfo.id)
+    const personalInfo =
+      await this.driverPersonalInfoService.deleteByWhaPhoneNumber(
+        conversation.whaPhoneNumber,
+      )
+    await this.driverCarService.deleteByDriverId(personalInfo.id)
   }
 
   private getErrorMessage(
@@ -978,6 +979,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto
   }) {
     const abortData = this.buildAbortionPayload(lastConversation)
+
     try {
       const whaPhoneNumber = newMessage.messages[0].from
       this.logger.log(`Create Yango profile for ${whaPhoneNumber}`)
@@ -1014,19 +1016,23 @@ export class RabbitmqService {
       if (bindingResponse !== 200)
         return await this.abortConversation(abortData)
 
-      const carInfo =
-        await this.carInfoService.findCarInfoByDriverPhoneNumber(phoneNumber)
-      await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
-
       const driverInfo =
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
           phoneNumber,
         )
+
       await this.driverPersonalInfoService.update(driverInfo.id, {
         yangoProfileId: profileId,
       })
 
-      await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
+      const driverAssociatedCarId = (
+        await this.driverCarService.findOneByDriverId(driverInfo.id)
+      )?.idCar
+
+      const carInfo = await this.carInfoService.findOne(driverAssociatedCarId)
+      await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
+
+      //await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
 
       const successStep = await this.stepService.findOneByLevel(20)
       this.logger.log('Create Yango profile successStep', successStep.message)
@@ -1225,10 +1231,10 @@ export class RabbitmqService {
         yangoCarId: carId,
       })
 
-      await this.makeAssociationBetweenDriverAndCar(
-        driverInfo.id,
-        driverAssociatedCarId,
-      )
+      // await this.makeAssociationBetweenDriverAndCar(
+      //   driverInfo.id,
+      //   driverAssociatedCarId,
+      // )
 
       const successStep = await this.stepService.findOneBylevelAndFlowId(7, 2)
       const message = successStep.message.replace(

@@ -210,29 +210,28 @@ export class OcrSpaceService {
         })
 
         return newCarId
-      } else {
-        const newCarId = (
-          await this.carInfoService.create({
-            brand,
-            color,
-            year: firstRegistrationDate.split('-')[0],
-            plateNumber,
-            status: 'working',
-            code: plateNumber,
-            model,
-            //driverPhoneNumber: phoneNumber,
-          })
-        ).id
-
-        console.log('newCarId', newCarId)
-
-        await this.driverCarService.create({
-          idDriver,
-          idCar: newCarId,
-        })
-
-        return newCarId
       }
+      const newCarId = (
+        await this.carInfoService.create({
+          brand,
+          color,
+          year: firstRegistrationDate.split('-')[0],
+          plateNumber,
+          status: 'working',
+          code: plateNumber,
+          model,
+          //driverPhoneNumber: phoneNumber,
+        })
+      ).id
+
+      console.log('newCarId', newCarId)
+
+      await this.driverCarService.create({
+        idDriver,
+        idCar: newCarId,
+      })
+
+      return newCarId
     } catch (error) {
       const lastAdded =
         await this.carInfoService.findCarInfoByDriverPhoneNumberAndStatus(

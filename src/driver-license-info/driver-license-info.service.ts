@@ -35,6 +35,15 @@ export class DriverLicenseInfoService {
     })
   }
 
+  updateByPhoneNumber(previousPhoneNumber: string, currentPhoneNumber: string) {
+    return this.prismaService.driverLicenseInfo.update({
+      data: {
+        driverPhoneNumber: currentPhoneNumber,
+      },
+      where: { driverPhoneNumber: previousPhoneNumber },
+    })
+  }
+
   remove(id: number) {
     return this.prismaService.driverLicenseInfo.delete({
       where: { id },

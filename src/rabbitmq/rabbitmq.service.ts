@@ -693,6 +693,7 @@ export class RabbitmqService {
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
           phoneNumber,
         )
+
       if (driver) {
         const errorMessage = this.getErrorMessage(lastConversation, 'isExist')
         await this.updateMessage(lastConversation, errorMessage)
@@ -1091,7 +1092,7 @@ export class RabbitmqService {
         callsign: carInfo.code,
         fuel_type: 'petrol',
         status: 'unknown',
-        categories: ['econom', 'comfort'],
+        categories: ['econom', 'comfort', 'comfort_plus', 'business'],
       },
       vehicle_licenses: {
         licence_plate_number: carInfo.plateNumber,
@@ -1340,6 +1341,10 @@ export class RabbitmqService {
       if (response !== 204) return await this.abortConversation(abortData)
 
       await this.driverPersonalInfoService.updateByPhoneNumber(
+        previousPhoneNumber,
+        currentPhoneNumber,
+      )
+      await this.driverLicenseInfoService.updateByPhoneNumber(
         previousPhoneNumber,
         currentPhoneNumber,
       )

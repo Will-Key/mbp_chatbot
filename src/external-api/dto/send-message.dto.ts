@@ -3,3 +3,10 @@ export class SendMessageDto {
   body: string
   typing_time: number
 }
+
+export class SendImageMessageDto {
+  to: string
+  caption?: string
+  media: string
+  typing_time: number
+}

@@ -23,7 +23,10 @@ import { DriverPersonalInfoService } from '../driver-personal-info/driver-person
 import { CreateYangoCarDto } from '../external-api/dto/create-yango-car.dto'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
 import { GetOcrResponseDto } from '../external-api/dto/get-ocr-response.dto'
-import { SendMessageDto } from '../external-api/dto/send-message.dto'
+import {
+  SendImageMessageDto,
+  SendMessageDto,
+} from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
 import { OtpService } from '../external-api/otp.service'
 import { WhapiService } from '../external-api/whapi.service'
@@ -39,6 +42,7 @@ import {
   OCR_SENT_QUEUE_NAME,
   UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_IMAGE_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 
@@ -790,6 +794,15 @@ export class RabbitmqService {
         stepId: conv.stepId,
       })
       await this.delay(5000)
+      const step = await this.stepService.findOne(stepId)
+      if (step.messageType === 'IMAGE_TEXT' && step.mediaUrl) {
+        await this.pushImageToSent({
+          to: whaPhoneNumber,
+          media: step.mediaUrl,
+          typing_time: 5,
+        })
+        await this.delay(2000)
+      }
       await this.pushMessageToSent({
         to: whaPhoneNumber,
         body: nextMessage,
@@ -944,6 +957,25 @@ export class RabbitmqService {
   async handleMessageToSent(message: SendMessageDto) {
     this.logger.log(`sent message to whapi: ${JSON.stringify(message)}`)
     await this.whapiService.sendMessage({
+      ...message,
+      to: `${message.to}@s.whatsapp.net`,
+    })
+  }
+
+  async pushImageToSent(message: SendImageMessageDto) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(WHAPI_SENT_IMAGE_QUEUE_NAME, message),
+      )
+      this.logger.log(`Emitting image to queue: ${JSON.stringify(message)}`)
+    } catch (error) {
+      this.logger.error(`Error emitting image: ${error}`)
+    }
+  }
+
+  async handleImageToSent(message: SendImageMessageDto) {
+    this.logger.log(`sent image to whapi: ${JSON.stringify(message)}`)
+    await this.whapiService.sendImageMessage({
       ...message,
       to: `${message.to}@s.whatsapp.net`,
     })

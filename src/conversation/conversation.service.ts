@@ -59,6 +59,8 @@ export class ConversationService {
             updatedAt: true,
             level: true,
             message: true,
+            mediaUrl: true,
+            messageType: true,
             expectedResponse: true,
             expectedResponseType: true,
             timeDelay: true,

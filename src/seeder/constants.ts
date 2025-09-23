@@ -4,6 +4,9 @@ import { CreateFlowDto } from '../flow/dto/create-flow.dto'
 
 export const INITIAL_FLOWS: CreateFlowDto[] = [
   {
+    name: 'Offres',
+  },
+  {
     name: 'Inscription',
   },
   {
@@ -44,7 +47,7 @@ Veuillez sélectionner l'un des services suivant :
     level: 1,
     message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre des nouveaux chauffeurs.\nOffre pour les chauffeurs déjà inscrit.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 0,
+    flowId: 4,
   },
   {
     level: 2,
@@ -53,7 +56,7 @@ Veuillez sélectionner l'un des services suivant :
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/1_dmlv1w.webp',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 0,
+    flowId: 4,
   },
   {
     level: 3,
@@ -62,13 +65,13 @@ Veuillez sélectionner l'un des services suivant :
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/2_g7dmgv.webp',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 0,
+    flowId: 4,
   },
   {
     level: 4,
     message: `Envoyez "Start" pour démarrer un nouveau processus.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 0,
+    flowId: 4,
   },
   {
     level: 1,

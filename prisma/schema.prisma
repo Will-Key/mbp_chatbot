@@ -111,7 +111,7 @@ model Step {
   updatedAt              DateTime                 @updatedAt
   level                  Int
   message                String
-  imageUrl               String?
+  medialUrl              String?
   messageType            MessageType?             @default(TEXT)
   expectedResponse       String?
   expectedResponseType   StepExpectedResponseType @default(text)

@@ -19,6 +19,7 @@ export const INITIAL_STEPS: CreateStepDto[] = [
     level: 0,
     message: `Merci d'avoir choisi le partenaire MBP pour vous connecter à votre compte Yango.
 Veuillez sélectionner l'un des services suivant :
+0-Nos offres
 1-Ouverture de compte MBP
 2-Changement de véhicule
 3-Modification du numéro de téléphone
@@ -35,6 +36,24 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'equalLength',
       },
     ],
+  },
+  {
+    level: 1,
+    message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre des nouveaux chauffeurs.\nOffre pour les chauffeurs déjà inscrit.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    flowId: 0,
+  },
+  {
+    level: 2,
+    message: `Offre des nouveaux chauffeurs:\n-Inscription gratuite.\n-Formation gratuite.\n-Forfait journalier à 5000 FCFA.\n-Commission de 15%.\n\nOffre pour les chauffeurs déjà inscrit:\n-Inscription gratuite.\n-Formation gratuite.\n-Forfait journalier à 7000 FCFA.\n-Commission de 10%.\n\nPour toute information complémentaire, veuillez contacter le +225 0710825902.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    flowId: 0,
+  },
+  {
+    level: 3,
+    message: `Envoyez "Start" pour démarrer un nouveau processus.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    flowId: 0,
   },
   {
     level: 1,

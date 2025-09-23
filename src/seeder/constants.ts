@@ -24,6 +24,9 @@ Veuillez sélectionner l'un des services suivant :
 2-Changement de véhicule
 3-Modification du numéro de téléphone
             `,
+    mediaUrl:
+      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599470/0_z9wjxv.webp',
+    messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -45,12 +48,24 @@ Veuillez sélectionner l'un des services suivant :
   },
   {
     level: 2,
-    message: `Offre des nouveaux chauffeurs:\n-Inscription gratuite.\n-Formation gratuite.\n-Forfait journalier à 5000 FCFA.\n-Commission de 15%.\n\nOffre pour les chauffeurs déjà inscrit:\n-Inscription gratuite.\n-Formation gratuite.\n-Forfait journalier à 7000 FCFA.\n-Commission de 10%.\n\nPour toute information complémentaire, veuillez contacter le +225 0710825902.`,
+    message: `Merci de votre intérêt pour le partenaire MBP.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
+    mediaUrl:
+      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/1_dmlv1w.webp',
+    messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
     flowId: 0,
   },
   {
     level: 3,
+    message: `Merci de votre intérêt pour le partenaire MBP.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
+    mediaUrl:
+      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/2_g7dmgv.webp',
+    messageType: 'IMAGE_TEXT',
+    expectedResponseType: StepExpectedResponseType.text,
+    flowId: 0,
+  },
+  {
+    level: 4,
     message: `Envoyez "Start" pour démarrer un nouveau processus.`,
     expectedResponseType: StepExpectedResponseType.text,
     flowId: 0,

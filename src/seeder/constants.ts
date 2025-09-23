@@ -45,8 +45,14 @@ Veuillez sélectionner l'un des services suivant :
   },
   {
     level: 1,
-    message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre des nouveaux chauffeurs.\nOffre pour les chauffeurs déjà inscrit.`,
+    message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre pour les nouveaux chauffeurs.\n2-Offre pour les chauffeurs déjà inscrits.`,
     expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message: "Veuillez choisir un nombre correspondant à l'offre.",
+        errorType: 'incorrectChoice',
+      },
+    ],
     flowId: 4,
   },
   {

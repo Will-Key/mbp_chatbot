@@ -133,7 +133,10 @@ export class RabbitmqService {
     _conversations: Conversation[],
   ) {
     if (lastConversation.step.level === 0) {
-      if (newMessage.messages[0].text.body.includes('1')) {
+      if (newMessage.messages[0].text.body.includes('0')) {
+        // We begin the "Offres" flow
+        await this.startFlow(newMessage, 4)
+      } else if (newMessage.messages[0].text.body.includes('1')) {
         await this.startFlow(newMessage, 1)
       } else if (newMessage.messages[0].text.body.includes('2')) {
         await this.startFlow(newMessage, 2)
@@ -142,10 +145,12 @@ export class RabbitmqService {
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
-          'equalLength',
+          'incorrectChoice',
         )
         await this.updateMessage(lastConversation, errorMessage)
       }
+    } else if (lastConversation.step.flowId === 4) {
+      await this.getOfferFlowSteps(lastConversation, newMessage)
     } else if (lastConversation.step.flowId === 1) {
       await this.getFirstFlowSteps(lastConversation, newMessage)
     } else if (lastConversation.step.flowId === 2) {
@@ -163,6 +168,56 @@ export class RabbitmqService {
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+  }
+
+  private async getOfferFlowSteps(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    switch (lastConversation.step.level) {
+      case 1:
+        await this.handleOfferChoice(lastConversation, newMessage)
+        break
+      default:
+        this.updateMessage(lastConversation, newMessage.messages[0].text.body)
+    }
+  }
+
+  private async handleOfferChoice(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    try {
+      const whaPhoneNumber = newMessage.messages[0].from
+      const flowId = 4
+      const choice = this.removeAllSpaces(newMessage.messages[0].text.body)
+
+      if (
+        newMessage.messages[0].type !== StepExpectedResponseType.text ||
+        !['1', '2'].includes(choice)
+      ) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'incorrectChoice',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
+      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+        choice === '1' ? 2 : 3,
+        flowId,
+      )
+      await this.saveMessage({
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: whaPhoneNumber,
+        nextMessage: nextStep.message,
+        stepId: nextStep.id,
+      })
+      await this.deleteAllConversations(lastConversation)
+    } catch (error) {
+      this.logger.error(error.message)
+    }
   }
 
   private async getFirstFlowSteps(
@@ -801,7 +856,7 @@ export class RabbitmqService {
           media: step.mediaUrl,
           typing_time: 5,
         })
-        await this.delay(2000)
+        await this.delay(5000)
       }
       await this.pushMessageToSent({
         to: whaPhoneNumber,

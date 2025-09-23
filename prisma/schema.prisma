@@ -89,6 +89,14 @@ enum HistoryConversationReasonForEnding {
   NORMAL_FINISH
 }
 
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  IMAGE_TEXT
+  VIDEO_TEXT
+}
+
 model Flow {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -103,6 +111,8 @@ model Step {
   updatedAt              DateTime                 @updatedAt
   level                  Int
   message                String
+  imageUrl               String?
+  messageType            MessageType?             @default(TEXT)
   expectedResponse       String?
   expectedResponseType   StepExpectedResponseType @default(text)
   timeDelay              Int                      @default(2)

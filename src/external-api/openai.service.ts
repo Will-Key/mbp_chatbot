@@ -48,18 +48,38 @@ export class OpenAIService {
     }
   }
 
-  async extractDriverLicenseBack(ocrData: GetOcrResponseDto): Promise<any> {
+  async extractDriverLicenseBack(imageLink: string): Promise<any> {
     try {
+      // const systemPrompt = `
+      //   Tu es un expert en extraction de données du verso du permis de conduire ivoirien.
+      //   Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
+      //   - expiryDate: date d'expiration (au format YYYY-MM-DD)
+      //   Si l'information n'est pas trouvée, renvoie null pour ce champ.
+      //   Les dates doivent être converties au format YYYY-MM-DD.
+      // `
       const systemPrompt = `
-        Tu es un expert en extraction de données du verso du permis de conduire ivoirien.
-        Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
-        - expiryDate: date d'expiration (au format YYYY-MM-DD)
-        
-        Si l'information n'est pas trouvée, renvoie null pour ce champ.
-        Les dates doivent être converties au format YYYY-MM-DD.
+        Tu es un assistant qui analyse des images de permis de conduire.
+        Tâche :
+        - Extrais les informations visibles sur l'image fournie.
+        - Retourne uniquement un objet JSON valide, sans texte supplémentaire.
+        - Si une information n'est pas trouvée, renvoie null pour ce champ.
+
+        Format attendu :
+        {
+          "categories": [
+            {"categorie": "A", "dateDeValidite": "valeur", "dateExpiration": "valeur"},
+            {"categorie": "B", "dateDeValidite": "valeur", "dateExpiration": "valeur"},
+            ...
+          ],
+          "documentIdentite": "valeur",
+          "groupeSanguin": "valeur"
+        }
+
+        Image à analyser : ${imageLink}
+
       `
 
-      return await this.makeOpenAiRequest(systemPrompt, ocrData)
+      return await this.makeOpenAiRequest(systemPrompt, null, imageLink)
     } catch (error) {
       this.logger.error(
         `Error extracting driver license back data: ${error.message}`,
@@ -98,6 +118,7 @@ export class OpenAIService {
   private async makeOpenAiRequest(
     systemPrompt: string,
     ocrData: GetOcrResponseDto,
+    imageLink?: string,
   ): Promise<any> {
     const response = await lastValueFrom(
       this.httpService
@@ -109,7 +130,7 @@ export class OpenAIService {
               { role: 'system', content: systemPrompt },
               {
                 role: 'user',
-                content: `Extrait le texte suivant du OCR: ${JSON.stringify(ocrData.ParsedResults[0].ParsedText)}`,
+                content: `Extrait le texte suivant du OCR: ${JSON.stringify(ocrData.ParsedResults[0].ParsedText || imageLink)}`,
               },
             ],
             temperature: 0.1,
@@ -128,7 +149,9 @@ export class OpenAIService {
               direction: 'OUT',
               status: 'SUCCESS',
               initiator: 'OPENAI',
-              data: JSON.stringify(ocrData.ParsedResults[0].ParsedText),
+              data: ocrData.ParsedResults[0].ParsedText
+                ? JSON.stringify(ocrData.ParsedResults[0].ParsedText)
+                : imageLink,
               response: `${response}`,
             })
             return response
@@ -138,7 +161,9 @@ export class OpenAIService {
               direction: 'OUT',
               status: 'FAIL',
               initiator: 'OPENAI',
-              data: JSON.stringify(ocrData.ParsedResults[0].ParsedText),
+              data: ocrData.ParsedResults[0].ParsedText
+                ? JSON.stringify(ocrData.ParsedResults[0].ParsedText)
+                : imageLink,
               response: `${error}`,
             })
             throw error

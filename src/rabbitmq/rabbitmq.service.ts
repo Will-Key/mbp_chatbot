@@ -28,6 +28,7 @@ import {
   SendMessageDto,
 } from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
+import { OpenAIService } from '../external-api/openai.service'
 import { OtpService } from '../external-api/otp.service'
 import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
@@ -66,6 +67,7 @@ export class RabbitmqService {
     private readonly yangoService: YangoService,
     private readonly historyConversationService: HistoryConversationService,
     private readonly otpService: OtpService,
+    private readonly openAiService: OpenAIService,
   ) {}
 
   onModuleInit() {
@@ -234,10 +236,10 @@ export class RabbitmqService {
       case 3:
         await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
         break
-      // case 4:
-      //   await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
-      //   break
       case 4:
+        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+        break
+      case 5:
         await this.handleCarRegistrationUpload(lastConversation, newMessage)
         break
       default:
@@ -364,11 +366,7 @@ export class RabbitmqService {
   ) {
     const whaPhoneNumber = newMessage.messages[0].from
 
-    const checkImageValidityResponse = await this.checkImageValidity(
-      lastConversation,
-      newMessage,
-    )
-    if (checkImageValidityResponse === 0)
+    if ((await this.checkImageValidity(lastConversation, newMessage)) === 0)
       throw Error("L'élément partagé n'est pas une image")
 
     const link = newMessage.messages[0].image.link
@@ -389,23 +387,38 @@ export class RabbitmqService {
       throw Error("Veuillez vérifier l'image fournie.")
     }
 
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc, flowId)
-    this.logger.error(`ocrResponse ${ocrResponse}`)
-    if (ocrResponse === 0) {
-      await this.documentFileService.remove(doc.id)
-      const errorMessage =
-        documentType === 'DRIVER_LICENSE'
-          ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-          : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-      await this.updateMessage(lastConversation, errorMessage)
-      throw Error("Veuillez vérifier l'image fournie.")
-    }
+    if (documentType === 'DRIVER_LICENSE' && documentSide === 'BACK') {
+      const response = await this.openAiService.extractDriverLicenseBack(link)
+      const driverPhoneNumber = await this.getDriverPhoneNumber(
+        whaPhoneNumber,
+        1,
+      )
+      const { id } =
+        await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(
+          driverPhoneNumber,
+        )
+      await this.driverLicenseInfoService.update(id, {
+        backInfos: JSON.stringify(response),
+      })
+    } else {
+      const ocrResponse = await this.ocrSpaceService.sendFile(doc, flowId)
+      this.logger.error(`ocrResponse ${ocrResponse}`)
+      if (ocrResponse === 0) {
+        await this.documentFileService.remove(doc.id)
+        const errorMessage =
+          documentType === 'DRIVER_LICENSE'
+            ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+            : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        await this.updateMessage(lastConversation, errorMessage)
+        throw Error("Veuillez vérifier l'image fournie.")
+      }
 
-    if (ocrResponse === -1) {
-      const errorMessage =
-        "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
-      await this.updateMessage(lastConversation, errorMessage)
-      throw Error('Vous êtes déjà associé à ce véhicule')
+      if (ocrResponse === -1) {
+        const errorMessage =
+          "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
+        await this.updateMessage(lastConversation, errorMessage)
+        throw Error('Vous êtes déjà associé à ce véhicule')
+      }
     }
 
     const nextStep = await this.stepService.findOneBylevelAndFlowId(
@@ -421,6 +434,16 @@ export class RabbitmqService {
     })
   }
 
+  private async getDriverPhoneNumber(
+    whaPhoneNumber: string,
+    flowId: number,
+  ): Promise<string> {
+    return (
+      await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
+    ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId)
+      .message
+  }
+
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
@@ -429,6 +452,19 @@ export class RabbitmqService {
       lastConversation,
       newMessage,
       'FRONT',
+      'DRIVER_LICENSE',
+      lastConversation.step.level + 1,
+    )
+  }
+
+  private async handleDriverLicenseBackUpload(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'BACK',
       'DRIVER_LICENSE',
       lastConversation.step.level + 1,
     )
@@ -1431,7 +1467,7 @@ export class RabbitmqService {
         previousPhoneNumber,
         currentPhoneNumber,
       )
-      await this.driverLicenseInfoService.updateByPhoneNumber(
+      await this.driverLicenseInfoService.updatePhoneNumber(
         previousPhoneNumber,
         currentPhoneNumber,
       )

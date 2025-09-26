@@ -2,6 +2,7 @@ import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { catchError, lastValueFrom, map } from 'rxjs'
 import { RequestLogService } from '../request-log/request-log.service'
+import { ExtractDriverLicenseBackDto } from './dto/extract-driver-license-back.dto'
 import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
 import { ExtractVehiculeRegistrationDto } from './dto/extract-vehicule-registration.dto'
 import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
@@ -48,7 +49,9 @@ export class OpenAIService {
     }
   }
 
-  async extractDriverLicenseBack(imageLink: string): Promise<any> {
+  async extractDriverLicenseBack(
+    imageLink: string,
+  ): Promise<ExtractDriverLicenseBackDto> {
     try {
       // const systemPrompt = `
       //   Tu es un expert en extraction de données du verso du permis de conduire ivoirien.

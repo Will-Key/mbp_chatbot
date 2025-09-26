@@ -188,6 +188,7 @@ model DriverLicenseInfo {
   countryCode         String
   expiryDate          DateTime
   deliveryDate        DateTime
+  backInfo            String?
   idDriverPersInfo    Int?                 @unique
   driverPersonnalInfo DriverPersonnalInfo? @relation(fields: [idDriverPersInfo], references: [id])
 }

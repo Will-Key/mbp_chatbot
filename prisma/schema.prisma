@@ -101,7 +101,7 @@ model Flow {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  name      String
+  name      String   @unique
   steps     Step[]
 }
 
@@ -116,8 +116,8 @@ model Step {
   expectedResponse       String?
   expectedResponseType   StepExpectedResponseType @default(text)
   timeDelay              Int                      @default(2)
-  flowId                 Int?
-  flow                   Flow?                    @relation(fields: [flowId], references: [id])
+  flowName               String?
+  flow                   Flow?                    @relation(fields: [flowName], references: [name])
   conversation           Conversation[]
   stepBadResponseMessage StepBadResponseMessage[]
   HistoryConversation    HistoryConversation[]

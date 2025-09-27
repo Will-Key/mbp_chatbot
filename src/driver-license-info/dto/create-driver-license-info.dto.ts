@@ -29,7 +29,7 @@ export class CreateDriverLicenseInfoDto {
 
   @IsOptional()
   @IsString()
-  backInfos?: string
+  backInfo?: string
 
   @IsNotEmpty()
   @IsNumber()

@@ -40,6 +40,6 @@ export class CreateStepDto {
   badResponseMessage?: StepBadResponseMessageDto[]
 
   @IsOptional()
-  @IsNumber()
-  flowId?: number | null
+  @IsString()
+  flowName?: string | null
 }

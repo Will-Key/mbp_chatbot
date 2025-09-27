@@ -50,7 +50,7 @@ export class OpenAIService {
   }
 
   async extractDriverLicenseBack(
-    imageLink: string,
+    ocrData: GetOcrResponseDto,
   ): Promise<ExtractDriverLicenseBackDto> {
     try {
       // const systemPrompt = `
@@ -61,28 +61,34 @@ export class OpenAIService {
       //   Les dates doivent être converties au format YYYY-MM-DD.
       // `
       const systemPrompt = `
-        Tu es un assistant qui analyse des images de permis de conduire.
-        Tâche :
-        - Extrais les informations visibles sur l'image fournie.
-        - Retourne uniquement un objet JSON valide, sans texte supplémentaire.
-        - Si une information n'est pas trouvée, renvoie null pour ce champ.
+        Tu es un assistant qui formate le texte brut issu d'un OCR de permis de conduire.
+
+        Règles :
+        1. Extrait les catégories, les dates de validité et les dates d'expiration si elles sont présentes.
+        2. Si certaines catégories ne sont pas trouvées, considère par défaut les catégories A, B, C, D et E.
+        3. Les catégories A et B ont toujours comme dateExpiration "PERMANENT", même si une autre valeur est trouvée.
+        4. Les dates de validité et d'expiration sont alignées avec l'ordre des catégories trouvées.
+          - Si une catégorie ajoutée par défaut n'a pas de date spécifique, copie la date de validité et d'expiration de la catégorie précédente (en respectant la règle 3 pour A et B).
+        5. Extrait le document d'identité.
+        6. Extrait le groupe sanguin.
+        7. Retourne UNIQUEMENT du JSON valide comme le format attendu, sans texte explicatif.
 
         Format attendu :
         {
           "categories": [
-            {"categorie": "A", "dateDeValidite": "valeur", "dateExpiration": "valeur"},
-            {"categorie": "B", "dateDeValidite": "valeur", "dateExpiration": "valeur"},
-            ...
+            {"categorie": "A", "dateDeValidite": "valeur", "dateExpiration": "PERMANENT"},
+            {"categorie": "B", "dateDeValidite": "valeur", "dateExpiration": "PERMANENT"},
+            {"categorie": "C", "dateDeValidite": "valeur", "dateExpiration": "valeur"},
+            {"categorie": "D", "dateDeValidite": "valeur", "dateExpiration": "valeur"},
+            {"categorie": "E", "dateDeValidite": "valeur", "dateExpiration": "valeur"}
           ],
           "documentIdentite": "valeur",
           "groupeSanguin": "valeur"
         }
 
-        Image à analyser : ${imageLink}
-
       `
 
-      return await this.makeOpenAiRequest(systemPrompt, null, imageLink)
+      return await this.makeOpenAiRequest(systemPrompt, ocrData)
     } catch (error) {
       this.logger.error(
         `Error extracting driver license back data: ${error.message}`,
@@ -133,7 +139,9 @@ export class OpenAIService {
               { role: 'system', content: systemPrompt },
               {
                 role: 'user',
-                content: `Extrait le texte suivant du OCR: ${JSON.stringify(ocrData.ParsedResults[0].ParsedText || imageLink)}`,
+                content: ocrData
+                  ? `Extrait le texte suivant du OCR: ${JSON.stringify(ocrData.ParsedResults[0].ParsedText)}`
+                  : `Analyse cette image : ${imageLink} et donne moi les informations demandées au format JSON`,
               },
             ],
             temperature: 0.1,
@@ -152,7 +160,7 @@ export class OpenAIService {
               direction: 'OUT',
               status: 'SUCCESS',
               initiator: 'OPENAI',
-              data: ocrData.ParsedResults[0].ParsedText
+              data: ocrData
                 ? JSON.stringify(ocrData.ParsedResults[0].ParsedText)
                 : imageLink,
               response: `${response}`,
@@ -164,7 +172,7 @@ export class OpenAIService {
               direction: 'OUT',
               status: 'FAIL',
               initiator: 'OPENAI',
-              data: ocrData.ParsedResults[0].ParsedText
+              data: ocrData
                 ? JSON.stringify(ocrData.ParsedResults[0].ParsedText)
                 : imageLink,
               response: `${error}`,
@@ -173,7 +181,7 @@ export class OpenAIService {
           }),
         ),
     )
-    console.log('makeOpenAiRequest', response)
+    console.log('makeOpenAiRequest', response.data.choices)
     return JSON.parse(response.data.choices[0].message.content)
   }
 }

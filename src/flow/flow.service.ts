@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
+import { PrismaService } from 'prisma/prisma.service'
 import { CreateFlowDto } from './dto/create-flow.dto'
 import { UpdateFlowDto } from './dto/update-flow.dto'
-import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class FlowService {
@@ -17,6 +17,10 @@ export class FlowService {
 
   findOne(id: number) {
     return this.prismaService.flow.findUnique({ where: { id } })
+  }
+
+  findByName(name: string) {
+    return this.prismaService.flow.findFirst({ where: { name } })
   }
 
   update(id: number, updateFlowDto: UpdateFlowDto) {

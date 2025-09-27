@@ -2,6 +2,7 @@ import { HttpModule } from '@nestjs/axios'
 import { Module } from '@nestjs/common'
 import { PrismaService } from 'prisma/prisma.service'
 import { DriverCarService } from 'src/driver-car/driver-car.service'
+import { FlowService } from 'src/flow/flow.service'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
@@ -35,6 +36,7 @@ import { YangoService } from './yango.service'
     PrismaService,
     OpenAIService,
     DriverCarService,
+    FlowService,
   ],
   exports: [
     WhapiService,

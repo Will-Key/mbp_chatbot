@@ -55,10 +55,10 @@ export class RabbitmqController {
   }
 
   @EventPattern(OCR_SENT_QUEUE_NAME)
-  async handleToFile(@Payload() data: DocumentFile, flowId: number) {
+  async handleToFile(@Payload() data: DocumentFile, flowName: string) {
     try {
       this.logger.log(`New message to send: ${data}`)
-      await this.rabbitmqService.handleDocumentPushed(data, flowId)
+      await this.rabbitmqService.handleDocumentPushed(data, flowName)
     } catch (error) {
       this.logger.error(`Error processing message to sent: ${error}`)
     }

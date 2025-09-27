@@ -53,7 +53,7 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'incorrectChoice',
       },
     ],
-    flowId: 4,
+    flowName: 'Offres',
   },
   {
     level: 2,
@@ -62,7 +62,7 @@ Veuillez sélectionner l'un des services suivant :
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/1_dmlv1w.webp',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 4,
+    flowName: 'Offres',
   },
   {
     level: 3,
@@ -71,13 +71,13 @@ Veuillez sélectionner l'un des services suivant :
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/2_g7dmgv.webp',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 4,
+    flowName: 'Offres',
   },
   {
     level: 4,
     message: `Envoyez "Start" pour démarrer un nouveau processus.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 4,
+    flowName: 'Offres',
   },
   {
     level: 1,
@@ -96,7 +96,7 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'isExist',
       },
     ],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 2,
@@ -114,11 +114,11 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'isExpired',
       },
     ],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 3,
-    message: `Etape 3 : Veuillez partager une photo lisible, recto uniquement, de votre permis de conduire`,
+    message: `Etape 3 : Veuillez partager une photo lisible (recto), de votre permis de conduire`,
     expectedResponseType: StepExpectedResponseType.url,
     badResponseMessage: [
       {
@@ -130,11 +130,11 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'maxSize',
       },
     ],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 4,
-    message: `Etape 4 : Veuillez partager une photo lisible, recto uniquement, de la carte grise du véhicule à associer à votre compte`,
+    message: `Etape 4 : Veuillez partager une photo lisible (verso), de votre permis de conduire`,
     expectedResponseType: StepExpectedResponseType.image,
     badResponseMessage: [
       {
@@ -147,14 +147,31 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'maxSize',
       },
     ],
-    flowId: 1,
+    flowName: 'Inscription',
+  },
+  {
+    level: 5,
+    message: `Etape 5 : Veuillez partager une photo lisible, recto uniquement, de la carte grise du véhicule à associer à votre compte`,
+    expectedResponseType: StepExpectedResponseType.image,
+    badResponseMessage: [
+      {
+        message:
+          'Veuillez envoyer la photo recto de la carte grise du véhicule',
+        errorType: 'incorrectChoice',
+      },
+      {
+        message: 'La taille de la photo envoyer trop grande',
+        errorType: 'maxSize',
+      },
+    ],
+    flowName: 'Inscription',
   },
   {
     level: 14,
     message: `L'information renseignée n'est pas celle attendue.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 15,
@@ -165,14 +182,14 @@ Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 19,
     message: `Votre demande d'inscription à la plateforme MBP est terminée. Un message de confirmation suivi des instructions vous sera partagé dans moins de Cinq (05) mins.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 20,
@@ -180,7 +197,7 @@ Pour reéssayer envoyer "Start"
 Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 24,
@@ -192,7 +209,7 @@ Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowId: 1,
+    flowName: 'Inscription',
   },
   {
     level: 1,
@@ -208,7 +225,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isNotExist',
       },
     ],
-    flowId: 2,
+    flowName: 'Changement de véhicule',
   },
   {
     level: 2,
@@ -225,7 +242,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExpired',
       },
     ],
-    flowId: 2,
+    flowName: 'Changement de véhicule',
   },
   {
     level: 3,
@@ -242,18 +259,18 @@ Pour reéssayer envoyer "Start"
         errorType: 'maxSize',
       },
     ],
-    flowId: 2,
+    flowName: 'Changement de véhicule',
   },
   {
     level: 6,
     message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 2,
+    flowName: 'Changement de véhicule',
   },
   {
     level: 7,
     message: `Opération effectué avec succès.\nVotre nouveau véhicule immatriculé {carPlateNumber} est associé à votre compte.\nVeuillez vous rendre sur l'application Yango pour la suite du processus\nEnvoyez "Start" pour démarrer un nouveau processus.`,
-    flowId: 2,
+    flowName: 'Changement de véhicule',
   },
   {
     level: 1,
@@ -270,7 +287,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isNotExist',
       },
     ],
-    flowId: 3,
+    flowName: 'Modification de numéro de téléphone',
   },
   {
     level: 2,
@@ -287,7 +304,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExpired',
       },
     ],
-    flowId: 3,
+    flowName: 'Modification de numéro de téléphone',
   },
   {
     level: 3,
@@ -304,7 +321,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExist',
       },
     ],
-    flowId: 3,
+    flowName: 'Modification de numéro de téléphone',
   },
   {
     level: 4,
@@ -321,18 +338,18 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExpired',
       },
     ],
-    flowId: 3,
+    flowName: 'Modification de numéro de téléphone',
   },
   {
     level: 5,
     message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowId: 3,
+    flowName: 'Modification de numéro de téléphone',
   },
   {
     level: 6,
     message: `Votre numéro a été mis à jour avec succès.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
-    flowId: 3,
+    flowName: 'Modification de numéro de téléphone',
   },
   {
     level: 99,

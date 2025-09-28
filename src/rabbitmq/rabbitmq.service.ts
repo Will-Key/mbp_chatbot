@@ -215,6 +215,12 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
+      await this.editHistoryConversation({
+        whaPhoneNumber: whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
+      })
       await this.deleteAllConversations(lastConversation)
     } catch (error) {
       this.logger.error(error.message)
@@ -946,12 +952,6 @@ export class RabbitmqService {
       if (updatedConversation.badResponseCount >= 2) {
         return await this.abortConversation(conversation, message)
       }
-      await this.editHistoryConversation({
-        whaPhoneNumber: conversation.whaPhoneNumber,
-        status: HistoryConversationStatus.IN_PROGRESS,
-        reason: HistoryConversationReasonForEnding.ERROR,
-        stepId: conversation.stepId,
-      })
       await this.handleMessageToSent({
         to: conversation.whaPhoneNumber,
         body: message,
@@ -1226,6 +1226,13 @@ export class RabbitmqService {
         typing_time: 5,
       })
 
+      await this.editHistoryConversation({
+        whaPhoneNumber: whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
+      })
+
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData, '', 'CREATION')
@@ -1437,6 +1444,13 @@ export class RabbitmqService {
         typing_time: 5,
       })
 
+      await this.editHistoryConversation({
+        whaPhoneNumber: whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
+      })
+
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData)
@@ -1531,6 +1545,13 @@ export class RabbitmqService {
         typing_time: 5,
       })
       console.log('message sent to driver')
+      await this.editHistoryConversation({
+        whaPhoneNumber: lastConversation.whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
+      })
+
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData)

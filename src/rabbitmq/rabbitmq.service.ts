@@ -105,11 +105,7 @@ export class RabbitmqService {
     const lastConversation = conversations?.[0]
 
     if (lastConversation) {
-      await this.handleExistingConversation(
-        lastConversation,
-        newMessage,
-        conversations,
-      )
+      await this.handleExistingConversation(lastConversation, newMessage)
     } else {
       await this.handleNewConversation(newMessage)
     }
@@ -131,8 +127,6 @@ export class RabbitmqService {
   private async handleExistingConversation(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _conversations: Conversation[],
   ) {
     if (lastConversation.step.level === 0) {
       if (newMessage.messages[0].text.body.includes('0')) {

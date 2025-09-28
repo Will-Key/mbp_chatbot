@@ -105,11 +105,7 @@ export class RabbitmqService {
     const lastConversation = conversations?.[0]
 
     if (lastConversation) {
-      await this.handleExistingConversation(
-        lastConversation,
-        newMessage,
-        conversations,
-      )
+      await this.handleExistingConversation(lastConversation, newMessage)
     } else {
       await this.handleNewConversation(newMessage)
     }
@@ -131,8 +127,6 @@ export class RabbitmqService {
   private async handleExistingConversation(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _conversations: Conversation[],
   ) {
     if (lastConversation.step.level === 0) {
       if (newMessage.messages[0].text.body.includes('0')) {
@@ -220,6 +214,12 @@ export class RabbitmqService {
         convMessage: whaPhoneNumber,
         nextMessage: nextStep.message,
         stepId: nextStep.id,
+      })
+      await this.editHistoryConversation({
+        whaPhoneNumber: whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
       })
       await this.deleteAllConversations(lastConversation)
     } catch (error) {
@@ -952,12 +952,6 @@ export class RabbitmqService {
       if (updatedConversation.badResponseCount >= 2) {
         return await this.abortConversation(conversation, message)
       }
-      await this.editHistoryConversation({
-        whaPhoneNumber: conversation.whaPhoneNumber,
-        status: HistoryConversationStatus.IN_PROGRESS,
-        reason: HistoryConversationReasonForEnding.ERROR,
-        stepId: conversation.stepId,
-      })
       await this.handleMessageToSent({
         to: conversation.whaPhoneNumber,
         body: message,
@@ -1232,6 +1226,13 @@ export class RabbitmqService {
         typing_time: 5,
       })
 
+      await this.editHistoryConversation({
+        whaPhoneNumber: whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
+      })
+
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData, '', 'CREATION')
@@ -1443,6 +1444,13 @@ export class RabbitmqService {
         typing_time: 5,
       })
 
+      await this.editHistoryConversation({
+        whaPhoneNumber: whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
+      })
+
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData)
@@ -1537,6 +1545,13 @@ export class RabbitmqService {
         typing_time: 5,
       })
       console.log('message sent to driver')
+      await this.editHistoryConversation({
+        whaPhoneNumber: lastConversation.whaPhoneNumber,
+        status: HistoryConversationStatus.SUCCEEDED,
+        reason: HistoryConversationReasonForEnding.NORMAL_FINISH,
+        stepId: lastConversation.stepId,
+      })
+
       this.deleteAllConversations(lastConversation)
     } catch (error) {
       await this.abortConversation(abortData)

@@ -8,6 +8,7 @@ import {
   OCR_SENT_QUEUE_NAME,
   UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_IMAGE_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './rabbitmq/constants'
 import { baseUrl, rabbitmqPort } from './shared/constants'
@@ -26,6 +27,13 @@ async function bootstrap() {
     options: {
       urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
       queue: WHAPI_SENT_QUEUE_NAME,
+    },
+  })
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
+      queue: WHAPI_SENT_IMAGE_QUEUE_NAME,
     },
   })
   app.connectMicroservice<MicroserviceOptions>({

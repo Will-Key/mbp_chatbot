@@ -1,4 +1,4 @@
-import { StepExpectedResponseType } from '@prisma/client'
+import { MessageType, StepExpectedResponseType } from '@prisma/client'
 import {
   IsArray,
   IsEnum,
@@ -21,6 +21,14 @@ export class CreateStepDto {
 
   @IsOptional()
   @IsString()
+  mediaUrl?: string
+
+  @IsOptional()
+  @IsString()
+  messageType?: MessageType
+
+  @IsOptional()
+  @IsString()
   expectedResponse?: string
 
   @IsOptional()
@@ -32,6 +40,6 @@ export class CreateStepDto {
   badResponseMessage?: StepBadResponseMessageDto[]
 
   @IsOptional()
-  @IsNumber()
-  flowId?: number | null
+  @IsString()
+  flowName?: string | null
 }

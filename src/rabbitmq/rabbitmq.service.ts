@@ -23,8 +23,12 @@ import { DriverPersonalInfoService } from '../driver-personal-info/driver-person
 import { CreateYangoCarDto } from '../external-api/dto/create-yango-car.dto'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
 import { GetOcrResponseDto } from '../external-api/dto/get-ocr-response.dto'
-import { SendMessageDto } from '../external-api/dto/send-message.dto'
+import {
+  SendImageMessageDto,
+  SendMessageDto,
+} from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
+import { OpenAIService } from '../external-api/openai.service'
 import { OtpService } from '../external-api/otp.service'
 import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
@@ -39,6 +43,7 @@ import {
   OCR_SENT_QUEUE_NAME,
   UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_IMAGE_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 
@@ -62,6 +67,7 @@ export class RabbitmqService {
     private readonly yangoService: YangoService,
     private readonly historyConversationService: HistoryConversationService,
     private readonly otpService: OtpService,
+    private readonly openAiService: OpenAIService,
   ) {}
 
   onModuleInit() {
@@ -129,36 +135,96 @@ export class RabbitmqService {
     _conversations: Conversation[],
   ) {
     if (lastConversation.step.level === 0) {
-      if (newMessage.messages[0].text.body.includes('1')) {
-        await this.startFlow(newMessage, 1)
+      if (newMessage.messages[0].text.body.includes('0')) {
+        // We begin the "Offres" flow
+        await this.startFlow(newMessage, 'Offres')
+      } else if (newMessage.messages[0].text.body.includes('1')) {
+        await this.startFlow(newMessage, 'Inscription')
       } else if (newMessage.messages[0].text.body.includes('2')) {
-        await this.startFlow(newMessage, 2)
+        await this.startFlow(newMessage, 'Changement de véhicule')
       } else if (newMessage.messages[0].text.body.includes('3')) {
-        await this.startFlow(newMessage, 3)
+        await this.startFlow(newMessage, 'Modification de numéro de téléphone')
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
-          'equalLength',
+          'incorrectChoice',
         )
         await this.updateMessage(lastConversation, errorMessage)
       }
-    } else if (lastConversation.step.flowId === 1) {
+    } else if (lastConversation.step.flowName === 'Offres') {
+      await this.getOfferFlowSteps(lastConversation, newMessage)
+    } else if (lastConversation.step.flowName === 'Inscription') {
       await this.getFirstFlowSteps(lastConversation, newMessage)
-    } else if (lastConversation.step.flowId === 2) {
+    } else if (lastConversation.step.flowName === 'Changement de véhicule') {
       await this.getSecondFlowSteps(lastConversation, newMessage)
-    } else if (lastConversation.step.flowId === 3) {
+    } else if (
+      lastConversation.step.flowName === 'Modification de numéro de téléphone'
+    ) {
       await this.getThirdFlowSteps(lastConversation, newMessage)
     }
   }
 
-  private async startFlow(newMessage: NewMessageWebhookDto, flowId: number) {
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(1, flowId)
+  private async startFlow(newMessage: NewMessageWebhookDto, flowName: string) {
+    const nextStep = await this.stepService.findOneBylevelAndFlowName(
+      1,
+      flowName,
+    )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+  }
+
+  private async getOfferFlowSteps(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    switch (lastConversation.step.level) {
+      case 1:
+        await this.handleOfferChoice(lastConversation, newMessage)
+        break
+      default:
+        this.updateMessage(lastConversation, newMessage.messages[0].text.body)
+    }
+  }
+
+  private async handleOfferChoice(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    try {
+      const whaPhoneNumber = newMessage.messages[0].from
+      const flowName = 'Offres'
+      const choice = this.removeAllSpaces(newMessage.messages[0].text.body)
+
+      if (
+        newMessage.messages[0].type !== StepExpectedResponseType.text ||
+        !['1', '2'].includes(choice)
+      ) {
+        const errorMessage = this.getErrorMessage(
+          lastConversation,
+          'incorrectChoice',
+        )
+        await this.updateMessage(lastConversation, errorMessage)
+        return
+      }
+
+      const nextStep = await this.stepService.findOneBylevelAndFlowName(
+        choice === '1' ? 2 : 3,
+        flowName,
+      )
+      await this.saveMessage({
+        whaPhoneNumber: newMessage.messages[0].from,
+        convMessage: whaPhoneNumber,
+        nextMessage: nextStep.message,
+        stepId: nextStep.id,
+      })
+      await this.deleteAllConversations(lastConversation)
+    } catch (error) {
+      this.logger.error(error.message)
+    }
   }
 
   private async getFirstFlowSteps(
@@ -170,15 +236,20 @@ export class RabbitmqService {
         await this.handlePhoneNumberStep(lastConversation, newMessage)
         break
       case 2:
-        await this.handleOtpVerification(lastConversation, newMessage)
+        await this.handleOtpVerification(
+          lastConversation,
+          newMessage,
+          'Inscription',
+          1,
+        )
         break
       case 3:
         await this.handleDriverLicenseFrontUpload(lastConversation, newMessage)
         break
-      // case 4:
-      //   await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
-      //   break
       case 4:
+        await this.handleDriverLicenseBackUpload(lastConversation, newMessage)
+        break
+      case 5:
         await this.handleCarRegistrationUpload(lastConversation, newMessage)
         break
       default:
@@ -191,7 +262,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     try {
-      const flowId = 1
+      const flowName = 'Inscription'
 
       if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
         const errorMessage = this.getErrorMessage(
@@ -222,9 +293,9 @@ export class RabbitmqService {
         return
       }
 
-      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      const nextStep = await this.stepService.findOneBylevelAndFlowName(
         lastConversation.step.level + 1,
-        flowId,
+        flowName,
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
@@ -247,15 +318,19 @@ export class RabbitmqService {
   private async handleOtpVerification(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number = 1,
+    flowName: string = 'Inscription',
+    level: number = 1,
   ) {
     const whaPhoneNumber = newMessage.messages[0].from
     const otpEnter = newMessage.messages[0].text.body.trim()
 
-    const step = await this.stepService.findOneBylevelAndFlowId(flowId, flowId)
+    const step = await this.stepService.findOneBylevelAndFlowName(
+      level,
+      flowName,
+    )
 
     const phoneNumber =
-      flowId === 1
+      flowName === 'Inscription'
         ? (
             await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
               step.id + 1,
@@ -283,9 +358,9 @@ export class RabbitmqService {
       return
     }
 
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+    const nextStep = await this.stepService.findOneBylevelAndFlowName(
       lastConversation.step.level + 1,
-      flowId,
+      flowName,
     )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
@@ -301,66 +376,92 @@ export class RabbitmqService {
     documentSide: 'FRONT' | 'BACK',
     documentType: 'DRIVER_LICENSE' | 'CAR_REGISTRATION',
     nextStepLevel: number,
-    flowId: number = 1,
+    flowName: string = 'Inscription',
   ) {
-    const whaPhoneNumber = newMessage.messages[0].from
+    try {
+      const whaPhoneNumber = newMessage.messages[0].from
 
-    const checkImageValidityResponse = await this.checkImageValidity(
-      lastConversation,
-      newMessage,
-    )
-    if (checkImageValidityResponse === 0)
-      throw Error("L'élément partagé n'est pas une image")
+      if ((await this.checkImageValidity(lastConversation, newMessage)) === 0)
+        throw Error("L'élément partagé n'est pas une image")
 
-    const link = newMessage.messages[0].image.link
+      const link = newMessage.messages[0].image.link
 
-    const createDocumentFile: CreateDocumentFileDto = {
-      dataImageUrl: link,
-      documentSide,
-      documentType,
-      whaPhoneNumber,
+      const createDocumentFile: CreateDocumentFileDto = {
+        dataImageUrl: link,
+        documentSide,
+        documentType,
+        whaPhoneNumber,
+      }
+      const doc = await this.documentFileService.create(createDocumentFile)
+      if (!doc) {
+        const errorMessage =
+          documentType === 'DRIVER_LICENSE'
+            ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+            : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        await this.updateMessage(lastConversation, errorMessage)
+        throw Error("Veuillez vérifier l'image fournie.")
+      }
+
+      /*if (documentType === 'DRIVER_LICENSE' && documentSide === 'BACK') {
+        const response = await this.openAiService.extractDriverLicenseBack(link)
+        // TODO: Get flow id by flow name
+        const driverPhoneNumber = await this.getDriverPhoneNumber(
+          whaPhoneNumber,
+          1,
+        )
+        const { id } =
+          await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(
+            driverPhoneNumber,
+          )
+        await this.driverLicenseInfoService.update(id, {
+          backInfo: JSON.stringify(response),
+        })
+      } else {*/
+      const ocrResponse = await this.ocrSpaceService.sendFile(doc, flowName)
+      this.logger.error(`ocrResponse ${ocrResponse}`)
+      if (ocrResponse === 0) {
+        await this.documentFileService.remove(doc.id)
+        const errorMessage =
+          documentType === 'DRIVER_LICENSE'
+            ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+            : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        await this.updateMessage(lastConversation, errorMessage)
+        throw Error("Veuillez vérifier l'image fournie.")
+      }
+
+      if (ocrResponse === -1) {
+        const errorMessage =
+          "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
+        await this.updateMessage(lastConversation, errorMessage)
+        throw Error('Vous êtes déjà associé à ce véhicule')
+      }
+      //}
+
+      const nextStep = await this.stepService.findOneBylevelAndFlowName(
+        nextStepLevel,
+        flowName,
+      )
+
+      await this.saveMessage({
+        whaPhoneNumber,
+        convMessage: newMessage.messages[0].image.link,
+        nextMessage: nextStep.message,
+        stepId: nextStep.id,
+      })
+    } catch (error) {
+      this.logger.error(error.message)
     }
-    const doc = await this.documentFileService.create(createDocumentFile)
-    if (!doc) {
-      const errorMessage =
-        documentType === 'DRIVER_LICENSE'
-          ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-          : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-      await this.updateMessage(lastConversation, errorMessage)
-      throw Error("Veuillez vérifier l'image fournie.")
-    }
-
-    const ocrResponse = await this.ocrSpaceService.sendFile(doc, flowId)
-    this.logger.error(`ocrResponse ${ocrResponse}`)
-    if (ocrResponse === 0) {
-      await this.documentFileService.remove(doc.id)
-      const errorMessage =
-        documentType === 'DRIVER_LICENSE'
-          ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-          : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-      await this.updateMessage(lastConversation, errorMessage)
-      throw Error("Veuillez vérifier l'image fournie.")
-    }
-
-    if (ocrResponse === -1) {
-      const errorMessage =
-        "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
-      await this.updateMessage(lastConversation, errorMessage)
-      throw Error('Vous êtes déjà associé à ce véhicule')
-    }
-
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
-      nextStepLevel,
-      flowId,
-    )
-
-    await this.saveMessage({
-      whaPhoneNumber,
-      convMessage: newMessage.messages[0].image.link,
-      nextMessage: nextStep.message,
-      stepId: nextStep.id,
-    })
   }
+
+  // private async getDriverPhoneNumber(
+  //   whaPhoneNumber: string,
+  //   flowId: number,
+  // ): Promise<string> {
+  //   return (
+  //     await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
+  //   ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId)
+  //     .message
+  // }
 
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
@@ -375,25 +476,37 @@ export class RabbitmqService {
     )
   }
 
+  private async handleDriverLicenseBackUpload(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    await this.handleDocumentUpload(
+      lastConversation,
+      newMessage,
+      'BACK',
+      'DRIVER_LICENSE',
+      lastConversation.step.level + 1,
+    )
+  }
+
   private async handleCarRegistrationUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
-    flowId: number = 1,
+    flowName: string = 'Inscription',
   ) {
     try {
-      const stepId = flowId === 1 ? 19 : 6
+      const stepId = flowName === 'Inscription' ? 19 : 6
       await this.handleDocumentUpload(
         lastConversation,
         newMessage,
         'FRONT',
         'CAR_REGISTRATION',
         stepId,
-        flowId,
+        flowName,
       )
-      console.log('flowId', flowId)
 
       await this.delay(30000)
-      if (flowId === 1) {
+      if (flowName === 'Inscription') {
         await this.sendDataToYango(lastConversation, newMessage)
       } else {
         await this.sendSecondFlowDataToYango(lastConversation, newMessage)
@@ -447,13 +560,25 @@ export class RabbitmqService {
         await this.handleSecondFlowPhoneNumber(lastConversation, newMessage)
         break
       case 2:
-        await this.handleOtpVerification(lastConversation, newMessage, 2)
+        await this.handleOtpVerification(
+          lastConversation,
+          newMessage,
+          'Changement de véhicule',
+          2,
+        )
         break
       case 3:
-        await this.handleCarRegistrationUpload(lastConversation, newMessage, 2)
+        await this.handleCarRegistrationUpload(
+          lastConversation,
+          newMessage,
+          'Changement de véhicule',
+        )
         break
       case 7:
-        await this.handleSecondFlowFinalStep(newMessage, 2)
+        await this.handleSecondFlowFinalStep(
+          newMessage,
+          'Changement de véhicule',
+        )
         break
       default:
         this.updateMessage(lastConversation, newMessage.messages[0].text.body)
@@ -465,7 +590,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     try {
-      const flowId = 2
+      const flowName = 'Changement de véhicule'
 
       if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
         const errorMessage = this.getErrorMessage(
@@ -499,9 +624,9 @@ export class RabbitmqService {
         return
       }
 
-      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      const nextStep = await this.stepService.findOneBylevelAndFlowName(
         lastConversation.step.level + 1,
-        flowId,
+        flowName,
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
@@ -544,7 +669,10 @@ export class RabbitmqService {
         await this.handleThirdFlowOtpVerification(lastConversation, newMessage)
         break
       case 5:
-        await this.handleThirdFlowFinalStep(newMessage, 3)
+        await this.handleThirdFlowFinalStep(
+          newMessage,
+          'Modification de numéro de téléphone',
+        )
         break
       default:
         this.updateMessage(lastConversation, newMessage.messages[0].text.body)
@@ -556,7 +684,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     try {
-      const flowId = 3
+      const flowName = 'Modification de numéro de téléphone'
 
       if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
         const errorMessage = this.getErrorMessage(
@@ -590,9 +718,9 @@ export class RabbitmqService {
         return
       }
 
-      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      const nextStep = await this.stepService.findOneBylevelAndFlowName(
         lastConversation.step.level + 1,
-        flowId,
+        flowName,
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
@@ -616,13 +744,13 @@ export class RabbitmqService {
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
   ) {
-    const flowId = 3
+    const flowName = 'Modification de numéro de téléphone'
     const whaPhoneNumber = newMessage.messages[0].from
     const otpEnter = newMessage.messages[0].text.body.trim()
 
-    const step = await this.stepService.findOneBylevelAndFlowId(
+    const step = await this.stepService.findOneBylevelAndFlowName(
       lastConversation.step.level,
-      flowId,
+      flowName,
     )
 
     const phoneNumber = (
@@ -646,9 +774,9 @@ export class RabbitmqService {
       return
     }
 
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(
+    const nextStep = await this.stepService.findOneBylevelAndFlowName(
       lastConversation.step.level + 1,
-      flowId,
+      flowName,
     )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
@@ -668,7 +796,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
   ) {
     try {
-      const flowId = 3
+      const flowName = 'Modification de numéro de téléphone'
 
       if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
         const errorMessage = this.getErrorMessage(
@@ -700,9 +828,9 @@ export class RabbitmqService {
         return
       }
 
-      const nextStep = await this.stepService.findOneBylevelAndFlowId(
+      const nextStep = await this.stepService.findOneBylevelAndFlowName(
         lastConversation.step.level + 1,
-        flowId,
+        flowName,
       )
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
@@ -741,9 +869,12 @@ export class RabbitmqService {
 
   private async handleSecondFlowFinalStep(
     newMessage: NewMessageWebhookDto,
-    flowId: number,
+    flowName: string = 'Changement de véhicule',
   ) {
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(6, flowId)
+    const nextStep = await this.stepService.findOneBylevelAndFlowName(
+      6,
+      flowName,
+    )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
@@ -754,9 +885,12 @@ export class RabbitmqService {
 
   private async handleThirdFlowFinalStep(
     newMessage: NewMessageWebhookDto,
-    flowId: number,
+    flowName: string = 'Modification de numéro de téléphone',
   ) {
-    const nextStep = await this.stepService.findOneBylevelAndFlowId(5, flowId)
+    const nextStep = await this.stepService.findOneBylevelAndFlowName(
+      5,
+      flowName,
+    )
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
@@ -790,6 +924,15 @@ export class RabbitmqService {
         stepId: conv.stepId,
       })
       await this.delay(5000)
+      const step = await this.stepService.findOne(stepId)
+      if (step.messageType === 'IMAGE_TEXT' && step.mediaUrl) {
+        await this.pushImageToSent({
+          to: whaPhoneNumber,
+          media: step.mediaUrl,
+          typing_time: 5,
+        })
+        await this.delay(5000)
+      }
       await this.pushMessageToSent({
         to: whaPhoneNumber,
         body: nextMessage,
@@ -949,6 +1092,25 @@ export class RabbitmqService {
     })
   }
 
+  async pushImageToSent(message: SendImageMessageDto) {
+    try {
+      await firstValueFrom(
+        this.whapiSentQueueClient.emit(WHAPI_SENT_IMAGE_QUEUE_NAME, message),
+      )
+      this.logger.log(`Emitting image to queue: ${JSON.stringify(message)}`)
+    } catch (error) {
+      this.logger.error(`Error emitting image: ${error}`)
+    }
+  }
+
+  async handleImageToSent(message: SendImageMessageDto) {
+    this.logger.log(`sent image to whapi: ${JSON.stringify(message)}`)
+    await this.whapiService.sendImageMessage({
+      ...message,
+      to: `${message.to}@s.whatsapp.net`,
+    })
+  }
+
   async pushDocument(doc: DocumentFile) {
     try {
       await firstValueFrom(
@@ -960,8 +1122,8 @@ export class RabbitmqService {
     }
   }
 
-  async handleDocumentPushed(data: DocumentFile, flowId: number) {
-    await this.ocrSpaceService.sendFile(data, flowId)
+  async handleDocumentPushed(data: DocumentFile, flowName: string) {
+    await this.ocrSpaceService.sendFile(data, flowName)
   }
 
   async pushOcrResponseToQueue(ocrResponse: GetOcrResponseDto) {
@@ -1006,7 +1168,10 @@ export class RabbitmqService {
     try {
       const whaPhoneNumber = newMessage.messages[0].from
       this.logger.log(`Create Yango profile for ${whaPhoneNumber}`)
-      const step = await this.stepService.findOneBylevelAndFlowId(1, 1)
+      const step = await this.stepService.findOneBylevelAndFlowName(
+        1,
+        'Inscription',
+      )
       this.logger.log(`Create Yango profile step id ${step.id}`)
       const phoneNumber = (
         await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
@@ -1204,7 +1369,10 @@ export class RabbitmqService {
     try {
       const whaPhoneNumber = newMessage.messages[0].from
       console.log(`Create Yango car for ${whaPhoneNumber}`)
-      const step = await this.stepService.findOneBylevelAndFlowId(2, 2)
+      const step = await this.stepService.findOneBylevelAndFlowName(
+        2,
+        'Changement de véhicule',
+      )
       console.log('step', step)
       const phoneNumber = (
         await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
@@ -1261,7 +1429,10 @@ export class RabbitmqService {
       //   driverAssociatedCarId,
       // )
 
-      const successStep = await this.stepService.findOneBylevelAndFlowId(7, 2)
+      const successStep = await this.stepService.findOneBylevelAndFlowName(
+        7,
+        'Changement de véhicule',
+      )
       const message = successStep.message.replace(
         '{carPlateNumber}',
         createYangoCar.vehicle_licenses.licence_plate_number,
@@ -1307,9 +1478,15 @@ export class RabbitmqService {
     const abortData = this.buildAbortionPayload(lastConversation)
     try {
       const previousPhoneNumberStep =
-        await this.stepService.findOneBylevelAndFlowId(2, 3)
+        await this.stepService.findOneBylevelAndFlowName(
+          2,
+          'Modification de numéro de téléphone',
+        )
       const currentPhoneNumberStep =
-        await this.stepService.findOneBylevelAndFlowId(4, 3)
+        await this.stepService.findOneBylevelAndFlowName(
+          4,
+          'Modification de numéro de téléphone',
+        )
       const previousPhoneNumber = (
         await this.conversationService.findOneByStepIdAndWhaPhoneNumber(
           previousPhoneNumberStep.id,
@@ -1344,11 +1521,14 @@ export class RabbitmqService {
         previousPhoneNumber,
         currentPhoneNumber,
       )
-      await this.driverLicenseInfoService.updateByPhoneNumber(
+      await this.driverLicenseInfoService.updatePhoneNumber(
         previousPhoneNumber,
         currentPhoneNumber,
       )
-      const successStep = await this.stepService.findOneBylevelAndFlowId(6, 3)
+      const successStep = await this.stepService.findOneBylevelAndFlowName(
+        6,
+        'Modification de numéro de téléphone',
+      )
       console.log('lastConversation', lastConversation.whaPhoneNumber)
       console.log('successStep', successStep.message)
       await this.handleMessageToSent({

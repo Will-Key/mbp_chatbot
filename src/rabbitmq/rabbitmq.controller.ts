@@ -2,7 +2,10 @@ import { Controller, Logger } from '@nestjs/common'
 import { EventPattern, Payload } from '@nestjs/microservices'
 import { DocumentFile } from '@prisma/client'
 import { ConversationType } from 'src/shared/types'
-import { SendMessageDto } from '../external-api/dto/send-message.dto'
+import {
+  SendImageMessageDto,
+  SendMessageDto,
+} from '../external-api/dto/send-message.dto'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import {
   CREATE_YANGO_CAR_SENT_QUEUE_NAME,
@@ -10,6 +13,7 @@ import {
   OCR_SENT_QUEUE_NAME,
   UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_IMAGE_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 import { RabbitmqService } from './rabbitmq.service'
@@ -40,11 +44,21 @@ export class RabbitmqController {
     }
   }
 
-  @EventPattern(OCR_SENT_QUEUE_NAME)
-  async handleToFile(@Payload() data: DocumentFile, flowId: number) {
+  @EventPattern(WHAPI_SENT_IMAGE_QUEUE_NAME)
+  async handleWhapiSentImage(@Payload() data: SendImageMessageDto) {
     try {
       this.logger.log(`New message to send: ${data}`)
-      await this.rabbitmqService.handleDocumentPushed(data, flowId)
+      await this.rabbitmqService.handleImageToSent(data)
+    } catch (error) {
+      this.logger.error(`Error processing message to sent: ${error}`)
+    }
+  }
+
+  @EventPattern(OCR_SENT_QUEUE_NAME)
+  async handleToFile(@Payload() data: DocumentFile, flowName: string) {
+    try {
+      this.logger.log(`New message to send: ${data}`)
+      await this.rabbitmqService.handleDocumentPushed(data, flowName)
     } catch (error) {
       this.logger.error(`Error processing message to sent: ${error}`)
     }

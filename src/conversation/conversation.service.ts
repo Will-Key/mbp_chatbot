@@ -33,14 +33,14 @@ export class ConversationService {
 
   findOneByStepLevelAndWhaPhoneNumber(
     level: number,
-    flowId: number,
+    flowName: string,
     whaPhoneNumber: string,
   ) {
     return this.prismaService.conversation.findFirst({
       where: {
         step: {
           level,
-          flowId,
+          flowName,
         },
         whaPhoneNumber,
       },
@@ -59,10 +59,12 @@ export class ConversationService {
             updatedAt: true,
             level: true,
             message: true,
+            mediaUrl: true,
+            messageType: true,
             expectedResponse: true,
             expectedResponseType: true,
             timeDelay: true,
-            flowId: true,
+            flowName: true,
             flow: true,
             stepBadResponseMessage: true,
           },

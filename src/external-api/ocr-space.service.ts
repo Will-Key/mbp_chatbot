@@ -28,7 +28,7 @@ export class OcrSpaceService {
     private readonly driverCarService: DriverCarService,
   ) {}
 
-  async sendFile(file: DocumentFile, flowId: number) {
+  async sendFile(file: DocumentFile, flowName: string) {
     const params: SendDocDto = {
       apiKey: process.env.OCR_SPACE_TOKEN,
       language: 'fre',
@@ -41,7 +41,11 @@ export class OcrSpaceService {
     try {
       const response = await ocrSpace(file.dataImageUrl, params)
       this.logger.log(`ocrSpace response:`, JSON.stringify(response))
-      const ocrResponse = await this.processOcrResponse(response, file, flowId)
+      const ocrResponse = await this.processOcrResponse(
+        response,
+        file,
+        flowName,
+      )
 
       await this.requestLogService.create({
         direction: 'OUT',
@@ -68,10 +72,13 @@ export class OcrSpaceService {
   private async processOcrResponse(
     response: GetOcrResponseDto,
     file: DocumentFile,
-    flowId: number,
+    flowName: string,
   ) {
     console.log('file.documentType', file.documentType)
-    if (file.documentType === 'DRIVER_LICENSE') {
+    if (
+      file.documentType === 'DRIVER_LICENSE' &&
+      file.documentSide === 'FRONT'
+    ) {
       const driverLicenseInfo =
         await this.openAiService.extractDriverLicenseFront(response)
 
@@ -80,9 +87,33 @@ export class OcrSpaceService {
       return await this.getDriverLicenseFrontData(
         driverLicenseInfo,
         file.whaPhoneNumber,
-        flowId,
+        flowName,
       )
-    } else {
+    }
+    if (
+      file.documentType === 'DRIVER_LICENSE' &&
+      file.documentSide === 'BACK'
+    ) {
+      const driverLicenseBackInfo =
+        await this.openAiService.extractDriverLicenseBack(response)
+      console.log('driverLicenseBackInfo', driverLicenseBackInfo)
+      const driverPhoneNumber = await this.getDriverPhoneNumber(
+        file.whaPhoneNumber,
+        'Inscription',
+      )
+      console.log('driverPhoneNumber', driverPhoneNumber)
+      const { id } =
+        await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(
+          driverPhoneNumber,
+        )
+      console.log('driverLicenseInfo id', id)
+      const licenseBackInfo = await this.driverLicenseInfoService.update(id, {
+        backInfo: JSON.stringify(driverLicenseBackInfo),
+      })
+      console.log('licenseBackInfo', licenseBackInfo)
+      return licenseBackInfo.id
+    }
+    if (file.documentType === 'CAR_REGISTRATION') {
       const vehiculeInfo =
         await this.openAiService.extractVehicleRegistration(response)
 
@@ -91,7 +122,7 @@ export class OcrSpaceService {
       return await this.getCarRegistrationData(
         vehiculeInfo,
         file.whaPhoneNumber,
-        flowId,
+        flowName,
       )
     }
   }
@@ -104,9 +135,12 @@ export class OcrSpaceService {
       deliveryDate,
     }: ExtractDriverLicenseFrontDto,
     whaPhoneNumber: string,
-    flowId: number,
+    flowName: string,
   ) {
-    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, flowId)
+    const phoneNumber = await this.getDriverPhoneNumber(
+      whaPhoneNumber,
+      flowName,
+    )
     try {
       const driverPersonalInfo = await this.driverPersonalInfoService.create({
         lastName,
@@ -141,9 +175,12 @@ export class OcrSpaceService {
       firstRegistrationDate,
     }: ExtractVehiculeRegistrationDto,
     whaPhoneNumber: string,
-    flowId: number,
+    flowName: string,
   ) {
-    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, flowId)
+    const phoneNumber = await this.getDriverPhoneNumber(
+      whaPhoneNumber,
+      flowName,
+    )
     const idDriver = (
       await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
         phoneNumber,
@@ -176,7 +213,7 @@ export class OcrSpaceService {
         ).id
       }
 
-      if (flowId === 2) {
+      if (flowName === 'Changement de véhicule') {
         console.log('carInfo', carId)
         const driverLastAssociation =
           await this.driverCarService.findDriverLastAssociation(idDriver)
@@ -218,11 +255,11 @@ export class OcrSpaceService {
 
   private async getDriverPhoneNumber(
     whaPhoneNumber: string,
-    flowId: number,
+    flowName: string,
   ): Promise<string> {
     return (
       await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
-    ).find((conv) => conv.step.level === 2 && conv.step.flowId === flowId)
+    ).find((conv) => conv.step.level === 2 && conv.step.flow.name === flowName)
       .message
     // return flowId === 1
     //   ? (

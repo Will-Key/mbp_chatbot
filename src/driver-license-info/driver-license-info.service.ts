@@ -35,7 +35,7 @@ export class DriverLicenseInfoService {
     })
   }
 
-  updateByPhoneNumber(previousPhoneNumber: string, currentPhoneNumber: string) {
+  updatePhoneNumber(previousPhoneNumber: string, currentPhoneNumber: string) {
     return this.prismaService.driverLicenseInfo.update({
       data: {
         driverPhoneNumber: currentPhoneNumber,

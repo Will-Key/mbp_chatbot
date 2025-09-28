@@ -18,6 +18,7 @@ import {
   OCR_SENT_QUEUE_NAME,
   UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
   WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_IMAGE_QUEUE_NAME,
   WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 import { RabbitmqController } from './rabbitmq.controller'
@@ -43,6 +44,17 @@ import { RabbitmqService } from './rabbitmq.service'
         options: {
           urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
           queue: WHAPI_SENT_QUEUE_NAME,
+          queueOptions: {
+            durable: true,
+          },
+        },
+      },
+      {
+        name: 'WHAPI_SENT_IMAGE_QUEUE_NAME',
+        transport: Transport.RMQ,
+        options: {
+          urls: [`amqp://${baseUrl}:${rabbitmqPort}`],
+          queue: WHAPI_SENT_IMAGE_QUEUE_NAME,
           queueOptions: {
             durable: true,
           },

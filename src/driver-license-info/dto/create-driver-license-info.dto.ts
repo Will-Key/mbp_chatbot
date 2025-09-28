@@ -2,6 +2,7 @@ import {
   IsDateString,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -25,6 +26,10 @@ export class CreateDriverLicenseInfoDto {
   @IsNotEmpty()
   @IsNumber()
   driverPhoneNumber: string
+
+  @IsOptional()
+  @IsString()
+  backInfo?: string
 
   @IsNotEmpty()
   @IsNumber()

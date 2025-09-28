@@ -89,11 +89,19 @@ enum HistoryConversationReasonForEnding {
   NORMAL_FINISH
 }
 
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  IMAGE_TEXT
+  VIDEO_TEXT
+}
+
 model Flow {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  name      String
+  name      String   @unique
   steps     Step[]
 }
 
@@ -103,11 +111,13 @@ model Step {
   updatedAt              DateTime                 @updatedAt
   level                  Int
   message                String
+  mediaUrl               String?
+  messageType            MessageType?             @default(TEXT)
   expectedResponse       String?
   expectedResponseType   StepExpectedResponseType @default(text)
   timeDelay              Int                      @default(2)
-  flowId                 Int?
-  flow                   Flow?                    @relation(fields: [flowId], references: [id])
+  flowName               String?
+  flow                   Flow?                    @relation(fields: [flowName], references: [name])
   conversation           Conversation[]
   stepBadResponseMessage StepBadResponseMessage[]
   HistoryConversation    HistoryConversation[]
@@ -178,6 +188,7 @@ model DriverLicenseInfo {
   countryCode         String
   expiryDate          DateTime
   deliveryDate        DateTime
+  backInfo            String?
   idDriverPersInfo    Int?                 @unique
   driverPersonnalInfo DriverPersonnalInfo? @relation(fields: [idDriverPersInfo], references: [id])
 }

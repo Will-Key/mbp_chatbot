@@ -1204,6 +1204,18 @@ export class RabbitmqService {
           phoneNumber,
         )
 
+      const documentFiles =
+        await this.documentFileService.findAllByWhaPhoneNumber(whaPhoneNumber)
+
+      // TODO: update the documents to add the driverInfoId
+      await Promise.all(
+        documentFiles.map(async (doc) => {
+          await this.documentFileService.update(doc.id, {
+            idDriver: driverInfo.id,
+          })
+        }),
+      )
+
       await this.driverPersonalInfoService.update(driverInfo.id, {
         yangoProfileId: profileId,
       })
@@ -1411,6 +1423,18 @@ export class RabbitmqService {
           recentIdCar,
         )
 
+        const documentFiles =
+          await this.documentFileService.findAllByWhaPhoneNumber(whaPhoneNumber)
+
+        // TODO: update the documents to add the driverInfoId
+        await Promise.all(
+          documentFiles.map(async (doc) => {
+            await this.documentFileService.update(doc.id, {
+              idDriver: driverInfo.id,
+            })
+          }),
+        )
+
         return await this.abortConversation(abortData)
       }
 
@@ -1424,6 +1448,18 @@ export class RabbitmqService {
       await this.carInfoService.update(driverAssociatedCarId, {
         yangoCarId: carId,
       })
+
+      const documentFiles =
+        await this.documentFileService.findAllByWhaPhoneNumber(whaPhoneNumber)
+
+      // TODO: update the documents to add the driverInfoId
+      await Promise.all(
+        documentFiles.map(async (doc) => {
+          await this.documentFileService.update(doc.id, {
+            idDriver: driverInfo.id,
+          })
+        }),
+      )
 
       // await this.makeAssociationBetweenDriverAndCar(
       //   driverInfo.id,

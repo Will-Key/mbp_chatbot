@@ -28,7 +28,6 @@ import {
   SendMessageDto,
 } from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
-import { OpenAIService } from '../external-api/openai.service'
 import { OtpService } from '../external-api/otp.service'
 import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
@@ -36,6 +35,7 @@ import { CreateHistoryConversationDto } from '../history-conversation/dto/create
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 import { ConversationType } from '../shared/types'
 import { StepService } from '../step/step.service'
+import { UserService } from '../user/user.service'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import {
   CREATE_YANGO_CAR_SENT_QUEUE_NAME,
@@ -67,7 +67,7 @@ export class RabbitmqService {
     private readonly yangoService: YangoService,
     private readonly historyConversationService: HistoryConversationService,
     private readonly otpService: OtpService,
-    private readonly openAiService: OpenAIService,
+    private readonly userService: UserService,
   ) {}
 
   onModuleInit() {
@@ -155,6 +155,14 @@ export class RabbitmqService {
       lastConversation.step.flowName === 'Modification de numéro de téléphone'
     ) {
       await this.getThirdFlowSteps(lastConversation, newMessage)
+    }
+
+    const user = await this.userService.find(newMessage.messages[0].from)
+    if (!user) {
+      await this.userService.create({
+        whaPhoneNumber: newMessage.messages[0].from,
+        role: 'USER',
+      })
     }
   }
 

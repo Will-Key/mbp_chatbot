@@ -20,6 +20,7 @@ import { HistoryConversationModule } from './history-conversation/history-conver
 import { ScheduleModule } from '@nestjs/schedule'
 import { OtpVerificationModule } from './otp-verification/otp-verification.module'
 import { DriverPersonalInfoModule } from './driver-personal-info/driver-personal-info.module'
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { DriverPersonalInfoModule } from './driver-personal-info/driver-personal
     HistoryConversationModule,
     ScheduleModule.forRoot(),
     OtpVerificationModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

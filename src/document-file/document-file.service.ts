@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
+import { PrismaService } from 'prisma/prisma.service'
 import { CreateDocumentFileDto } from './dto/create-document-file.dto'
 import { UpdateDocumentFileDto } from './dto/update-document-file.dto'
-import { PrismaService } from 'prisma/prisma.service'
 
 @Injectable()
 export class DocumentFileService {
@@ -21,6 +21,7 @@ export class DocumentFileService {
     return this.prismaService.documentFile.findMany({
       where: {
         whaPhoneNumber,
+        idDriver: null,
       },
     })
   }

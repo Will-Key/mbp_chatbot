@@ -156,13 +156,15 @@ model RequestLog {
 }
 
 model DocumentFile {
-  id             Int          @id @default(autoincrement())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  dataImageUrl   String
-  documentSide   DocumentSide
-  documentType   DocumentType
-  whaPhoneNumber String
+  id                  Int                  @id @default(autoincrement())
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  dataImageUrl        String
+  documentSide        DocumentSide
+  documentType        DocumentType
+  whaPhoneNumber      String
+  idDriver            Int?
+  driverPersonnalInfo DriverPersonnalInfo? @relation(fields: [idDriver], references: [id])
 }
 
 model DriverPersonnalInfo {
@@ -178,6 +180,7 @@ model DriverPersonnalInfo {
   collectMethod     CollectMethod?
   yangoProfileId    String?            @unique
   driverLicenseInfo DriverLicenseInfo?
+  DocumentFile      DocumentFile[]
 }
 
 model DriverLicenseInfo {
@@ -214,6 +217,16 @@ model DriverCar {
   idDriver  Int      @unique
   idCar     Int
   endDate   String?  @default("9999-12-31")
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  whaPhoneNumber String   @unique
+  firstName      String?
+  lastName       String?
+  role           String
 }
 
 model HistoryConversation {

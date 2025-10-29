@@ -11,6 +11,7 @@ import { ExternalApiModule } from '../external-api/external-api.module'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 import { baseUrl, rabbitmqPort } from '../shared/constants'
 import { StepService } from '../step/step.service'
+import { UserService } from '../user/user.service'
 import {
   CREATE_YANGO_CAR_SENT_QUEUE_NAME,
   CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
@@ -128,6 +129,7 @@ import { RabbitmqService } from './rabbitmq.service'
     DriverLicenseInfoService,
     DriverCarService,
     CarInfoService,
+    UserService,
     DocumentFileService,
     HistoryConversationService,
   ],

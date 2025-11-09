@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   mbp_chatbot_db:
@@ -6,46 +6,43 @@ services:
     container_name: mbp_chatbot_db
     restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=mbp_chatbot_db
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     ports:
-      - '5434:5432' # Changer le port exposé pour éviter le conflit
+      - "${DB_PORT_HOST}:${DB_PORT_CONTAINER}"
     volumes:
       - mbp_chatbot_db:/var/lib/postgresql/data
-      #- ./docker-init-scripts:/docker-entrypoint-initdb.d
     networks:
-      - mbp_chatbot_go_net
+      - ${NETWORK_NAME}
 
   mbp_chatbot_rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: 'mbp_chatbot_rabbitmq'
+    container_name: "mbp_chatbot_rabbitmq"
     restart: always
     ports:
-      - 5674:5672 # Changer le port exposé pour éviter le conflit
-      - 15674:15672 # Interface de gestion avec un port différent
+      - "${RABBITMQ_PORT_HOST}:${RABBITMQ_PORT_CONTAINER}"
+      - "${RABBITMQ_MGMT_PORT_HOST}:${RABBITMQ_MGMT_PORT_CONTAINER}"
     volumes:
       - ~/.docker-conf/rabbitmq/app2-data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/app2-log/:/var/log/rabbitmq
     networks:
-      - mbp_chatbot_go_net
+      - ${NETWORK_NAME}
 
   bot-app:
     build: .
     container_name: mbp_chatbot_app
     restart: always
     ports:
-      - '3001:3001'
+      - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
     depends_on:
       - mbp_chatbot_db
       - mbp_chatbot_rabbitmq
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@mbp_chatbot_db:5432/mbp_chatbot_db
-      - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:5672
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@mbp_chatbot_db:${DB_PORT_CONTAINER}/${DB_NAME}
+      - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq:${RABBITMQ_PORT_CONTAINER}
     networks:
-      - mbp_chatbot_go_net
-    #volumes:
-      #- ./entrypoint.sh:/usr/src/app/entrypoint.sh
+      - ${NETWORK_NAME}
     command: ["sh", "entrypoint.sh"]
 
 volumes:
@@ -53,5 +50,5 @@ volumes:
     driver: local
 
 networks:
-  mbp_chatbot_go_net:
+  ${NETWORK_NAME}:
     driver: bridge

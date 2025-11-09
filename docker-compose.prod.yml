@@ -1,0 +1,56 @@
+version: "3"
+
+services:
+  mbp_chatbot_db_prod:
+    image: postgres:latest
+    container_name: mbp_chatbot_db_prod
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "${DB_PORT_HOST_PROD}:${DB_PORT_CONTAINER}"
+    volumes:
+      - mbp_chatbot_db_prod:/var/lib/postgresql/data
+    networks:
+      - mbp_chatbot_network_prod
+
+  mbp_chatbot_rabbitmq_prod:
+    image: rabbitmq:3-management-alpine
+    container_name: mbp_chatbot_rabbitmq_prod
+    restart: always
+    ports:
+      - "${RABBITMQ_PORT_HOST_PROD}:${RABBITMQ_PORT_CONTAINER}"
+      - "${RABBITMQ_MGMT_PORT_HOST_PROD}:${RABBITMQ_MGMT_PORT_CONTAINER}"
+    volumes:
+      - ~/.docker-conf/rabbitmq/prod/data:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/prod/log:/var/log/rabbitmq
+    networks:
+      - mbp_chatbot_network_prod
+
+  bot-app-prod:
+    build: .
+    container_name: mbp_chatbot_app_prod
+    restart: always
+    ports:
+      - "${APP_PORT_HOST_PROD}:${APP_PORT_CONTAINER}"
+    depends_on:
+      - mbp_chatbot_db_prod
+      - mbp_chatbot_rabbitmq_prod
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@mbp_chatbot_db_prod:${DB_PORT_CONTAINER}/${DB_NAME}
+      - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq_prod:${RABBITMQ_PORT_CONTAINER}
+      - NODE_ENV=production
+      - APP_ENV=prod
+    networks:
+      - mbp_chatbot_network_prod
+    command: ["sh", "entrypoint.sh"]
+
+volumes:
+  mbp_chatbot_db_prod:
+    driver: local
+
+networks:
+  mbp_chatbot_network_prod:
+    driver: bridge

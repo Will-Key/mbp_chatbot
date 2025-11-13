@@ -32,6 +32,8 @@ services:
   bot-app-test:
     build: .
     container_name: mbp_chatbot_app_test
+    env_file:
+      - .env.test
     restart: always
     ports:
       - "${APP_PORT_HOST_TEST}:${APP_PORT_CONTAINER}"

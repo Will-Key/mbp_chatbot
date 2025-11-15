@@ -936,16 +936,18 @@ export class RabbitmqService {
       if (step.messageType === 'IMAGE_TEXT' && step.mediaUrl) {
         await this.pushImageToSent({
           to: whaPhoneNumber,
+          caption: nextMessage,
           media: step.mediaUrl,
           typing_time: 5,
         })
         await this.delay(5000)
+      } else {
+        await this.pushMessageToSent({
+          to: whaPhoneNumber,
+          body: nextMessage,
+          typing_time: 5,
+        })
       }
-      await this.pushMessageToSent({
-        to: whaPhoneNumber,
-        body: nextMessage,
-        typing_time: 5,
-      })
     }
   }
 

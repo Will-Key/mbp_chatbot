@@ -28,7 +28,7 @@ export class OcrSpaceService {
     private readonly driverCarService: DriverCarService,
   ) {}
 
-  async sendFile(file: DocumentFile, flowName: string) {
+  async sendFile(file: DocumentFile, idFlow: string) {
     const params: SendDocDto = {
       apiKey: process.env.OCR_SPACE_TOKEN,
       language: 'fre',
@@ -41,11 +41,7 @@ export class OcrSpaceService {
     try {
       const response = await ocrSpace(file.dataImageUrl, params)
       this.logger.log(`ocrSpace response:`, JSON.stringify(response))
-      const ocrResponse = await this.processOcrResponse(
-        response,
-        file,
-        flowName,
-      )
+      const ocrResponse = await this.processOcrResponse(response, file, idFlow)
 
       await this.requestLogService.create({
         direction: 'OUT',
@@ -72,7 +68,7 @@ export class OcrSpaceService {
   private async processOcrResponse(
     response: GetOcrResponseDto,
     file: DocumentFile,
-    flowName: string,
+    idFlow: string,
   ) {
     console.log('file.documentType', file.documentType)
     if (
@@ -87,7 +83,7 @@ export class OcrSpaceService {
       return await this.getDriverLicenseFrontData(
         driverLicenseInfo,
         file.whaPhoneNumber,
-        flowName,
+        idFlow,
       )
     }
     if (
@@ -122,7 +118,7 @@ export class OcrSpaceService {
       return await this.getCarRegistrationData(
         vehiculeInfo,
         file.whaPhoneNumber,
-        flowName,
+        idFlow,
       )
     }
   }
@@ -135,12 +131,9 @@ export class OcrSpaceService {
       deliveryDate,
     }: ExtractDriverLicenseFrontDto,
     whaPhoneNumber: string,
-    flowName: string,
+    idFlow: string,
   ) {
-    const phoneNumber = await this.getDriverPhoneNumber(
-      whaPhoneNumber,
-      flowName,
-    )
+    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, idFlow)
     try {
       const driverPersonalInfo = await this.driverPersonalInfoService.create({
         lastName,
@@ -175,12 +168,9 @@ export class OcrSpaceService {
       firstRegistrationDate,
     }: ExtractVehiculeRegistrationDto,
     whaPhoneNumber: string,
-    flowName: string,
+    idFlow: string,
   ) {
-    const phoneNumber = await this.getDriverPhoneNumber(
-      whaPhoneNumber,
-      flowName,
-    )
+    const phoneNumber = await this.getDriverPhoneNumber(whaPhoneNumber, idFlow)
     const idDriver = (
       await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
         phoneNumber,
@@ -213,7 +203,7 @@ export class OcrSpaceService {
         ).id
       }
 
-      if (flowName === 'Changement de véhicule') {
+      if (idFlow === 'Changement de véhicule') {
         console.log('carInfo', carId)
         const driverLastAssociation =
           await this.driverCarService.findDriverLastAssociation(idDriver)
@@ -255,11 +245,11 @@ export class OcrSpaceService {
 
   private async getDriverPhoneNumber(
     whaPhoneNumber: string,
-    flowName: string,
+    idFlow: string,
   ): Promise<string> {
     return (
       await this.conversationService.findManyByWhaPhoneNumber(whaPhoneNumber)
-    ).find((conv) => conv.step.level === 2 && conv.step.flow.name === flowName)
+    ).find((conv) => conv.step.level === 2 && conv.step.flow.idFlow === idFlow)
       .message
     // return flowId === 1
     //   ? (

@@ -9,8 +9,8 @@ services:
       - POSTGRES_DB=${DB_NAME}
     ports:
       - "${DB_PORT_HOST_TEST}:${DB_PORT_CONTAINER}"
-    # volumes:
-    #   - mbp_chatbot_db_test:/var/lib/postgresql/data
+    volumes:
+      - mbp_chatbot_db_test:/var/lib/postgresql/data
     networks:
       - mbp_chatbot_network_test
 

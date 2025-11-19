@@ -27,25 +27,25 @@ services:
     networks:
       - mbp_chatbot_network_test
 
-  # bot-app-test:
-  #   build: .
-  #   container_name: mbp_chatbot_app_test
-  #   env_file:
-  #     - .env.test
-  #   restart: always
-  #   ports:
-  #     - "${APP_PORT_HOST_TEST}:${APP_PORT_CONTAINER}"
-  #   depends_on:
-  #     - mbp_chatbot_db_test
-  #     - mbp_chatbot_rabbitmq_test
-  #   environment:
-  #     - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@mbp_chatbot_db_test:${DB_PORT_CONTAINER}/${DB_NAME}
-  #     - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq_test:${RABBITMQ_PORT_CONTAINER}
-  #     - NODE_ENV=development
-  #     - APP_ENV=test
-  #   networks:
-  #     - mbp_chatbot_network_test
-  #   command: ["sh", "entrypoint.sh"]
+  bot-app-test:
+    build: .
+    container_name: mbp_chatbot_app_test
+    env_file:
+      - .env.test
+    restart: always
+    ports:
+      - "${APP_PORT_HOST_TEST}:${APP_PORT_CONTAINER}"
+    depends_on:
+      - mbp_chatbot_db_test
+      - mbp_chatbot_rabbitmq_test
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@mbp_chatbot_db_test:${DB_PORT_CONTAINER}/${DB_NAME}
+      - RABBITMQ_URL=amqp://mbp_chatbot_rabbitmq_test:${RABBITMQ_PORT_CONTAINER}
+      - NODE_ENV=development
+      - APP_ENV=test
+    networks:
+      - mbp_chatbot_network_test
+    command: ["sh", "entrypoint.sh"]
 
 volumes:
   mbp_chatbot_db_test:

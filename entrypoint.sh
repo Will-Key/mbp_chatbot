@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "🔁 Applying Prisma migrations..."
-npx prisma migrate dev
+npx prisma migrate deploy
 
 echo "🚀 Starting app..."
 node dist/src/main.js

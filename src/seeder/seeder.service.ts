@@ -31,9 +31,9 @@ export class SeederService {
 
   private async createStepsSeed() {
     for (const initialStep of INITIAL_STEPS) {
-      const existingStep = await this.stepService.findOneBylevelAndFlowName(
+      const existingStep = await this.stepService.findOneBylevelAndidFlow(
         initialStep.level,
-        initialStep.flowName,
+        initialStep.idFlow,
       )
 
       if (!existingStep) {

@@ -1,12 +1,12 @@
 import { MessageType, StepExpectedResponseType } from '@prisma/client'
 import {
-  IsArray,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  ValidateNested,
+    IsArray,
+    IsEnum,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+    ValidateNested,
 } from 'class-validator'
 import { StepBadResponseMessageDto } from '../../step-bad-response-message/dto/step-bad-response-message.dto'
 
@@ -41,5 +41,5 @@ export class CreateStepDto {
 
   @IsOptional()
   @IsString()
-  flowName?: string | null
+  idFlow?: string | null
 }

@@ -19,8 +19,8 @@ export class FlowService {
     return this.prismaService.flow.findUnique({ where: { id } })
   }
 
-  findByName(name: string) {
-    return this.prismaService.flow.findFirst({ where: { name } })
+  findByName(idFlow: string) {
+    return this.prismaService.flow.findFirst({ where: { idFlow } })
   }
 
   update(id: number, updateFlowDto: UpdateFlowDto) {

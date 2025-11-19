@@ -42,14 +42,14 @@ export class StepService {
     })
   }
 
-  findOneBylevelAndFlowName(
+  findOneBylevelAndidFlow(
     level: number,
-    flowName: string,
+    idFlow: string,
   ): Promise<Step | null> {
     return this.prismaService.step.findFirst({
       where: {
         level,
-        flowName,
+        idFlow,
       },
       include: {
         stepBadResponseMessage: true,

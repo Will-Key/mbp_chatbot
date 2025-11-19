@@ -4,16 +4,16 @@ import { CreateFlowDto } from '../flow/dto/create-flow.dto'
 
 export const INITIAL_FLOWS: CreateFlowDto[] = [
   {
-    name: 'Offres',
+    idFlow: 'Offres',
   },
   {
-    name: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
-    name: 'Changement de véhicule',
+    idFlow: 'Changement de véhicule',
   },
   {
-    name: 'Modification de numéro de téléphone',
+    idFlow: 'Modification de numéro de téléphone',
   },
 ]
 
@@ -53,7 +53,7 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'incorrectChoice',
       },
     ],
-    flowName: 'Offres',
+    idFlow: 'Offres',
   },
   {
     level: 2,
@@ -62,7 +62,7 @@ Veuillez sélectionner l'un des services suivant :
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/1_dmlv1w.webp',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
-    flowName: 'Offres',
+    idFlow: 'Offres',
   },
   {
     level: 3,
@@ -71,13 +71,13 @@ Veuillez sélectionner l'un des services suivant :
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/2_g7dmgv.webp',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
-    flowName: 'Offres',
+    idFlow: 'Offres',
   },
   {
     level: 4,
     message: `Envoyez "Start" pour démarrer un nouveau processus.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowName: 'Offres',
+    idFlow: 'Offres',
   },
   {
     level: 1,
@@ -96,7 +96,7 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'isExist',
       },
     ],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 2,
@@ -114,7 +114,7 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'isExpired',
       },
     ],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 3,
@@ -130,7 +130,7 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'maxSize',
       },
     ],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 4,
@@ -147,7 +147,7 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'maxSize',
       },
     ],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 5,
@@ -164,14 +164,14 @@ Veuillez sélectionner l'un des services suivant :
         errorType: 'maxSize',
       },
     ],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 14,
     message: `L'information renseignée n'est pas celle attendue.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 15,
@@ -182,14 +182,14 @@ Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 19,
     message: `Votre demande d'inscription à la plateforme MBP est terminée. Un message de confirmation suivi des instructions vous sera partagé dans moins de Cinq (05) mins.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 20,
@@ -197,7 +197,7 @@ Pour reéssayer envoyer "Start"
 Vous pouvez maintenant vous connecter au partenaire MBP via YANGO PRO pour finaliser les différents contrôles photo.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 24,
@@ -209,7 +209,7 @@ Pour reéssayer envoyer "Start"
     `,
     expectedResponseType: 'text',
     badResponseMessage: [],
-    flowName: 'Inscription',
+    idFlow: 'Inscription',
   },
   {
     level: 1,
@@ -225,7 +225,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isNotExist',
       },
     ],
-    flowName: 'Changement de véhicule',
+    idFlow: 'Changement de véhicule',
   },
   {
     level: 2,
@@ -242,7 +242,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExpired',
       },
     ],
-    flowName: 'Changement de véhicule',
+    idFlow: 'Changement de véhicule',
   },
   {
     level: 3,
@@ -259,18 +259,18 @@ Pour reéssayer envoyer "Start"
         errorType: 'maxSize',
       },
     ],
-    flowName: 'Changement de véhicule',
+    idFlow: 'Changement de véhicule',
   },
   {
     level: 6,
     message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowName: 'Changement de véhicule',
+    idFlow: 'Changement de véhicule',
   },
   {
     level: 7,
     message: `Opération effectué avec succès.\nVotre nouveau véhicule immatriculé {carPlateNumber} est associé à votre compte.\nVeuillez vous rendre sur l'application Yango pour la suite du processus\nEnvoyez "Start" pour démarrer un nouveau processus.`,
-    flowName: 'Changement de véhicule',
+    idFlow: 'Changement de véhicule',
   },
   {
     level: 1,
@@ -287,7 +287,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isNotExist',
       },
     ],
-    flowName: 'Modification de numéro de téléphone',
+    idFlow: 'Modification de numéro de téléphone',
   },
   {
     level: 2,
@@ -304,7 +304,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExpired',
       },
     ],
-    flowName: 'Modification de numéro de téléphone',
+    idFlow: 'Modification de numéro de téléphone',
   },
   {
     level: 3,
@@ -321,7 +321,7 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExist',
       },
     ],
-    flowName: 'Modification de numéro de téléphone',
+    idFlow: 'Modification de numéro de téléphone',
   },
   {
     level: 4,
@@ -338,18 +338,18 @@ Pour reéssayer envoyer "Start"
         errorType: 'isExpired',
       },
     ],
-    flowName: 'Modification de numéro de téléphone',
+    idFlow: 'Modification de numéro de téléphone',
   },
   {
     level: 5,
     message: `Merci ! Nous traitons maintenant votre demande...\nUn retour vous sera fait dans 5 minutes.`,
     expectedResponseType: StepExpectedResponseType.text,
-    flowName: 'Modification de numéro de téléphone',
+    idFlow: 'Modification de numéro de téléphone',
   },
   {
     level: 6,
     message: `Votre numéro a été mis à jour avec succès.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
-    flowName: 'Modification de numéro de téléphone',
+    idFlow: 'Modification de numéro de téléphone',
   },
   {
     level: 99,

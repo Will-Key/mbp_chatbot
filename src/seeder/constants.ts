@@ -45,7 +45,7 @@ Veuillez sélectionner l'un des services suivant :
   },
   {
     level: 1,
-    message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre pour les nouveaux chauffeurs.\n2-Offre pour les chauffeurs déjà inscrits.`,
+    message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre pour les nouveaux chauffeurs.\n2-Offre pour les chauffeurs déjà inscrits.\nPour retourner à l'étape précédente envoyez "Back"\nPour terminer la conversation envoyez "Stop"`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -354,5 +354,9 @@ Pour reéssayer envoyer "Start"
   {
     level: 99,
     message: `La durée de la conversation est terminée.\nPour recontacter votre assistant envoyer "Start"`,
+  },
+  {
+    level: 100,
+    message: `Vous avez arrêter la conversation.\nPour recontacter votre assistant envoyer "Start"`,
   },
 ]

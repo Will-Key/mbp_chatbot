@@ -99,7 +99,7 @@ export class ConversationService {
     })
   }
 
-  findPhoneNumberLastConversation(whaPhoneNumber: string) {
+  findLastOneByWhaPhoneNumber(whaPhoneNumber: string) {
     return this.prismaService.conversation.findFirst({
       where: { whaPhoneNumber },
       orderBy: {

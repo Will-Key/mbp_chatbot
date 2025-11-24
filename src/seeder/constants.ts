@@ -28,7 +28,7 @@ Veuillez sélectionner l'un des services suivant :
 3-Modification du numéro de téléphone
             `,
     mediaUrl:
-      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599470/0_z9wjxv.webp',
+      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1764003918/0_z9wjxv.jpg',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
@@ -45,7 +45,7 @@ Veuillez sélectionner l'un des services suivant :
   },
   {
     level: 1,
-    message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre pour les nouveaux chauffeurs.\n2-Offre pour les chauffeurs déjà inscrits.`,
+    message: `Veuillez indiquer l'offre qui vous intéresse.\n1-Offre pour les nouveaux chauffeurs.\n2-Offre pour les chauffeurs déjà inscrits.\nPour retourner à l'étape précédente envoyez "Back"\nPour terminer la conversation envoyez "Stop"`,
     expectedResponseType: StepExpectedResponseType.text,
     badResponseMessage: [
       {
@@ -59,7 +59,7 @@ Veuillez sélectionner l'un des services suivant :
     level: 2,
     message: `Merci de votre intérêt pour le partenaire MBP.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     mediaUrl:
-      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/1_dmlv1w.webp',
+      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1764003992/1_dmlv1w.jpg',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
     idFlow: 'Offres',
@@ -68,7 +68,7 @@ Veuillez sélectionner l'un des services suivant :
     level: 3,
     message: `Merci de votre intérêt pour le partenaire MBP.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     mediaUrl:
-      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1758599247/2_g7dmgv.webp',
+      'https://res.cloudinary.com/dfsuc89b6/image/upload/v1764004004/2_g7dmgv.jpg',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
     idFlow: 'Offres',
@@ -354,5 +354,9 @@ Pour reéssayer envoyer "Start"
   {
     level: 99,
     message: `La durée de la conversation est terminée.\nPour recontacter votre assistant envoyer "Start"`,
+  },
+  {
+    level: 100,
+    message: `Vous avez arrêter la conversation.\nPour recontacter votre assistant envoyer "Start"`,
   },
 ]

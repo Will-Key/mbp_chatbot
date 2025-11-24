@@ -2,12 +2,12 @@ import { Inject, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import {
-    Conversation,
-    DocumentFile,
-    HistoryConversationReasonForEnding,
-    HistoryConversationStatus,
-    StepBadResponseMessageErrorType,
-    StepExpectedResponseType,
+  Conversation,
+  DocumentFile,
+  HistoryConversationReasonForEnding,
+  HistoryConversationStatus,
+  StepBadResponseMessageErrorType,
+  StepExpectedResponseType,
 } from '@prisma/client'
 import { subMinutes } from 'date-fns'
 import { isValidPhoneNumber } from 'libphonenumber-js'
@@ -24,8 +24,8 @@ import { CreateYangoCarDto } from '../external-api/dto/create-yango-car.dto'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
 import { GetOcrResponseDto } from '../external-api/dto/get-ocr-response.dto'
 import {
-    SendImageMessageDto,
-    SendMessageDto,
+  SendImageMessageDto,
+  SendMessageDto,
 } from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
 import { OtpService } from '../external-api/otp.service'
@@ -38,13 +38,13 @@ import { StepService } from '../step/step.service'
 import { UserService } from '../user/user.service'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import {
-    CREATE_YANGO_CAR_SENT_QUEUE_NAME,
-    CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
-    OCR_SENT_QUEUE_NAME,
-    UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
-    WHAPI_RECEIVED_QUEUE_NAME,
-    WHAPI_SENT_IMAGE_QUEUE_NAME,
-    WHAPI_SENT_QUEUE_NAME,
+  CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+  CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+  OCR_SENT_QUEUE_NAME,
+  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
+  WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_IMAGE_QUEUE_NAME,
+  WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 
 export class RabbitmqService {
@@ -146,6 +146,9 @@ export class RabbitmqService {
         await this.updateMessage(lastConversation, errorMessage)
       }
     } else if (lastConversation.step.idFlow === 'Offres') {
+      const message = newMessage.messages[0].text.body
+      if (message === 'back' || message === 'stop')
+        return await this.handleBackOrStop(lastConversation, message)
       await this.getOfferFlowSteps(lastConversation, newMessage)
     } else if (lastConversation.step.idFlow === 'Inscription') {
       await this.getFirstFlowSteps(lastConversation, newMessage)
@@ -166,11 +169,39 @@ export class RabbitmqService {
     }
   }
 
+  private async handleBackOrStop(
+    lastConversation: ConversationType,
+    message: string,
+  ) {
+    if (message === 'back') {
+      const lastConv = await this.deleteLastConversation(lastConversation)
+      const step = await this.stepService.findOne(lastConv.stepId)
+      const previousStep = await this.stepService.findOneBylevelAndidFlow(
+        step.level - 1,
+        step.idFlow,
+      )
+      return await this.saveMessage({
+        whaPhoneNumber: lastConversation.whaPhoneNumber,
+        convMessage: message,
+        nextMessage: previousStep.message,
+        stepId: previousStep.id,
+      })
+    } else
+      return await this.conversationService.removeAllByPhoneNumber(
+        lastConversation.whaPhoneNumber,
+      )
+  }
+
+  private async deleteLastConversation(lastConversation: ConversationType) {
+    const { id: lastConversationId } =
+      await this.conversationService.findLastOneByWhaPhoneNumber(
+        lastConversation.whaPhoneNumber,
+      )
+    return await this.conversationService.remove(lastConversationId)
+  }
+
   private async startFlow(newMessage: NewMessageWebhookDto, idFlow: string) {
-    const nextStep = await this.stepService.findOneBylevelAndidFlow(
-      1,
-      idFlow,
-    )
+    const nextStep = await this.stepService.findOneBylevelAndidFlow(1, idFlow)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
@@ -332,10 +363,7 @@ export class RabbitmqService {
     const whaPhoneNumber = newMessage.messages[0].from
     const otpEnter = newMessage.messages[0].text.body.trim()
 
-    const step = await this.stepService.findOneBylevelAndidFlow(
-      level,
-      idFlow,
-    )
+    const step = await this.stepService.findOneBylevelAndidFlow(level, idFlow)
 
     const phoneNumber =
       idFlow === 'Inscription'
@@ -879,10 +907,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
     idFlow: string = 'Changement de véhicule',
   ) {
-    const nextStep = await this.stepService.findOneBylevelAndidFlow(
-      6,
-      idFlow,
-    )
+    const nextStep = await this.stepService.findOneBylevelAndidFlow(6, idFlow)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
@@ -895,10 +920,7 @@ export class RabbitmqService {
     newMessage: NewMessageWebhookDto,
     idFlow: string = 'Modification de numéro de téléphone',
   ) {
-    const nextStep = await this.stepService.findOneBylevelAndidFlow(
-      5,
-      idFlow,
-    )
+    const nextStep = await this.stepService.findOneBylevelAndidFlow(5, idFlow)
     await this.saveMessage({
       whaPhoneNumber: newMessage.messages[0].from,
       convMessage: newMessage.messages[0].text.body,
@@ -1616,7 +1638,7 @@ export class RabbitmqService {
     console.log('phoneNumbers', phoneNumbers)
     for (const { whaPhoneNumber } of phoneNumbers) {
       const lastConversation =
-        await this.conversationService.findPhoneNumberLastConversation(
+        await this.conversationService.findLastOneByWhaPhoneNumber(
           whaPhoneNumber,
         )
       console.log('lastConversation', lastConversation)

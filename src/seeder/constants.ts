@@ -28,6 +28,7 @@ Veuillez sélectionner l'un des services suivant :
 3-Modification du numéro de téléphone
             `,
     mediaUrl:
+      process.env.WELCOME_IMAGE ||
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1764003918/0_z9wjxv.jpg',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
@@ -59,6 +60,7 @@ Veuillez sélectionner l'un des services suivant :
     level: 2,
     message: `Merci de votre intérêt pour le partenaire MBP.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     mediaUrl:
+      process.env.OFFER_IMAGE_1 ||
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1764003992/1_dmlv1w.jpg',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,
@@ -68,6 +70,7 @@ Veuillez sélectionner l'un des services suivant :
     level: 3,
     message: `Merci de votre intérêt pour le partenaire MBP.\nEnvoyez "Start" pour démarrer un nouveau processus.`,
     mediaUrl:
+      process.env.OFFER_IMAGE_2 ||
       'https://res.cloudinary.com/dfsuc89b6/image/upload/v1764004004/2_g7dmgv.jpg',
     messageType: 'IMAGE_TEXT',
     expectedResponseType: StepExpectedResponseType.text,

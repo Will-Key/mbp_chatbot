@@ -146,7 +146,7 @@ export class RabbitmqService {
         await this.updateMessage(lastConversation, errorMessage)
       }
     } else if (lastConversation.step.idFlow === 'Offres') {
-      const message = newMessage.messages[0].text.body
+      const message = newMessage.messages[0].text.body.toLowerCase()
       if (message === 'back' || message === 'stop')
         return await this.handleBackOrStop(lastConversation, message)
       await this.getOfferFlowSteps(lastConversation, newMessage)
@@ -176,20 +176,31 @@ export class RabbitmqService {
     if (message === 'back') {
       const lastConv = await this.deleteLastConversation(lastConversation)
       const step = await this.stepService.findOne(lastConv.stepId)
-      const previousStep = await this.stepService.findOneBylevelAndidFlow(
-        step.level - 1,
-        step.idFlow,
-      )
+      const previousStep =
+        step.level - 1 === 0
+          ? await this.stepService.findOneByLevel(0)
+          : await this.stepService.findOneBylevelAndidFlow(
+              step.level - 1,
+              step.idFlow,
+            )
+      console.log('previousStep', previousStep)
       return await this.saveMessage({
         whaPhoneNumber: lastConversation.whaPhoneNumber,
         convMessage: message,
         nextMessage: previousStep.message,
         stepId: previousStep.id,
       })
-    } else
-      return await this.conversationService.removeAllByPhoneNumber(
+    } else {
+      await this.conversationService.removeAllByPhoneNumber(
         lastConversation.whaPhoneNumber,
       )
+      const step = await this.stepService.findOneBylevelAndidFlow(4, 'Offres')
+      return await this.pushMessageToSent({
+        to: lastConversation.whaPhoneNumber,
+        body: step.message,
+        typing_time: 5,
+      })
+    }
   }
 
   private async deleteLastConversation(lastConversation: ConversationType) {
@@ -342,7 +353,7 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      await this.delay(30000)
+      await this.delay()
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
@@ -541,7 +552,7 @@ export class RabbitmqService {
         idFlow,
       )
 
-      await this.delay(30000)
+      await this.delay()
       if (idFlow === 'Inscription') {
         await this.sendDataToYango(lastConversation, newMessage)
       } else {
@@ -670,7 +681,7 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      await this.delay(10000)
+      await this.delay()
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
@@ -764,7 +775,7 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      await this.delay(10000)
+      await this.delay()
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
@@ -822,7 +833,7 @@ export class RabbitmqService {
     })
 
     if (step.level === 4) {
-      await this.delay(10000)
+      await this.delay()
       await this.sendThirdFlowDataToYango(lastConversation, newMessage)
     }
   }
@@ -875,7 +886,7 @@ export class RabbitmqService {
         stepId: nextStep.id,
       })
 
-      await this.delay(10000)
+      await this.delay()
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
@@ -953,7 +964,7 @@ export class RabbitmqService {
         status: HistoryConversationStatus.IN_PROGRESS,
         stepId: conv.stepId,
       })
-      await this.delay(5000)
+      await this.delay()
       const step = await this.stepService.findOne(stepId)
       if (step.messageType === 'IMAGE_TEXT' && step.mediaUrl) {
         await this.pushImageToSent({
@@ -962,7 +973,7 @@ export class RabbitmqService {
           media: step.mediaUrl,
           typing_time: 5,
         })
-        await this.delay(5000)
+        await this.delay()
       } else {
         await this.pushMessageToSent({
           to: whaPhoneNumber,
@@ -1668,8 +1679,10 @@ export class RabbitmqService {
     })
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
+  private delay(
+    ms: number = Number(process.env.DELAY_TIME) || 20000,
+  ): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms / 2))
   }
 
   private removeAllSpaces(str: string): string {

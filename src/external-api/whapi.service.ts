@@ -14,6 +14,7 @@ export class WhapiService {
   ) {}
 
   async sendMessage(message: SendMessageDto) {
+    console.log('WHAPI SEND MESSAGE:', process.env.WHAPI_URL)
     await lastValueFrom(
       this.httpService
         .post(process.env.WHAPI_URL, message, {
@@ -50,6 +51,7 @@ export class WhapiService {
   }
 
   async sendImageMessage(message: SendImageMessageDto) {
+    console.log('WHAPI SEND MESSAGE:', process.env.WHAPI_IMAGE_URL)
     await lastValueFrom(
       this.httpService
         .post(process.env.WHAPI_IMAGE_URL, message, {

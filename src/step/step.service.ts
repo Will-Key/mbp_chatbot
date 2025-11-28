@@ -42,10 +42,7 @@ export class StepService {
     })
   }
 
-  findOneBylevelAndidFlow(
-    level: number,
-    idFlow: string,
-  ): Promise<Step | null> {
+  findOneBylevelAndidFlow(level: number, idFlow: string): Promise<Step | null> {
     return this.prismaService.step.findFirst({
       where: {
         level,

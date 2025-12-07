@@ -91,6 +91,16 @@ export class OcrSpaceService {
         return OcrErrorCode.DUPLICATE_LICENSE
       }
 
+      const existingPhone = await this.driverPersonalInfoService
+        .findDriverPersonalInfoByPhoneNumber(
+          await this.getDriverPhoneNumber(file.whaPhoneNumber, idFlow),
+        )
+        .catch(() => null)
+
+      if (existingPhone) {
+        return OcrErrorCode.DUPLICATE_PHONE
+      }
+
       const result = await this.getDriverLicenseFrontData(
         driverLicenseInfo,
         file.whaPhoneNumber,
@@ -156,7 +166,7 @@ export class OcrSpaceService {
           .catch(() => null)
 
         // Si le véhicule est déjà activement associé à ce conducteur, c'est une erreur
-        if (currentAssociation && currentAssociation.endDate === '9999-12-31') {
+        if (currentAssociation && currentAssociation.endDate === null) {
           return OcrErrorCode.ALREADY_ASSOCIATED
         }
 

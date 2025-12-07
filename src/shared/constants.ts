@@ -1,9 +1,10 @@
 export enum OcrErrorCode {
   SUCCESS = 1,
   LOW_CONFIDENCE = 0,
+  ALREADY_ASSOCIATED = -1,
   DUPLICATE_LICENSE = -2,
   DUPLICATE_PLATE = -3,
-  ALREADY_ASSOCIATED = -1,
+  DUPLICATE_PHONE = -4,
 }
 
 // config.ts
@@ -73,6 +74,8 @@ export const getOcrErrorMessage = (
 
     case OcrErrorCode.ALREADY_ASSOCIATED:
       return `Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule.`
+    case OcrErrorCode.DUPLICATE_PHONE:
+      return `Ce numéro de téléphone est déjà enregistré dans notre système.\nSi vous pensez qu'il s'agit d'une erreur, veuillez contacter notre support.`
 
     default:
       return `Une erreur est survenue lors du traitement de votre ${docName}.\nMerci de réessayer.`

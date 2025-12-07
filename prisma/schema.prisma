@@ -213,12 +213,18 @@ model CarInfo {
 }
 
 model DriverCar {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  idDriver  Int      @unique
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now()) // Sert de date de début
+  updatedAt DateTime  @updatedAt
+  idDriver  Int
   idCar     Int
-  endDate   String?  @default("9999-12-31")
+  endDate   DateTime?
+
+  // Un chauffeur ne peut être associé qu'à un seul véhicule actif à la fois
+  @@unique([idDriver, endDate], name: "unique_active_driver")
+  // Index pour retrouver l'historique
+  @@index([idDriver, createdAt])
+  @@index([idCar, createdAt])
 }
 
 model User {

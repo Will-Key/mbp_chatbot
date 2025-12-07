@@ -35,13 +35,13 @@ export class DriverCarService {
 
   findDriverLastAssociation(idDriver: number) {
     return this.prismaService.driverCar.findFirst({
-      where: { idDriver, endDate: '9999-12-31' },
+      where: { idDriver, endDate: null },
     })
   }
 
   findDriverMostRecentAssociation(idDriver: number) {
     return this.prismaService.driverCar.findFirst({
-      where: { AND: [{ idDriver }, { endDate: { not: '9999-12-31' } }] },
+      where: { AND: [{ idDriver }, { endDate: { not: null } }] },
       orderBy: { updatedAt: 'desc' },
     })
   }
@@ -57,7 +57,10 @@ export class DriverCarService {
     return this.prismaService.driverCar.delete({ where: { id } })
   }
 
-  deleteByDriverId(idDriver: number) {
-    return this.prismaService.driverCar.delete({ where: { idDriver } })
+  updateEndDateByDriverId(idDriver: number) {
+    return this.prismaService.driverCar.updateMany({
+      data: { endDate: new Date() },
+      where: { idDriver, endDate: null },
+    })
   }
 }

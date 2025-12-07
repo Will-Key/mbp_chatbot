@@ -1285,11 +1285,11 @@ export class RabbitmqService {
     } catch (error) {
       await this.abortConversation(
         abortData,
-        `Une erreur inattendue s'est produite lors du contact avec Yango: ${error?.message?.message}`,
+        `Une erreur inattendue s'est produite lors du contact avec Yango: ${error?.data?.message}`,
         'CREATION',
       )
       this.logger.error(
-        `Error processing during yango profile creation: ${error}`,
+        `Error processing during yango profile creation: Yango API error: ${error.status} - ${JSON.stringify(error.data)}`,
       )
     }
   }
@@ -1364,7 +1364,7 @@ export class RabbitmqService {
       },
       account: {
         balance_limit: '100',
-        work_rule_id: 'e436b59cdab447ab9a39fbda0ea71a67',
+        work_rule_id: process.env.YANGO_WORK_RULE_ID,
       },
       carId,
     }
@@ -1538,11 +1538,11 @@ export class RabbitmqService {
     } catch (error) {
       await this.abortConversation(
         abortData,
-        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error?.message?.message}`,
+        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error?.data?.message}`,
         'UPDATE',
       )
       this.logger.error(
-        `Error processing during yango profile creation: ${error}`,
+        `Error processing during yango profile creation: Yango API error: ${error.status} - ${JSON.stringify(error.data)}`,
       )
     }
   }
@@ -1650,10 +1650,11 @@ export class RabbitmqService {
     } catch (error) {
       await this.abortConversation(
         abortData,
-        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error?.message?.message}`,
+        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error?.data?.message}`,
       )
+      // Yango API error: ${error.status} - ${JSON.stringify(error.data)}
       this.logger.error(
-        `Error processing during yango phone updation: ${error}`,
+        `Error processing during yango phone updation: Yango API error: ${error?.status} - ${JSON.stringify(error.data)}`,
       )
     }
   }

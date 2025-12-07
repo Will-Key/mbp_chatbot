@@ -169,9 +169,7 @@ export class YangoService {
       )
       if (error.response) {
         // HTTP error response
-        throw new Error(
-          `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        )
+        throw new Error(error.response)
       } else if (error.code === 'ECONNABORTED') {
         // Timeout error
         throw new Error('Yango API request timeout')
@@ -219,9 +217,7 @@ export class YangoService {
       )
       console.error('Error updating driver phone:', error)
       if (error.response) {
-        throw new Error(
-          `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        )
+        throw new Error(error.response)
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Yango API request timeout')
       } else {
@@ -281,9 +277,7 @@ export class YangoService {
       )
       console.error('Error binding driver to car:', error)
       if (error.response) {
-        throw new Error(
-          `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        )
+        throw new Error(error.response)
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Yango API request timeout')
       } else {

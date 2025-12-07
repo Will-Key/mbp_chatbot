@@ -8,6 +8,7 @@ import { DriverCarService } from '../driver-car/driver-car.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { RequestLogService } from '../request-log/request-log.service'
+import { OcrErrorCode } from '../shared/constants'
 import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
 import { ExtractVehiculeRegistrationDto } from './dto/extract-vehicule-registration.dto'
 import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
@@ -78,13 +79,25 @@ export class OcrSpaceService {
       const driverLicenseInfo =
         await this.openAiService.extractDriverLicenseFront(response)
 
-      if (+driverLicenseInfo.percenrtage < 80) return 0
+      if (+driverLicenseInfo.percenrtage < 80)
+        return OcrErrorCode.LOW_CONFIDENCE
 
-      return await this.getDriverLicenseFrontData(
+      // Vérifier l'unicité du numéro de permis avant de créer
+      const existingLicense = await this.driverPersonalInfoService
+        .findByLicenseNumber(driverLicenseInfo.licenseNumber)
+        .catch(() => null)
+
+      if (existingLicense) {
+        return OcrErrorCode.DUPLICATE_LICENSE
+      }
+
+      const result = await this.getDriverLicenseFrontData(
         driverLicenseInfo,
         file.whaPhoneNumber,
         idFlow,
       )
+
+      return result > 0 ? OcrErrorCode.SUCCESS : OcrErrorCode.LOW_CONFIDENCE
     }
     if (
       file.documentType === 'DRIVER_LICENSE' &&
@@ -93,11 +106,13 @@ export class OcrSpaceService {
       const driverLicenseBackInfo =
         await this.openAiService.extractDriverLicenseBack(response)
       console.log('driverLicenseBackInfo', driverLicenseBackInfo)
+
       const driverPhoneNumber = await this.getDriverPhoneNumber(
         file.whaPhoneNumber,
         'Inscription',
       )
       console.log('driverPhoneNumber', driverPhoneNumber)
+
       const { id } =
         await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(
           driverPhoneNumber,
@@ -107,20 +122,58 @@ export class OcrSpaceService {
         backInfo: JSON.stringify(driverLicenseBackInfo),
       })
       console.log('licenseBackInfo', licenseBackInfo)
+
       return licenseBackInfo.id
+        ? OcrErrorCode.SUCCESS
+        : OcrErrorCode.LOW_CONFIDENCE
     }
+
     if (file.documentType === 'CAR_REGISTRATION') {
       const vehiculeInfo =
         await this.openAiService.extractVehicleRegistration(response)
 
-      if (+vehiculeInfo.percentage < 80) return 0
+      if (+vehiculeInfo.percentage < 80) return OcrErrorCode.LOW_CONFIDENCE
 
-      return await this.getCarRegistrationData(
+      // Vérifier si le véhicule est déjà associé à CE conducteur
+      const phoneNumber = await this.getDriverPhoneNumber(
+        file.whaPhoneNumber,
+        idFlow,
+      )
+      const idDriver = (
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          phoneNumber,
+        )
+      ).id
+
+      const existingCar = await this.carInfoService
+        .findByPlateNumber(vehiculeInfo.plateNumber)
+        .catch(() => null)
+
+      if (existingCar) {
+        // Vérifier si ce véhicule est ACTUELLEMENT associé à ce conducteur (endDate = '9999-12-31')
+        const currentAssociation = await this.driverCarService
+          .findOneByDriverIdAndCarId(idDriver, existingCar.id)
+          .catch(() => null)
+
+        // Si le véhicule est déjà activement associé à ce conducteur, c'est une erreur
+        if (currentAssociation && currentAssociation.endDate === '9999-12-31') {
+          return OcrErrorCode.ALREADY_ASSOCIATED
+        }
+
+        // Sinon, le véhicule existe mais peut être réutilisé (ancien véhicule ou d'un autre conducteur)
+      }
+
+      const result = await this.getCarRegistrationData(
         vehiculeInfo,
         file.whaPhoneNumber,
         idFlow,
       )
+
+      if (result === -1) return OcrErrorCode.ALREADY_ASSOCIATED
+      return result > 0 ? OcrErrorCode.SUCCESS : OcrErrorCode.LOW_CONFIDENCE
     }
+
+    return OcrErrorCode.LOW_CONFIDENCE
   }
 
   private async getDriverLicenseFrontData(
@@ -204,16 +257,7 @@ export class OcrSpaceService {
       }
 
       if (idFlow === 'Changement de véhicule') {
-        console.log('carInfo', carId)
-        const driverLastAssociation =
-          await this.driverCarService.findDriverLastAssociation(idDriver)
-        console.log('driverLastAssociation', driverLastAssociation)
-
-        await this.driverCarService.update(driverLastAssociation.id, {
-          endDate: this.convertToISOString(
-            new Date().toISOString().split('T')[0],
-          ),
-        })
+        await this.driverCarService.updateEndDateByDriverId(idDriver)
       }
 
       await this.driverCarService.create({
@@ -234,7 +278,7 @@ export class OcrSpaceService {
       if (recentAssociationId) {
         await this.driverCarService.update(recentAssociationId, {
           idCar: recentIdCar,
-          endDate: '9999-12-31',
+          endDate: null,
         })
       }
 

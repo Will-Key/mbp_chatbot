@@ -76,4 +76,10 @@ export class DriverPersonalInfoService {
   remove(id: number) {
     return this.prismaService.driverPersonnalInfo.delete({ where: { id } })
   }
+
+  findByLicenseNumber(licenseNumber: string) {
+    return this.prismaService.driverPersonnalInfo.findUnique({
+      where: { licenseNumber },
+    })
+  }
 }

@@ -1285,7 +1285,7 @@ export class RabbitmqService {
     } catch (error) {
       await this.abortConversation(
         abortData,
-        `Une erreur inattendue s'est produite lors du contact avec Yango: ${error.message}`,
+        `Une erreur inattendue s'est produite lors du contact avec Yango: ${error?.message?.message}`,
         'CREATION',
       )
       this.logger.error(
@@ -1538,7 +1538,7 @@ export class RabbitmqService {
     } catch (error) {
       await this.abortConversation(
         abortData,
-        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error.message}`,
+        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error?.message?.message}`,
         'UPDATE',
       )
       this.logger.error(
@@ -1650,7 +1650,7 @@ export class RabbitmqService {
     } catch (error) {
       await this.abortConversation(
         abortData,
-        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error.message}`,
+        `Une erreur inattendue s'est produite entre lors du contact avec Yango: ${error?.message?.message}`,
       )
       this.logger.error(
         `Error processing during yango phone updation: ${error}`,

@@ -1007,8 +1007,8 @@ export class RabbitmqService {
       typing_time: 5,
     })
 
-    await this.deleteAllConversations(conversation)
     await this.deleteInfoCollected(conversation, mode)
+    await this.deleteAllConversations(conversation)
   }
 
   private async editHistoryConversation(payload: CreateHistoryConversationDto) {

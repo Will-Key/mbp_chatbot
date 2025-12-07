@@ -33,6 +33,7 @@ import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
 import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
+import { getOcrErrorMessage, OcrErrorCode } from '../shared/constants'
 import { ConversationType } from '../shared/types'
 import { StepService } from '../step/step.service'
 import { UserService } from '../user/user.service'
@@ -441,48 +442,25 @@ export class RabbitmqService {
       }
       const doc = await this.documentFileService.create(createDocumentFile)
       if (!doc) {
-        const errorMessage =
-          documentType === 'DRIVER_LICENSE'
-            ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-            : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+        const errorMessage = getOcrErrorMessage(
+          documentType,
+          OcrErrorCode.LOW_CONFIDENCE,
+        )
+
         await this.updateMessage(lastConversation, errorMessage)
         throw Error("Veuillez vérifier l'image fournie.")
       }
 
-      /*if (documentType === 'DRIVER_LICENSE' && documentSide === 'BACK') {
-        const response = await this.openAiService.extractDriverLicenseBack(link)
-        // TODO: Get flow id by flow name
-        const driverPhoneNumber = await this.getDriverPhoneNumber(
-          whaPhoneNumber,
-          1,
-        )
-        const { id } =
-          await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(
-            driverPhoneNumber,
-          )
-        await this.driverLicenseInfoService.update(id, {
-          backInfo: JSON.stringify(response),
-        })
-      } else {*/
       const ocrResponse = await this.ocrSpaceService.sendFile(doc, idFlow)
       this.logger.error(`ocrResponse ${ocrResponse}`)
-      if (ocrResponse === 0) {
+      if (ocrResponse !== OcrErrorCode.SUCCESS) {
         await this.documentFileService.remove(doc.id)
-        const errorMessage =
-          documentType === 'DRIVER_LICENSE'
-            ? "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à un permis de conduire.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
-            : "Veuillez vérifier l'image fournie. Elle pourrait être floue ou ne pas correspondre à une carte grise.\nMerci de bien vouloir la corriger ou en envoyer une nouvelle."
+
+        const errorMessage = getOcrErrorMessage(documentType, ocrResponse)
         await this.updateMessage(lastConversation, errorMessage)
+
         throw Error("Veuillez vérifier l'image fournie.")
       }
-
-      if (ocrResponse === -1) {
-        const errorMessage =
-          "Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule."
-        await this.updateMessage(lastConversation, errorMessage)
-        throw Error('Vous êtes déjà associé à ce véhicule')
-      }
-      //}
 
       const nextStep = await this.stepService.findOneBylevelAndidFlow(
         nextStepLevel,
@@ -1083,7 +1061,9 @@ export class RabbitmqService {
     if (mode === 'CREATION') {
       await this.driverPersonalInfoService.remove(idDriver)
       await this.driverLicenseInfoService.deleteByDriverId(idDriver)
-      await this.driverCarService.deleteByDriverId(idDriver)
+      const driverAssociations =
+        await this.driverCarService.findOneByDriverId(idDriver)
+      await this.driverCarService.remove(driverAssociations.id)
     }
 
     if (mode === 'UPDATE') {
@@ -1095,7 +1075,7 @@ export class RabbitmqService {
       await this.driverCarService.update(id, {
         idDriver,
         idCar: recentIdCar,
-        endDate: '9999-12-31',
+        endDate: null,
       })
     }
     //await this.driverCarService.deleteByDriverId(personalInfo.id)
@@ -1224,7 +1204,12 @@ export class RabbitmqService {
       const carId = (await this.yangoService.createCar(createYangoCar))
         .vehicle_id
       this.logger.log('Create Yango profile carId', carId)
-      if (!carId) return await this.abortConversation(abortData, '', 'CREATION')
+      if (!carId)
+        return await this.abortConversation(
+          abortData,
+          "Une erreur s'est produite lors de la création du véhicule sur Yango",
+          'CREATION',
+        )
 
       const createYangoDto: CreateYangoProfileDto =
         await this.buildCreateProfilePayload(phoneNumber, carId)
@@ -1232,7 +1217,11 @@ export class RabbitmqService {
         .contractor_profile_id
       this.logger.log('Create Yango profile profileId', profileId)
       if (!profileId)
-        return await this.abortConversation(abortData, '', 'CREATION')
+        return await this.abortConversation(
+          abortData,
+          "Une erreur s'est produite lors de la création du profil sur Yango",
+          'CREATION',
+        )
 
       const bindingResponse = await this.yangoService.bindingDriverToCar(
         profileId,
@@ -1240,7 +1229,11 @@ export class RabbitmqService {
       )
       this.logger.log('Create Yango profile bindingResponse', bindingResponse)
       if (bindingResponse !== 200)
-        return await this.abortConversation(abortData, '', 'CREATION')
+        return await this.abortConversation(
+          abortData,
+          "Une erreur s'est produite lors de l'association du chauffeur au véhicule sur Yango",
+          'CREATION',
+        )
 
       const driverInfo =
         await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
@@ -1290,7 +1283,11 @@ export class RabbitmqService {
 
       this.deleteAllConversations(lastConversation)
     } catch (error) {
-      await this.abortConversation(abortData, '', 'CREATION')
+      await this.abortConversation(
+        abortData,
+        "Une erreur inattendue s'est produite lors du contact avec Yango",
+        'CREATION',
+      )
       this.logger.error(
         `Error processing during yango profile creation: ${error}`,
       )
@@ -1377,12 +1374,15 @@ export class RabbitmqService {
     idDriver: number,
     idCar: number,
   ) {
-    const association = await this.driverCarService.findOneByDriverId(idDriver)
-    if (association) {
-      await this.driverCarService.update(association.id, { idDriver, idCar })
-    } else {
-      await this.driverCarService.create({ idDriver, idCar })
-    }
+    await this.driverCarService.updateEndDateByDriverId(idDriver)
+
+    await this.driverCarService.create({ idDriver, idCar })
+    // const association = await this.driverCarService.findOneByDriverId(idDriver)
+    // if (association) {
+    //   await this.driverCarService.update(association.id, { idDriver, idCar })
+    // } else {
+    //   await this.driverCarService.create({ idDriver, idCar })
+    // }
   }
 
   private buildAbortionPayload(lastConversation: ConversationType) {
@@ -1478,7 +1478,7 @@ export class RabbitmqService {
           }),
         )
 
-        return await this.abortConversation(abortData)
+        return await this.abortConversation(abortData, '', 'UPDATE')
       }
 
       const bindingResponse = await this.yangoService.bindingDriverToCar(
@@ -1486,7 +1486,11 @@ export class RabbitmqService {
         carId,
       )
       if (bindingResponse !== 200)
-        return await this.abortConversation(abortData)
+        return await this.abortConversation(
+          abortData,
+          "Une erreur s'est produite lors de l'association entre le chauffeur et le véhicule",
+          'UPDATE',
+        )
 
       await this.carInfoService.update(driverAssociatedCarId, {
         yangoCarId: carId,
@@ -1532,7 +1536,11 @@ export class RabbitmqService {
 
       this.deleteAllConversations(lastConversation)
     } catch (error) {
-      await this.abortConversation(abortData)
+      await this.abortConversation(
+        abortData,
+        "Une erreur inattendue s'est produite entre lors du contact avec Yango",
+        'UPDATE',
+      )
       this.logger.error(
         `Error processing during yango profile creation: ${error}`,
       )
@@ -1594,7 +1602,10 @@ export class RabbitmqService {
       const driverProfileResponse =
         await this.yangoService.getDriverProfile(driverContractorId)
       if (!driverProfileResponse || driverProfileResponse.status !== 200)
-        return await this.abortConversation(abortData)
+        return await this.abortConversation(
+          abortData,
+          'Une erreur est survenue lors de la récupération du profil chauffeur sur Yango.',
+        )
 
       driverProfileResponse.data.person.contact_info.phone = `+${currentPhoneNumber}`
       const response = await this.yangoService.updateDriverPhone(
@@ -1602,7 +1613,11 @@ export class RabbitmqService {
         driverProfileResponse.data,
       )
       console.log('response status', response)
-      if (response !== 204) return await this.abortConversation(abortData)
+      if (response !== 204)
+        return await this.abortConversation(
+          abortData,
+          'Une erreur est survenue lors de la mise à jour du numéro de téléphone sur Yango.',
+        )
 
       await this.driverPersonalInfoService.updateByPhoneNumber(
         previousPhoneNumber,
@@ -1633,7 +1648,10 @@ export class RabbitmqService {
 
       this.deleteAllConversations(lastConversation)
     } catch (error) {
-      await this.abortConversation(abortData)
+      await this.abortConversation(
+        abortData,
+        'Une erreur inattendue est survenue lors de la mise à jour du numéro de téléphone sur Yango.',
+      )
       this.logger.error(
         `Error processing during yango phone updation: ${error}`,
       )

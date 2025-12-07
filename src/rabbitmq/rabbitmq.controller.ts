@@ -3,18 +3,18 @@ import { EventPattern, Payload } from '@nestjs/microservices'
 import { DocumentFile } from '@prisma/client'
 import { ConversationType } from 'src/shared/types'
 import {
-    SendImageMessageDto,
-    SendMessageDto,
+  SendImageMessageDto,
+  SendMessageDto,
 } from '../external-api/dto/send-message.dto'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import {
-    CREATE_YANGO_CAR_SENT_QUEUE_NAME,
-    CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
-    OCR_SENT_QUEUE_NAME,
-    UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
-    WHAPI_RECEIVED_QUEUE_NAME,
-    WHAPI_SENT_IMAGE_QUEUE_NAME,
-    WHAPI_SENT_QUEUE_NAME,
+  CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+  CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+  OCR_SENT_QUEUE_NAME,
+  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
+  WHAPI_RECEIVED_QUEUE_NAME,
+  WHAPI_SENT_IMAGE_QUEUE_NAME,
+  WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 import { RabbitmqService } from './rabbitmq.service'
 

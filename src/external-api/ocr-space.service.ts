@@ -49,7 +49,7 @@ export class OcrSpaceService {
         status: 'SUCCESS',
         initiator: 'OCR_SPACE',
         data: file.dataImageUrl,
-        response: `${response}`,
+        response: JSON.stringify(response),
       })
       console.log('ocrResponse', ocrResponse)
       return ocrResponse
@@ -60,7 +60,7 @@ export class OcrSpaceService {
         status: 'FAIL',
         initiator: 'OCR_SPACE',
         data: file.dataImageUrl,
-        response: `${error}`,
+        response: JSON.stringify(error),
       })
       return 0
     }

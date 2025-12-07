@@ -175,7 +175,7 @@ export class OpenAIService {
               data: ocrData
                 ? JSON.stringify(ocrData.ParsedResults[0].ParsedText)
                 : imageLink,
-              response: `${error}`,
+              response: JSON.stringify(error),
             })
             throw error
           }),

@@ -56,6 +56,7 @@ export class YangoService {
         contractor_profile_id: data.contractor_profile_id,
       }
     } catch (error) {
+      console.error('Error fetching driver profile:', error)
       // Re-throw with more context if needed
       await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
@@ -109,6 +110,7 @@ export class YangoService {
         vehicle_id: data.vehicle_id,
       }
     } catch (error) {
+      console.error('Error fetching driver profile:', error)
       // Re-throw with more context if needed
       await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
@@ -161,6 +163,7 @@ export class YangoService {
       // Return the contractor_profile_id with HTTP status from response
       return { data: data as UpdateYangoDriverInfoDto, status: response.status } // HTTP status code (200)
     } catch (error) {
+      console.error('Error fetching driver profile:', error)
       // Re-throw with more context if needed
       await this.logRequest(
         RequestStatus.FAIL,
@@ -210,6 +213,7 @@ export class YangoService {
       console.log('Update driver phone response:', response)
       return response.status
     } catch (error) {
+      console.error('Error fetching driver profile:', error)
       await this.logRequest(
         RequestStatus.FAIL,
         { contractor_profile_id, payload },
@@ -266,6 +270,7 @@ export class YangoService {
       console.log('Update driver phone response:', response)
       return response.status
     } catch (error) {
+      console.error('Error fetching driver profile:', error)
       await this.logRequest(
         RequestStatus.FAIL,
         {

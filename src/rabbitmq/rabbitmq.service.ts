@@ -1673,6 +1673,7 @@ export class RabbitmqService {
         )
       console.log('lastConversation', lastConversation)
       if (lastConversation && lastConversation.updatedAt < fiveMinutesAgo) {
+        await this.deleteInfoCollected(lastConversation)
         await this.conversationService.removeAllByPhoneNumber(whaPhoneNumber)
         this.logger.log(
           `Conversations deleted for phone number: ${whaPhoneNumber}`,

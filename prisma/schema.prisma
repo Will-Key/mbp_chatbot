@@ -220,8 +220,6 @@ model DriverCar {
   idCar     Int
   endDate   DateTime?
 
-  // Un chauffeur ne peut être associé qu'à un seul véhicule actif à la fois
-  @@unique([idDriver, endDate], name: "unique_active_driver")
   // Index pour retrouver l'historique
   @@index([idDriver, createdAt])
   @@index([idCar, createdAt])

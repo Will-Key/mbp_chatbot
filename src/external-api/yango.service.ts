@@ -61,7 +61,8 @@ export class YangoService {
       await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
         // HTTP error response
-        throw new Error(error.response.data)
+        //throw new Error(error.response)
+        return error.response.status
       } else if (error.code === 'ECONNABORTED') {
         // Timeout error
         throw new Error('Yango API request timeout')
@@ -113,7 +114,8 @@ export class YangoService {
       await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
         // HTTP error response
-        throw new Error(error.response.data)
+        //throw new Error(error.response)
+        return error.response.status
       } else if (error.code === 'ECONNABORTED') {
         // Timeout error
         throw new Error('Yango API request timeout')
@@ -168,7 +170,8 @@ export class YangoService {
       )
       if (error.response) {
         // HTTP error response `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        throw new Error(error.response)
+        //throw new Error(error.response)
+        return error.response.status
       } else if (error.code === 'ECONNABORTED') {
         // Timeout error
         throw new Error('Yango API request timeout')
@@ -217,7 +220,8 @@ export class YangoService {
       )
       console.error('Error updating driver phone:', error)
       if (error.response) {
-        throw new Error(error.response)
+        //throw new Error(error.response)
+        return error.response.status
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Yango API request timeout')
       } else {
@@ -278,7 +282,8 @@ export class YangoService {
       )
       console.error('Error binding driver to car:', error)
       if (error.response) {
-        throw new Error(error.response)
+        //throw new Error(error.response)
+        return error.response.status
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Yango API request timeout')
       } else {

@@ -1041,44 +1041,49 @@ export class RabbitmqService {
     conversation: Conversation,
     mode: 'CREATION' | 'UPDATE' = 'UPDATE',
   ) {
-    console.log('deleteInfoCollected', conversation.whaPhoneNumber)
-    const phoneNumber = (
-      await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
-        conversation.whaPhoneNumber,
-      )
-    ).phoneNumber
-    console.log('deleteInfoCollected.phoneNumber', phoneNumber)
-    const idDriver = (
-      await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-        phoneNumber,
-      )
-    ).id
-    const driverLastAssociation =
-      await this.driverCarService.findDriverLastAssociation(idDriver)
+    try {
+      console.log('deleteInfoCollected', conversation.whaPhoneNumber)
+      const phoneNumber = (
+        await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
+          conversation.whaPhoneNumber,
+        )
+      )?.phoneNumber
+      console.log('deleteInfoCollected.phoneNumber', phoneNumber)
+      if (!phoneNumber) return
+      const idDriver = (
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          phoneNumber,
+        )
+      )?.id
+      const driverLastAssociation =
+        await this.driverCarService.findDriverLastAssociation(idDriver)
 
-    await this.carInfoService.remove(driverLastAssociation.idCar)
+      await this.carInfoService.remove(driverLastAssociation?.idCar)
 
-    if (mode === 'CREATION') {
-      await this.driverPersonalInfoService.remove(idDriver)
-      await this.driverLicenseInfoService.deleteByDriverId(idDriver)
-      const driverAssociations =
-        await this.driverCarService.findOneByDriverId(idDriver)
-      await this.driverCarService.remove(driverAssociations.id)
+      if (mode === 'CREATION') {
+        await this.driverPersonalInfoService.remove(idDriver)
+        await this.driverLicenseInfoService.deleteByDriverId(idDriver)
+        const driverAssociations =
+          await this.driverCarService.findOneByDriverId(idDriver)
+        await this.driverCarService.remove(driverAssociations?.id)
+      }
+
+      if (mode === 'UPDATE') {
+        await this.driverCarService.remove(driverLastAssociation?.id)
+
+        const { id, idCar: recentIdCar } =
+          await this.driverCarService.findDriverMostRecentAssociation(idDriver)
+
+        await this.driverCarService.update(id, {
+          idDriver,
+          idCar: recentIdCar,
+          endDate: null,
+        })
+      }
+      //await this.driverCarService.deleteByDriverId(personalInfo.id)
+    } catch (error) {
+      console.log('Error on deleteInfoCollected:', error.message)
     }
-
-    if (mode === 'UPDATE') {
-      await this.driverCarService.remove(driverLastAssociation.id)
-
-      const { id, idCar: recentIdCar } =
-        await this.driverCarService.findDriverMostRecentAssociation(idDriver)
-
-      await this.driverCarService.update(id, {
-        idDriver,
-        idCar: recentIdCar,
-        endDate: null,
-      })
-    }
-    //await this.driverCarService.deleteByDriverId(personalInfo.id)
   }
 
   private getErrorMessage(
@@ -1289,7 +1294,7 @@ export class RabbitmqService {
         'CREATION',
       )
       this.logger.error(
-        `Error processing during yango profile creation: Yango API error: ${error.status} - ${JSON.stringify(error.data)}`,
+        `Error processing during yango profile creation: Yango API error: ${error?.status} - ${JSON.stringify(error.data)}`,
       )
     }
   }

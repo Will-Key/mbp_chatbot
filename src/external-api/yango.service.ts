@@ -61,9 +61,7 @@ export class YangoService {
       await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
         // HTTP error response
-        throw new Error(
-          `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        )
+        throw new Error(error.response.data)
       } else if (error.code === 'ECONNABORTED') {
         // Timeout error
         throw new Error('Yango API request timeout')
@@ -115,9 +113,7 @@ export class YangoService {
       await this.logRequest(RequestStatus.FAIL, _payload, error)
       if (error.response) {
         // HTTP error response
-        throw new Error(
-          `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        )
+        throw new Error(error.response.data)
       } else if (error.code === 'ECONNABORTED') {
         // Timeout error
         throw new Error('Yango API request timeout')
@@ -171,7 +167,7 @@ export class YangoService {
         error,
       )
       if (error.response) {
-        // HTTP error response
+        // HTTP error response `Yango API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
         throw new Error(error.response)
       } else if (error.code === 'ECONNABORTED') {
         // Timeout error

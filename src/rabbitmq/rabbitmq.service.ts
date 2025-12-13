@@ -1624,14 +1624,18 @@ export class RabbitmqService {
           'Une erreur est survenue lors de la mise à jour du numéro de téléphone sur Yango.',
         )
 
-      await this.driverPersonalInfoService.updateByPhoneNumber(
-        previousPhoneNumber,
-        currentPhoneNumber,
-      )
-      await this.driverLicenseInfoService.updatePhoneNumber(
-        previousPhoneNumber,
-        currentPhoneNumber,
-      )
+      const updatedPersonnalInfo =
+        await this.driverPersonalInfoService.updateByPhoneNumber(
+          previousPhoneNumber,
+          currentPhoneNumber,
+        )
+      console.log('driver personal info updated', updatedPersonnalInfo)
+      const updatedLicenseInfo =
+        await this.driverLicenseInfoService.updatePhoneNumber(
+          previousPhoneNumber,
+          currentPhoneNumber,
+        )
+      console.log('driver license info updated', updatedLicenseInfo)
       const successStep = await this.stepService.findOneBylevelAndidFlow(
         6,
         'Modification de numéro de téléphone',

@@ -274,7 +274,7 @@ export class OcrSpaceService {
       const associatedCar =
         await this.driverCarService.findOneByDriverIdAndCarId(idDriver, carId)
       console.log('associatedCar', associatedCar)
-      if (associatedCar) return -1 // Indicates that the car already exists for this driver
+      if (associatedCar) return OcrErrorCode.ALREADY_ASSOCIATED // Indicates that the car already exists for this driver
 
       if (idFlow === 'Changement de véhicule') {
         await this.driverCarService.updateEndDateByDriverId(idDriver)

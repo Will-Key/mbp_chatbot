@@ -354,7 +354,7 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      await this.delay()
+      await this.delay(10000)
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
@@ -659,7 +659,7 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      await this.delay()
+      await this.delay(10000)
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
@@ -753,7 +753,7 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
-      await this.delay()
+      await this.delay(10000)
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message
@@ -864,7 +864,7 @@ export class RabbitmqService {
         stepId: nextStep.id,
       })
 
-      await this.delay()
+      await this.delay(10000)
       await this.otpService.generateAndSendOtp(phoneNumber)
     } catch (error) {
       let errorMessage = error.message

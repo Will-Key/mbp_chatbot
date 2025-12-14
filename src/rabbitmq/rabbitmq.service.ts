@@ -1461,8 +1461,10 @@ export class RabbitmqService {
       const createYangoCar: CreateYangoCarDto =
         await this.buildCreateCarPayload(phoneNumber)
 
+      const carInfo = await this.carInfoService.findOne(driverAssociatedCarId)
+      console.log('handleCreateYangoCar.carInfo', carInfo)
       const carId =
-        (await this.carInfoService.findOne(driverAssociatedCarId)).yangoCarId ??
+        carInfo?.yangoCarId ??
         (await this.yangoService.createCar(createYangoCar)).vehicle_id
 
       console.log('carId', carId)

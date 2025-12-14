@@ -1494,7 +1494,11 @@ export class RabbitmqService {
           }),
         )
 
-        return await this.abortConversation(abortData, '', 'UPDATE')
+        return await this.abortConversation(
+          abortData,
+          "Une erreur s'est produite lors de la création du véhicule sur Yango",
+          'UPDATE',
+        )
       }
 
       const bindingResponse = await this.yangoService.bindingDriverToCar(

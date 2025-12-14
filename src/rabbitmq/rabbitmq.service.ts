@@ -1059,7 +1059,7 @@ export class RabbitmqService {
       const driverLastAssociation =
         await this.driverCarService.findDriverLastAssociation(idDriver)
 
-      if (driverLastAssociation)
+      if (driverLastAssociation?.idCar)
         await this.carInfoService.remove(driverLastAssociation?.idCar)
 
       if (mode === 'CREATION') {
@@ -1071,7 +1071,8 @@ export class RabbitmqService {
       }
 
       if (mode === 'UPDATE') {
-        await this.driverCarService.remove(driverLastAssociation?.id)
+        if (driverLastAssociation?.id)
+          await this.driverCarService.remove(driverLastAssociation?.id)
 
         const { id, idCar: recentIdCar } =
           await this.driverCarService.findDriverMostRecentAssociation(idDriver)

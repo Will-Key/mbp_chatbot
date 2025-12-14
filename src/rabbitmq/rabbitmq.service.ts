@@ -1460,6 +1460,8 @@ export class RabbitmqService {
       const carId =
         (await this.carInfoService.findOne(driverAssociatedCarId)).yangoCarId ??
         (await this.yangoService.createCar(createYangoCar)).vehicle_id
+
+      console.log('carId', carId)
       if (!carId) {
         const idDriver = (
           await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
@@ -1493,6 +1495,7 @@ export class RabbitmqService {
         driverInfo.yangoProfileId,
         carId,
       )
+      console.log('bindingResponse', bindingResponse)
       if (bindingResponse !== 200)
         return await this.abortConversation(
           abortData,
@@ -1503,7 +1506,7 @@ export class RabbitmqService {
       await this.carInfoService.update(driverAssociatedCarId, {
         yangoCarId: carId,
       })
-
+      console.log('carInfo updated with yangoCarId', carId)
       const documentFiles =
         await this.documentFileService.findAllByWhaPhoneNumber(whaPhoneNumber)
 

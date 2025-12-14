@@ -29,7 +29,7 @@ export class OtpService {
     await this.otpVerificationService.create({
       phoneNumber,
       otpCode: otp,
-      expiresAt: addMinutes(new Date(), 2),
+      expiresAt: addMinutes(new Date(), 3),
     })
 
     try {
@@ -72,6 +72,7 @@ export class OtpService {
               to: phoneNumber,
               content: content,
             },
+            timeout: 50000,
           })
           .pipe(
             map(async (response) => {

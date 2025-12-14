@@ -5,6 +5,7 @@ export enum OcrErrorCode {
   DUPLICATE_LICENSE = -2,
   DUPLICATE_PLATE = -3,
   DUPLICATE_PHONE = -4,
+  OCR_SERVICE_ERROR = -99,
 }
 
 // config.ts
@@ -76,6 +77,8 @@ export const getOcrErrorMessage = (
       return `Vous êtes déjà associé à ce véhicule.\nMerci d'envoyer la photo de la carte grise du nouveau véhicule.`
     case OcrErrorCode.DUPLICATE_PHONE:
       return `Ce numéro de téléphone est déjà enregistré dans notre système.\nSi vous pensez qu'il s'agit d'une erreur, veuillez contacter notre support.`
+    case OcrErrorCode.OCR_SERVICE_ERROR:
+      return `Une erreur est survenue lors du traitement de votre ${docName} par notre service OCR.\nMerci de réessayer.`
 
     default:
       return `Une erreur est survenue lors du traitement de votre ${docName}.\nMerci de réessayer.`

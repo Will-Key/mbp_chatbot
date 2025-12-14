@@ -267,7 +267,7 @@ export class YangoService {
         },
         response.data,
       )
-      console.log('Update driver phone response:', response)
+      console.log('Binding driver to car:', response)
       return response.status
     } catch (error) {
       console.error('Error fetching driver profile:', error)

@@ -1451,7 +1451,7 @@ export class RabbitmqService {
         )
       console.log('driverInfo', driverInfo)
       const driverAssociatedCarId = (
-        await this.driverCarService.findOneByDriverId(driverInfo.id)
+        await this.driverCarService.findDriverLastAssociation(driverInfo.id)
       )?.idCar
       console.log('driverAssociatedCarId', driverAssociatedCarId)
       const createYangoCar: CreateYangoCarDto =

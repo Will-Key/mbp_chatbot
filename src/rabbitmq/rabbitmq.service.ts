@@ -1055,14 +1055,16 @@ export class RabbitmqService {
           phoneNumber,
         )
       )?.id
+
       const driverLastAssociation =
         await this.driverCarService.findDriverLastAssociation(idDriver)
 
-      await this.carInfoService.remove(driverLastAssociation?.idCar)
+      if (driverLastAssociation)
+        await this.carInfoService.remove(driverLastAssociation?.idCar)
 
       if (mode === 'CREATION') {
-        await this.driverPersonalInfoService.remove(idDriver)
         await this.driverLicenseInfoService.deleteByDriverId(idDriver)
+        await this.driverPersonalInfoService.remove(idDriver)
         const driverAssociations =
           await this.driverCarService.findOneByDriverId(idDriver)
         await this.driverCarService.remove(driverAssociations?.id)

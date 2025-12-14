@@ -42,6 +42,16 @@ export class OcrSpaceService {
     try {
       const response = await ocrSpace(file.dataImageUrl, params)
       this.logger.log(`ocrSpace response:`, JSON.stringify(response))
+      if (response.ParsedResults.length === 0) {
+        await this.requestLogService.create({
+          direction: 'OUT',
+          status: 'FAIL',
+          initiator: 'OCR_SPACE',
+          data: file.dataImageUrl,
+          response: JSON.stringify(response),
+        })
+        return OcrErrorCode.OCR_SERVICE_ERROR
+      }
       const ocrResponse = await this.processOcrResponse(response, file, idFlow)
 
       await this.requestLogService.create({

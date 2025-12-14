@@ -206,13 +206,13 @@ export class OcrSpaceService {
         licenseNumber,
         collectMethod: 'OCR',
       })
-
+      console.log('driverPersonalInfo', driverPersonalInfo?.id)
       await this.driverLicenseInfoService.create({
         countryCode: 'CIV',
         expiryDate: addYears(deliveryDate, 10).toISOString(),
         deliveryDate: this.convertToISOString(deliveryDate),
         driverPhoneNumber: phoneNumber,
-        idDriverPersInfo: driverPersonalInfo.id,
+        idDriverPersInfo: driverPersonalInfo?.id,
       })
 
       return driverPersonalInfo.id

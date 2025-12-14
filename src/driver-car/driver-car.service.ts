@@ -29,7 +29,7 @@ export class DriverCarService {
 
   findOneByDriverIdAndCarId(idDriver: number, idCar: number) {
     return this.prismaService.driverCar.findFirst({
-      where: { idDriver, idCar },
+      where: { idDriver, idCar, endDate: null },
     })
   }
 

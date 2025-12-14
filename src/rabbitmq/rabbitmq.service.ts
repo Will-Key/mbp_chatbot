@@ -459,7 +459,7 @@ export class RabbitmqService {
         const errorMessage = getOcrErrorMessage(documentType, ocrResponse)
         await this.updateMessage(lastConversation, errorMessage)
 
-        throw Error("Veuillez vérifier l'image fournie.")
+        throw Error(errorMessage)
       }
 
       const nextStep = await this.stepService.findOneBylevelAndidFlow(
@@ -473,8 +473,10 @@ export class RabbitmqService {
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
+      return true
     } catch (error) {
       this.logger.error(error.message)
+      return false
     }
   }
 
@@ -521,7 +523,7 @@ export class RabbitmqService {
   ) {
     try {
       const stepId = idFlow === 'Inscription' ? 19 : 6
-      await this.handleDocumentUpload(
+      const success = await this.handleDocumentUpload(
         lastConversation,
         newMessage,
         'FRONT',
@@ -529,6 +531,8 @@ export class RabbitmqService {
         stepId,
         idFlow,
       )
+
+      if (!success) return
 
       await this.delay()
       if (idFlow === 'Inscription') {

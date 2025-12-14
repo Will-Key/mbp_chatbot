@@ -111,6 +111,15 @@ export class OcrSpaceService {
         return OcrErrorCode.DUPLICATE_PHONE
       }
 
+      const licenseInfo =
+        await this.driverLicenseInfoService.findLicenseInfoByPhoneNumber(
+          await this.getDriverPhoneNumber(file.whaPhoneNumber, idFlow),
+        )
+
+      if (licenseInfo) {
+        return OcrErrorCode.DUPLICATE_PHONE
+      }
+
       const result = await this.getDriverLicenseFrontData(
         driverLicenseInfo,
         file.whaPhoneNumber,

@@ -104,7 +104,7 @@ export class OpenAIService {
       const systemPrompt = `
         Tu es un expert en extraction de données de carte grise ivoirienne.
         Analyse le texte brut fourni par l'OCR et extrait uniquement les informations suivantes au format JSON:
-        - plateNumber: numéro d'immatriculation
+        - plateNumber: numéro d'immatriculation (Tout en majuscule sans espaces mais si tu trouves les tirets ou autres séparateurs, garde les tels quels)
         - brand: marque du véhicule (retourne une marque qui existe sur le marché)
         - model: Type commercial (retourne la valeur sous le format Train-Case : par exemple "Mercedes-Benz" | "S-Presso")
         - color: couleur du véhicule (retourne la couleur récupérer en russe entre ces valeurs "Белый" | "Желтый" | "Бежевый" | "Черный" | "Голубой" | "Серый" | "Красный" | "Оранжевый" | "Синий" | "Зеленый" | "Коричневый" | "Фиолетовый" | "Розовый")

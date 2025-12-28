@@ -1210,11 +1210,13 @@ export class RabbitmqService {
       ).message
       this.logger.log(`Create Yango profile for ${phoneNumber}`)
 
-      const createYangoCar: CreateYangoCarDto =
+      const createYangoCar: CreateYangoCarDto | string =
         await this.buildCreateCarPayload(phoneNumber)
 
-      const carId = (await this.yangoService.createCar(createYangoCar))
-        .vehicle_id
+      const carId =
+        createYangoCar instanceof Object
+          ? (await this.yangoService.createCar(createYangoCar)).vehicle_id
+          : createYangoCar
       this.logger.log('Create Yango profile carId', carId)
       if (!carId)
         return await this.abortConversation(
@@ -1308,7 +1310,7 @@ export class RabbitmqService {
 
   private async buildCreateCarPayload(
     phoneNumber: string,
-  ): Promise<CreateYangoCarDto> {
+  ): Promise<CreateYangoCarDto | string> {
     const idDriver = (
       await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
         phoneNumber,
@@ -1317,24 +1319,26 @@ export class RabbitmqService {
     const { idCar } =
       await this.driverCarService.findDriverLastAssociation(idDriver)
     const carInfo = await this.carInfoService.findOne(idCar)
-    return {
-      park_profile: {
-        callsign: carInfo.code,
-        fuel_type: 'petrol',
-        status: 'unknown',
-        categories: ['econom', 'comfort', 'comfort_plus', 'business'],
-      },
-      vehicle_licenses: {
-        licence_plate_number: carInfo.plateNumber,
-      },
-      vehicle_specifications: {
-        brand: carInfo.brand,
-        color: carInfo.color,
-        model: carInfo.model,
-        transmission: 'mechanical',
-        year: carInfo.year ? +carInfo.year : 2020, // Default to 2020 if year is not provided
-      },
-    }
+    return carInfo.yangoCarId
+      ? carInfo.yangoCarId
+      : {
+          park_profile: {
+            callsign: carInfo.code,
+            fuel_type: 'petrol',
+            status: 'unknown',
+            categories: ['econom', 'comfort', 'comfort_plus', 'business'],
+          },
+          vehicle_licenses: {
+            licence_plate_number: carInfo.plateNumber,
+          },
+          vehicle_specifications: {
+            brand: carInfo.brand,
+            color: carInfo.color,
+            model: carInfo.model,
+            transmission: 'mechanical',
+            year: carInfo.year ? +carInfo.year : 2020, // Default to 2020 if year is not provided
+          },
+        }
   }
 
   private async buildCreateProfilePayload(
@@ -1458,14 +1462,15 @@ export class RabbitmqService {
         await this.driverCarService.findDriverLastAssociation(driverInfo.id)
       )?.idCar
       console.log('driverAssociatedCarId', driverAssociatedCarId)
-      const createYangoCar: CreateYangoCarDto =
+      const createYangoCar: CreateYangoCarDto | string =
         await this.buildCreateCarPayload(phoneNumber)
 
       const carInfo = await this.carInfoService.findOne(driverAssociatedCarId)
       console.log('handleCreateYangoCar.carInfo', carInfo)
       const carId =
         carInfo?.yangoCarId ??
-        (await this.yangoService.createCar(createYangoCar)).vehicle_id
+        (await this.yangoService.createCar(createYangoCar as CreateYangoCarDto))
+          .vehicle_id
 
       console.log('carId', carId)
       if (!carId) {
@@ -1538,9 +1543,13 @@ export class RabbitmqService {
         7,
         'Changement de véhicule',
       )
+      const plateNumber =
+        typeof createYangoCar === 'string'
+          ? carInfo.plateNumber
+          : createYangoCar.vehicle_licenses.licence_plate_number
       const message = successStep.message.replace(
         '{carPlateNumber}',
-        createYangoCar.vehicle_licenses.licence_plate_number,
+        plateNumber,
       )
       await this.handleMessageToSent({
         to: whaPhoneNumber,

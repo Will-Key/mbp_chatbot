@@ -80,10 +80,25 @@ export class CarInfoService {
   //   })
   // }
 
-  findByPlateNumber(plateNumber: string, status?: CarStatus) {
-    return this.prismaService.carInfo.findFirst({
-      where: { plateNumber, status },
-    })
+  findByPlateNumber(
+    plateNumber: string,
+    normalizedPlateNumber?: string,
+    status?: CarStatus,
+  ) {
+    const where: any = {
+      OR: [
+        { plateNumber },
+        ...(normalizedPlateNumber
+          ? [{ plateNumber: normalizedPlateNumber }]
+          : []),
+      ],
+    }
+
+    if (status) {
+      where.status = status
+    }
+
+    return this.prismaService.carInfo.findFirst({ where })
   }
 
   // deleteByPhoneNumber(driverPhoneNumber: string) {

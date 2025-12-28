@@ -174,8 +174,14 @@ export class OcrSpaceService {
         )
       ).id
 
+      // TODO: retirer les tirets et espaces du numéro de plaque pour la comparaison
+      const normalizedPlateNumber = vehiculeInfo.plateNumber.replace(
+        /[-\s]/g,
+        '',
+      )
+
       const existingCar = await this.carInfoService
-        .findByPlateNumber(vehiculeInfo.plateNumber)
+        .findByPlateNumber(vehiculeInfo.plateNumber, normalizedPlateNumber)
         .catch(() => null)
 
       if (existingCar) {

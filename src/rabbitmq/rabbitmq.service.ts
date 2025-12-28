@@ -1319,6 +1319,7 @@ export class RabbitmqService {
     const { idCar } =
       await this.driverCarService.findDriverLastAssociation(idDriver)
     const carInfo = await this.carInfoService.findOne(idCar)
+    console.log('buildCreateCarPayload.carInfo', carInfo)
     return carInfo.yangoCarId
       ? carInfo.yangoCarId
       : {

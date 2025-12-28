@@ -179,7 +179,7 @@ export class OcrSpaceService {
         /[-\s]/g,
         '',
       )
-
+      console.log('normalizedPlateNumber', normalizedPlateNumber)
       const existingCar = await this.carInfoService
         .findByPlateNumber(vehiculeInfo.plateNumber, normalizedPlateNumber)
         .catch(() => null)
@@ -266,9 +266,13 @@ export class OcrSpaceService {
     ).id
     console.log('idDriver', idDriver)
     console.log('phoneNumber', phoneNumber)
-
+    const normalizedPlateNumber = plateNumber.replace(/[-\s]/g, '')
     try {
-      let carId = (await this.carInfoService.findByPlateNumber(plateNumber))?.id
+      let carId = (
+        await this.carInfoService
+          .findByPlateNumber(plateNumber, normalizedPlateNumber)
+          .catch(() => null)
+      )?.id
       console.log('carInfo', carId)
       console.log('plateNumber', plateNumber)
 

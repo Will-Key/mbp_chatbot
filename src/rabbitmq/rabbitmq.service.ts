@@ -1063,8 +1063,13 @@ export class RabbitmqService {
       const driverLastAssociation =
         await this.driverCarService.findDriverLastAssociation(idDriver)
 
-      if (driverLastAssociation?.idCar)
-        await this.carInfoService.remove(driverLastAssociation?.idCar)
+      if (driverLastAssociation?.idCar) {
+        const isYangoCar = (
+          await this.carInfoService.findOne(driverLastAssociation.idCar)
+        ).yangoCarId
+        if (!isYangoCar)
+          await this.carInfoService.remove(driverLastAssociation.idCar)
+      }
 
       if (mode === 'CREATION') {
         await this.driverLicenseInfoService.deleteByDriverId(idDriver)

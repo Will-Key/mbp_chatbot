@@ -2,6 +2,8 @@ import { Inject, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import {
+  CarStatus,
+  CollectMethod,
   Conversation,
   DocumentFile,
   HistoryConversationReasonForEnding,
@@ -1215,13 +1217,22 @@ export class RabbitmqService {
       ).message
       this.logger.log(`Create Yango profile for ${phoneNumber}`)
 
-      const createYangoCar: CreateYangoCarDto | string =
-        await this.buildCreateCarPayload(phoneNumber)
+      const driverInfo =
+        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+          phoneNumber,
+        )
+      const driverAssociatedCarId = (
+        await this.driverCarService.findOneByDriverId(driverInfo.id)
+      )?.idCar
+      const carInfo = await this.carInfoService.findOne(driverAssociatedCarId)
 
-      const carId =
-        createYangoCar instanceof Object
-          ? (await this.yangoService.createCar(createYangoCar)).vehicle_id
-          : createYangoCar
+      let carId: string
+      if (carInfo?.yangoCarId) {
+        carId = carInfo.yangoCarId
+      } else {
+        const createYangoCar = await this.buildCreateCarPayload(phoneNumber)
+        carId = (await this.yangoService.createCar(createYangoCar)).vehicle_id
+      }
       this.logger.log('Create Yango profile carId', carId)
       if (!carId)
         return await this.abortConversation(
@@ -1254,11 +1265,6 @@ export class RabbitmqService {
           'CREATION',
         )
 
-      const driverInfo =
-        await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
-          phoneNumber,
-        )
-
       const documentFiles =
         await this.documentFileService.findAllByWhaPhoneNumber(whaPhoneNumber)
 
@@ -1275,11 +1281,6 @@ export class RabbitmqService {
         yangoProfileId: profileId,
       })
 
-      const driverAssociatedCarId = (
-        await this.driverCarService.findOneByDriverId(driverInfo.id)
-      )?.idCar
-
-      const carInfo = await this.carInfoService.findOne(driverAssociatedCarId)
       await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
 
       //await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
@@ -1315,7 +1316,7 @@ export class RabbitmqService {
 
   private async buildCreateCarPayload(
     phoneNumber: string,
-  ): Promise<CreateYangoCarDto | string> {
+  ): Promise<CreateYangoCarDto> {
     const idDriver = (
       await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
         phoneNumber,
@@ -1325,26 +1326,24 @@ export class RabbitmqService {
       await this.driverCarService.findDriverLastAssociation(idDriver)
     const carInfo = await this.carInfoService.findOne(idCar)
     console.log('buildCreateCarPayload.carInfo', carInfo)
-    return carInfo.yangoCarId
-      ? carInfo.yangoCarId
-      : {
-          park_profile: {
-            callsign: carInfo.code,
-            fuel_type: 'petrol',
-            status: 'unknown',
-            categories: ['econom', 'comfort', 'comfort_plus', 'business'],
-          },
-          vehicle_licenses: {
-            licence_plate_number: carInfo.plateNumber,
-          },
-          vehicle_specifications: {
-            brand: carInfo.brand,
-            color: carInfo.color,
-            model: carInfo.model,
-            transmission: 'mechanical',
-            year: carInfo.year ? +carInfo.year : 2020, // Default to 2020 if year is not provided
-          },
-        }
+    return {
+      park_profile: {
+        callsign: carInfo.code,
+        fuel_type: 'petrol',
+        status: 'unknown',
+        categories: ['econom', 'comfort', 'comfort_plus', 'business'],
+      },
+      vehicle_licenses: {
+        licence_plate_number: carInfo.plateNumber,
+      },
+      vehicle_specifications: {
+        brand: carInfo.brand,
+        color: carInfo.color,
+        model: carInfo.model,
+        transmission: 'mechanical',
+        year: carInfo.year ? +carInfo.year : 2020, // Default to 2020 if year is not provided
+      },
+    }
   }
 
   private async buildCreateProfilePayload(
@@ -1468,15 +1467,18 @@ export class RabbitmqService {
         await this.driverCarService.findDriverLastAssociation(driverInfo.id)
       )?.idCar
       console.log('driverAssociatedCarId', driverAssociatedCarId)
-      const createYangoCar: CreateYangoCarDto | string =
-        await this.buildCreateCarPayload(phoneNumber)
 
       const carInfo = await this.carInfoService.findOne(driverAssociatedCarId)
       console.log('handleCreateYangoCar.carInfo', carInfo)
-      const carId =
-        carInfo?.yangoCarId ??
-        (await this.yangoService.createCar(createYangoCar as CreateYangoCarDto))
-          .vehicle_id
+
+      let carId: string
+      if (carInfo?.yangoCarId) {
+        console.log('Car already exists on Yango, skipping creation')
+        carId = carInfo.yangoCarId
+      } else {
+        const createYangoCar = await this.buildCreateCarPayload(phoneNumber)
+        carId = (await this.yangoService.createCar(createYangoCar)).vehicle_id
+      }
 
       console.log('carId', carId)
       if (!carId) {
@@ -1549,10 +1551,7 @@ export class RabbitmqService {
         7,
         'Changement de véhicule',
       )
-      const plateNumber =
-        typeof createYangoCar === 'string'
-          ? carInfo.plateNumber
-          : createYangoCar.vehicle_licenses.licence_plate_number
+      const plateNumber = carInfo.plateNumber
       const message = successStep.message.replace(
         '{carPlateNumber}',
         plateNumber,
@@ -1727,6 +1726,196 @@ export class RabbitmqService {
         })
       }
     }
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async syncYangoData() {
+    this.logger.log('Starting Yango data sync...')
+    try {
+      await this.syncYangoCars()
+      await this.syncYangoDriverProfiles()
+      this.logger.log('Yango data sync completed')
+    } catch (error) {
+      this.logger.error(`Yango data sync failed: ${error.message}`)
+    }
+  }
+
+  private async syncYangoCars() {
+    let offset = 0
+    const limit = 1000
+    let total = 0
+
+    do {
+      const response = await this.yangoService.listCars(offset, limit)
+      total = response.total
+
+      for (const yangoCar of response.cars) {
+        try {
+          const existingCar = await this.carInfoService.findCarInfoByYangoCarId(
+            yangoCar.id,
+          )
+          if (existingCar) continue
+
+          const existingByPlate = await this.carInfoService.findByPlateNumber(
+            yangoCar.number,
+            yangoCar.normalized_number,
+          )
+          if (existingByPlate) {
+            await this.carInfoService.update(existingByPlate.id, {
+              yangoCarId: yangoCar.id,
+              status: yangoCar.status as CarStatus,
+            })
+            continue
+          }
+
+          await this.carInfoService.create({
+            brand: yangoCar.brand,
+            color: yangoCar.color,
+            year: String(yangoCar.year),
+            plateNumber: yangoCar.number,
+            code: yangoCar.callsign,
+            status: (yangoCar.status as CarStatus) || CarStatus.working,
+            model: yangoCar.model,
+            yangoCarId: yangoCar.id,
+          })
+          this.logger.log(`Synced new car: ${yangoCar.number}`)
+        } catch (error) {
+          this.logger.error(
+            `Error syncing car ${yangoCar.id}: ${error.message}`,
+          )
+        }
+      }
+
+      offset += limit
+    } while (offset < total)
+  }
+
+  private async syncYangoDriverProfiles() {
+    let offset = 0
+    const limit = 1000
+    let total = 0
+
+    do {
+      const response = await this.yangoService.listDriverProfiles(offset, limit)
+      total = response.total
+
+      for (const item of response.driver_profiles) {
+        try {
+          const profile = item.driver_profile
+          const car = item.car
+
+          const existingDriver =
+            await this.driverPersonalInfoService.findDriverPersonnalInfoByYangoProfileID(
+              profile.id,
+            )
+          if (existingDriver) {
+            // Driver exists — just ensure car association is up to date
+            if (car?.id) {
+              await this.ensureDriverCarAssociation(existingDriver.id, car.id)
+            }
+            continue
+          }
+
+          const phoneNumber = profile.phones?.[0]?.replace('+', '') || ''
+          if (!phoneNumber) continue
+
+          // Check if driver exists by phone number
+          const existingByPhone =
+            await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+              phoneNumber,
+            )
+          if (existingByPhone) {
+            await this.driverPersonalInfoService.update(existingByPhone.id, {
+              yangoProfileId: profile.id,
+            })
+            if (car?.id) {
+              await this.ensureDriverCarAssociation(existingByPhone.id, car.id)
+            }
+            continue
+          }
+
+          // Check if driver exists by license number
+          const existingByLicense =
+            await this.driverPersonalInfoService.findByLicenseNumber(
+              profile.driver_license?.number,
+            )
+          if (existingByLicense) {
+            await this.driverPersonalInfoService.update(existingByLicense.id, {
+              yangoProfileId: profile.id,
+            })
+            if (car?.id) {
+              await this.ensureDriverCarAssociation(
+                existingByLicense.id,
+                car.id,
+              )
+            }
+            continue
+          }
+
+          // Create new driver
+          const newDriver = await this.driverPersonalInfoService.create({
+            lastName: profile.last_name,
+            firstName: profile.first_name,
+            phoneNumber,
+            whaPhoneNumber: phoneNumber,
+            licenseNumber:
+              profile.driver_license?.number || `YANGO_${profile.id}`,
+            collectMethod: CollectMethod.DATA_MIGRATION,
+            yangoProfileId: profile.id,
+          })
+
+          // Create license info
+          if (profile.driver_license) {
+            await this.driverLicenseInfoService.create({
+              countryCode: profile.driver_license.country || 'civ',
+              expiryDate: profile.driver_license.expiration_date,
+              deliveryDate: profile.driver_license.issue_date,
+              driverPhoneNumber: phoneNumber,
+              idDriverPersInfo: newDriver.id,
+            })
+          }
+
+          // Create car association
+          if (car?.id) {
+            await this.ensureDriverCarAssociation(newDriver.id, car.id)
+          }
+
+          this.logger.log(
+            `Synced new driver: ${profile.first_name} ${profile.last_name}`,
+          )
+        } catch (error) {
+          this.logger.error(
+            `Error syncing driver ${item.driver_profile?.id}: ${error.message}`,
+          )
+        }
+      }
+
+      offset += limit
+    } while (offset < total)
+  }
+
+  private async ensureDriverCarAssociation(
+    idDriver: number,
+    yangoCarId: string,
+  ) {
+    const carInfo =
+      await this.carInfoService.findCarInfoByYangoCarId(yangoCarId)
+    if (!carInfo) return
+
+    const existingAssociation =
+      await this.driverCarService.findOneByDriverIdAndCarId(
+        idDriver,
+        carInfo.id,
+      )
+    if (existingAssociation) return
+
+    // End current active associations
+    await this.driverCarService.updateEndDateByDriverId(idDriver)
+    // Create new association
+    await this.driverCarService.create({
+      idDriver,
+      idCar: carInfo.id,
+    })
   }
 
   private async sendErrorMessage(whaPhoneNumber: string) {

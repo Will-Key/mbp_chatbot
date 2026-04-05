@@ -7,6 +7,8 @@ import { RequestLogService } from '../request-log/request-log.service'
 import { CreateYangoCarDto } from './dto/create-yango-car.dto'
 import { CreateYangoProfileDto } from './dto/create-yango-profile.dto'
 import { UpdateYangoDriverInfoDto } from './dto/update-yango-driver-info.dto'
+import { YangoCarListResponseDto } from './dto/yango-car-list.dto'
+import { YangoDriverProfileListResponseDto } from './dto/yango-driver-profile-list.dto'
 
 @Injectable()
 export class YangoService {
@@ -289,6 +291,87 @@ export class YangoService {
       } else {
         throw new Error(`Binding failed: ${error.message}`)
       }
+    }
+  }
+
+  async listDriverProfiles(
+    offset = 0,
+    limit = 1000,
+  ): Promise<YangoDriverProfileListResponseDto> {
+    try {
+      const payload = {
+        query: {
+          park: {
+            id: process.env.YANGO_PARK_ID,
+          },
+        },
+        offset,
+        limit,
+      }
+      const response = await lastValueFrom(
+        this.httpService.post(
+          'https://fleet-api.taxi.yandex.net/v1/parks/driver-profiles/list',
+          payload,
+          {
+            headers: {
+              'X-API-Key': process.env.YANGO_API_KEY,
+              'X-Client-ID': process.env.YANGO_CLIENT_ID,
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            timeout: 30000,
+          },
+        ),
+      )
+      await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
+      return response.data
+    } catch (error) {
+      console.error('Error listing driver profiles:', error)
+      await this.logRequest(
+        RequestStatus.FAIL,
+        { action: 'listDriverProfiles', offset, limit },
+        error,
+      )
+      throw error
+    }
+  }
+
+  async listCars(offset = 0, limit = 1000): Promise<YangoCarListResponseDto> {
+    try {
+      const payload = {
+        query: {
+          park: {
+            id: process.env.YANGO_PARK_ID,
+          },
+        },
+        offset,
+        limit,
+      }
+      const response = await lastValueFrom(
+        this.httpService.post(
+          'https://fleet-api.taxi.yandex.net/v1/parks/cars/list',
+          payload,
+          {
+            headers: {
+              'X-API-Key': process.env.YANGO_API_KEY,
+              'X-Client-ID': process.env.YANGO_CLIENT_ID,
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            timeout: 30000,
+          },
+        ),
+      )
+      await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
+      return response.data
+    } catch (error) {
+      console.error('Error listing cars:', error)
+      await this.logRequest(
+        RequestStatus.FAIL,
+        { action: 'listCars', offset, limit },
+        error,
+      )
+      throw error
     }
   }
 

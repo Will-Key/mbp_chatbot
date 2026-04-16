@@ -29,7 +29,7 @@ export class YangoService {
       console.log('Creating Yango profile with payload:', _payload)
       const response = await lastValueFrom(
         this.httpService.post(
-          `${process.env.YANGO_API_URL}/${this.PROFILE_PATH}`,
+          `${process.env.YANGO_API_URL_V2}/${this.PROFILE_PATH}`,
           _payload,
           {
             headers: {
@@ -82,7 +82,7 @@ export class YangoService {
       console.log('Creating car with payload:', _payload)
       const response = await lastValueFrom(
         this.httpService.post(
-          `${process.env.YANGO_API_URL}/${this.CAR_PATH}`,
+          `${process.env.YANGO_API_URL_V2}/${this.CAR_PATH}`,
           _payload,
           {
             headers: {
@@ -135,7 +135,7 @@ export class YangoService {
       console.log('Fetching driver profile for ID:', contractor_profile_id)
       const response = await lastValueFrom(
         this.httpService.get(
-          `${process.env.YANGO_API_URL}/${this.PROFILE_PATH}?contractor_profile_id=${contractor_profile_id}`,
+          `${process.env.YANGO_API_URL_V2}/${this.PROFILE_PATH}?contractor_profile_id=${contractor_profile_id}`,
           {
             headers: {
               'X-API-Key': process.env.YANGO_API_KEY,
@@ -191,7 +191,7 @@ export class YangoService {
     try {
       const response = await lastValueFrom(
         this.httpService.put(
-          `https://fleet.api.yango.com/v2/parks/contractors/driver-profile?contractor_profile_id=${contractor_profile_id}`,
+          `${process.env.YANGO_API_URL_V2}/${this.PROFILE_PATH}?contractor_profile_id=${contractor_profile_id}`,
           payload,
           {
             headers: {
@@ -245,7 +245,7 @@ export class YangoService {
     try {
       const response = await lastValueFrom(
         this.httpService.put(
-          `https://fleet.api.yango.com/v1/parks/driver-profiles/car-bindings?driver_profile_id=${contractor_profile_id}&car_id=${yango_vehicle_id}&park_id=${parkId}`,
+          `${process.env.YANGO_API_URL_V1}/driver-profiles/car-bindings?driver_profile_id=${contractor_profile_id}&car_id=${yango_vehicle_id}&park_id=${parkId}`,
           {},
           {
             headers: {
@@ -310,7 +310,7 @@ export class YangoService {
       }
       const response = await lastValueFrom(
         this.httpService.post(
-          'https://fleet-api.taxi.yandex.net/v1/parks/driver-profiles/list',
+          `${process.env.YANGO_API_URL_V1}/driver-profiles/list`,
           payload,
           {
             headers: {
@@ -349,7 +349,7 @@ export class YangoService {
       }
       const response = await lastValueFrom(
         this.httpService.post(
-          'https://fleet-api.taxi.yandex.net/v1/parks/cars/list',
+          `${process.env.YANGO_API_URL_V1}/parks/cars/list`,
           payload,
           {
             headers: {

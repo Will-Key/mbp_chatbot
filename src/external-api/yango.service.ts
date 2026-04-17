@@ -9,6 +9,7 @@ import { CreateYangoProfileDto } from './dto/create-yango-profile.dto'
 import { UpdateYangoDriverInfoDto } from './dto/update-yango-driver-info.dto'
 import { YangoCarListResponseDto } from './dto/yango-car-list.dto'
 import { YangoDriverProfileListResponseDto } from './dto/yango-driver-profile-list.dto'
+import { YangoOrderListResponseDto } from './dto/yango-order-list.dto'
 
 @Injectable()
 export class YangoService {
@@ -369,6 +370,56 @@ export class YangoService {
       await this.logRequest(
         RequestStatus.FAIL,
         { action: 'listCars', offset, limit },
+        error,
+      )
+      throw error
+    }
+  }
+
+  async listOrders(
+    from: string,
+    to: string,
+    offset = 0,
+    limit = 500,
+  ): Promise<YangoOrderListResponseDto> {
+    try {
+      const payload = {
+        query: {
+          park: {
+            id: process.env.YANGO_PARK_ID,
+            order: {
+              booked_at: {
+                from,
+                to,
+              },
+            },
+          },
+        },
+        offset,
+        limit,
+      }
+      const response = await lastValueFrom(
+        this.httpService.post(
+          `${process.env.YANGO_API_URL_V1}/parks/orders/list`,
+          payload,
+          {
+            headers: {
+              'X-API-Key': process.env.YANGO_API_KEY,
+              'X-Client-ID': process.env.YANGO_CLIENT_ID,
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            timeout: 30000,
+          },
+        ),
+      )
+      await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
+      return response.data
+    } catch (error) {
+      console.error('Error listing orders:', error)
+      await this.logRequest(
+        RequestStatus.FAIL,
+        { action: 'listOrders', from, to, offset, limit },
         error,
       )
       throw error

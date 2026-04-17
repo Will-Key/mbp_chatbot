@@ -6,6 +6,7 @@ import { ConversationService } from '../conversation/conversation.service'
 import { DocumentFileService } from '../document-file/document-file.service'
 import { DriverCarService } from '../driver-car/driver-car.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
+import { DriverOrderService } from '../driver-order/driver-order.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { ExternalApiModule } from '../external-api/external-api.module'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
@@ -132,6 +133,7 @@ import { RabbitmqService } from './rabbitmq.service'
     UserService,
     DocumentFileService,
     HistoryConversationService,
+    DriverOrderService,
   ],
   exports: [RabbitmqService],
 })

@@ -8,6 +8,7 @@ import { ConversationModule } from './conversation/conversation.module'
 import { DocumentFileModule } from './document-file/document-file.module'
 import { DriverCarModule } from './driver-car/driver-car.module'
 import { DriverLicenseInfoModule } from './driver-license-info/driver-license-info.module'
+import { DriverOrderModule } from './driver-order/driver-order.module'
 import { DriverPersonalInfoModule } from './driver-personal-info/driver-personal-info.module'
 import { ExternalApiModule } from './external-api/external-api.module'
 import { FlowModule } from './flow/flow.module'
@@ -34,6 +35,7 @@ import { WebhookModule } from './webhook/webhook.module'
     DriverLicenseInfoModule,
     CarInfoModule,
     DriverCarModule,
+    DriverOrderModule,
     WebhookModule,
     RabbitmqModule,
     ExternalApiModule,

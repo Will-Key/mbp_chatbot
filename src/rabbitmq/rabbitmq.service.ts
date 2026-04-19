@@ -11,7 +11,7 @@ import {
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
 } from '@prisma/client'
-import { subMinutes } from 'date-fns'
+import { subHours, subMinutes } from 'date-fns'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
@@ -21,6 +21,7 @@ import { DocumentFileService } from '../document-file/document-file.service'
 import { CreateDocumentFileDto } from '../document-file/dto/create-document-file.dto'
 import { DriverCarService } from '../driver-car/driver-car.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
+import { DriverOrderService } from '../driver-order/driver-order.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { CreateYangoCarDto } from '../external-api/dto/create-yango-car.dto'
 import { CreateYangoProfileDto } from '../external-api/dto/create-yango-profile.dto'
@@ -71,6 +72,7 @@ export class RabbitmqService {
     private readonly historyConversationService: HistoryConversationService,
     private readonly otpService: OtpService,
     private readonly userService: UserService,
+    private readonly driverOrderService: DriverOrderService,
   ) {}
 
   onModuleInit() {
@@ -1737,6 +1739,79 @@ export class RabbitmqService {
       this.logger.log('Yango data sync completed')
     } catch (error) {
       this.logger.error(`Yango data sync failed: ${error.message}`)
+    }
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async syncYangoOrders() {
+    this.logger.log('Starting Yango orders sync...')
+    try {
+      const now = new Date()
+      const oneHourAgo = subHours(now, 1)
+      const from = oneHourAgo.toISOString()
+      const to = now.toISOString()
+
+      let offset = 0
+      const limit = 500
+      let hasMore = true
+
+      while (hasMore) {
+        const response = await this.yangoService.listOrders(
+          from,
+          to,
+          offset,
+          limit,
+        )
+
+        if (!response.orders || response.orders.length === 0) {
+          hasMore = false
+          break
+        }
+
+        for (const order of response.orders) {
+          try {
+            const routePoint = order.route_points?.[0]
+            await this.driverOrderService.upsertByYangoOrderId({
+              yangoOrderId: order.id,
+              shortId: order.short_id,
+              status: order.status as any,
+              orderCreatedAt: new Date(order.created_at),
+              bookedAt: new Date(order.booked_at),
+              endedAt: order.ended_at ? new Date(order.ended_at) : null,
+              provider: order.provider,
+              category: order.category,
+              addressFrom: order.address_from?.address,
+              latFrom: order.address_from?.lat,
+              lonFrom: order.address_from?.lon,
+              addressTo: routePoint?.address,
+              latTo: routePoint?.lat,
+              lonTo: routePoint?.lon,
+              paymentMethod: order.payment_method,
+              price: order.price,
+              driverProfileId: order.driver_profile?.id,
+              driverName: order.driver_profile?.name,
+              carId: order.car?.id,
+              carBrandModel: order.car?.brand_model,
+              carLicenseNumber: order.car?.license?.number,
+              cancellationDescription: order.cancellation_description,
+            })
+          } catch (error) {
+            this.logger.error(
+              `Error syncing order ${order.id}: ${error.message}`,
+            )
+          }
+        }
+
+        if (response.orders.length < limit) {
+          hasMore = false
+        } else {
+          offset += limit
+        }
+      }
+
+      this.logger.log('Yango orders sync completed')
+    } catch (error) {
+      this.logger.error(`Yango orders sync failed: ${error.message}`)
     }
   }
 

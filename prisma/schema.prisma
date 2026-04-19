@@ -257,3 +257,46 @@ model OtpVerification {
 
   @@index([phoneNumber, otpCode])
 }
+
+enum DriverOrderStatus {
+  none
+  waiting
+  transporting
+  cancelled
+  complete
+  driving
+  failed
+  expired
+  preexpired
+}
+
+model DriverOrder {
+  id                      Int               @id @default(autoincrement())
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  yangoOrderId            String            @unique
+  shortId                 Int?
+  status                  DriverOrderStatus
+  orderCreatedAt          DateTime
+  bookedAt                DateTime
+  endedAt                 DateTime?
+  provider                String?
+  category                String?
+  addressFrom             String?
+  latFrom                 Float?
+  lonFrom                 Float?
+  addressTo               String?
+  latTo                   Float?
+  lonTo                   Float?
+  paymentMethod           String?
+  price                   String?
+  driverProfileId         String?
+  driverName              String?
+  carId                   String?
+  carBrandModel           String?
+  carLicenseNumber        String?
+  cancellationDescription String?
+
+  @@index([driverProfileId])
+  @@index([bookedAt])
+}

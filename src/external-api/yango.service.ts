@@ -350,7 +350,7 @@ export class YangoService {
       }
       const response = await lastValueFrom(
         this.httpService.post(
-          `${process.env.YANGO_API_URL_V1}/parks/cars/list`,
+          `${process.env.YANGO_API_URL_V1}/cars/list`,
           payload,
           {
             headers: {
@@ -400,7 +400,7 @@ export class YangoService {
       }
       const response = await lastValueFrom(
         this.httpService.post(
-          `${process.env.YANGO_API_URL_V1}/parks/orders/list`,
+          `${process.env.YANGO_API_URL_V1}/orders/list`,
           payload,
           {
             headers: {

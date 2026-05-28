@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { RequestStatus } from '@prisma/client'
+import type { AxiosError } from 'axios'
 import { lastValueFrom } from 'rxjs'
 import { v4 as uuidv4 } from 'uuid'
 import { RequestLogService } from '../request-log/request-log.service'
@@ -13,8 +14,11 @@ import { YangoOrderListResponseDto } from './dto/yango-order-list.dto'
 
 @Injectable()
 export class YangoService {
+  private readonly logger = new Logger(YangoService.name)
   private readonly PROFILE_PATH: string
   private readonly CAR_PATH: string
+  private readonly MAX_TRANSIENT_RETRIES = 3
+  private readonly BASE_RETRY_DELAY_MS = 1000
   constructor(
     private readonly httpService: HttpService,
     private readonly requestLog: RequestLogService,
@@ -309,19 +313,21 @@ export class YangoService {
         offset,
         limit,
       }
-      const response = await lastValueFrom(
-        this.httpService.post(
-          `${process.env.YANGO_API_URL_V1}/driver-profiles/list`,
-          payload,
-          {
-            headers: {
-              'X-API-Key': process.env.YANGO_API_KEY,
-              'X-Client-ID': process.env.YANGO_CLIENT_ID,
-              accept: 'application/json',
-              'content-type': 'application/json',
+      const response = await this.executeWithRetry('listDriverProfiles', () =>
+        lastValueFrom(
+          this.httpService.post(
+            `${process.env.YANGO_API_URL_V1}/driver-profiles/list`,
+            payload,
+            {
+              headers: {
+                'X-API-Key': process.env.YANGO_API_KEY,
+                'X-Client-ID': process.env.YANGO_CLIENT_ID,
+                accept: 'application/json',
+                'content-type': 'application/json',
+              },
+              timeout: 30000,
             },
-            timeout: 30000,
-          },
+          ),
         ),
       )
       await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
@@ -348,19 +354,21 @@ export class YangoService {
         offset,
         limit,
       }
-      const response = await lastValueFrom(
-        this.httpService.post(
-          `${process.env.YANGO_API_URL_V1}/cars/list`,
-          payload,
-          {
-            headers: {
-              'X-API-Key': process.env.YANGO_API_KEY,
-              'X-Client-ID': process.env.YANGO_CLIENT_ID,
-              accept: 'application/json',
-              'content-type': 'application/json',
+      const response = await this.executeWithRetry('listCars', () =>
+        lastValueFrom(
+          this.httpService.post(
+            `${process.env.YANGO_API_URL_V1}/cars/list`,
+            payload,
+            {
+              headers: {
+                'X-API-Key': process.env.YANGO_API_KEY,
+                'X-Client-ID': process.env.YANGO_CLIENT_ID,
+                accept: 'application/json',
+                'content-type': 'application/json',
+              },
+              timeout: 30000,
             },
-            timeout: 30000,
-          },
+          ),
         ),
       )
       await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
@@ -398,19 +406,21 @@ export class YangoService {
         offset,
         limit,
       }
-      const response = await lastValueFrom(
-        this.httpService.post(
-          `${process.env.YANGO_API_URL_V1}/orders/list`,
-          payload,
-          {
-            headers: {
-              'X-API-Key': process.env.YANGO_API_KEY,
-              'X-Client-ID': process.env.YANGO_CLIENT_ID,
-              accept: 'application/json',
-              'content-type': 'application/json',
+      const response = await this.executeWithRetry('listOrders', () =>
+        lastValueFrom(
+          this.httpService.post(
+            `${process.env.YANGO_API_URL_V1}/orders/list`,
+            payload,
+            {
+              headers: {
+                'X-API-Key': process.env.YANGO_API_KEY,
+                'X-Client-ID': process.env.YANGO_CLIENT_ID,
+                accept: 'application/json',
+                'content-type': 'application/json',
+              },
+              timeout: 30000,
             },
-            timeout: 30000,
-          },
+          ),
         ),
       )
       await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
@@ -424,6 +434,87 @@ export class YangoService {
       )
       throw error
     }
+  }
+
+  private async executeWithRetry<T>(
+    action: string,
+    request: () => Promise<T>,
+  ): Promise<T> {
+    let attempt = 0
+
+    while (true) {
+      try {
+        return await request()
+      } catch (error) {
+        if (!this.shouldRetryRequest(error) || attempt >= this.MAX_TRANSIENT_RETRIES) {
+          throw error
+        }
+
+        const delayMs = this.getRetryDelayMs(error, attempt)
+        const status = this.getErrorStatus(error)
+
+        this.logger.warn(
+          `${action} failed with transient upstream error${status ? ` (${status})` : ''}. Retrying in ${delayMs}ms (${attempt + 1}/${this.MAX_TRANSIENT_RETRIES})`,
+        )
+
+        await this.delay(delayMs)
+        attempt += 1
+      }
+    }
+  }
+
+  private shouldRetryRequest(error: unknown): boolean {
+    const status = this.getErrorStatus(error)
+    if (status && [429, 500, 502, 503, 504].includes(status)) {
+      return true
+    }
+
+    const axiosError = error as AxiosError | undefined
+    return ['ECONNABORTED', 'ECONNRESET', 'ETIMEDOUT'].includes(
+      axiosError?.code ?? '',
+    )
+  }
+
+  private getRetryDelayMs(error: unknown, attempt: number): number {
+    const retryAfterMs = this.getRetryAfterMs(error)
+    if (retryAfterMs !== undefined) {
+      return retryAfterMs
+    }
+
+    return Math.min(this.BASE_RETRY_DELAY_MS * 2 ** attempt, 8000)
+  }
+
+  private getRetryAfterMs(error: unknown): number | undefined {
+    const axiosError = error as AxiosError | undefined
+    const retryAfterHeader = axiosError?.response?.headers?.['retry-after']
+    const retryAfterValue = Array.isArray(retryAfterHeader)
+      ? retryAfterHeader[0]
+      : retryAfterHeader
+
+    if (!retryAfterValue) {
+      return undefined
+    }
+
+    const retryAfterSeconds = Number(retryAfterValue)
+    if (Number.isFinite(retryAfterSeconds)) {
+      return retryAfterSeconds * 1000
+    }
+
+    const retryAfterDate = Date.parse(retryAfterValue)
+    if (Number.isNaN(retryAfterDate)) {
+      return undefined
+    }
+
+    return Math.max(retryAfterDate - Date.now(), 0)
+  }
+
+  private getErrorStatus(error: unknown): number | undefined {
+    const axiosError = error as AxiosError | undefined
+    return axiosError?.response?.status
+  }
+
+  private async delay(delayMs: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
   }
 
   private async logRequest(status: RequestStatus, data: any, response: any) {

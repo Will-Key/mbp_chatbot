@@ -10,8 +10,9 @@ import {
   HistoryConversationStatus,
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
+  SyncJobStatus,
 } from '@prisma/client'
-import { subHours, subMinutes } from 'date-fns'
+import { subMinutes } from 'date-fns'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
@@ -39,6 +40,7 @@ import { HistoryConversationService } from '../history-conversation/history-conv
 import { getOcrErrorMessage, OcrErrorCode } from '../shared/constants'
 import { ConversationType } from '../shared/types'
 import { StepService } from '../step/step.service'
+import { SyncJobLogService } from '../sync-job-log/sync-job-log.service'
 import { UserService } from '../user/user.service'
 import { NewMessageWebhookDto } from '../webhook/dto/new-message-webhook.dto'
 import {
@@ -73,6 +75,7 @@ export class RabbitmqService {
     private readonly otpService: OtpService,
     private readonly userService: UserService,
     private readonly driverOrderService: DriverOrderService,
+    private readonly syncJobLogService: SyncJobLogService,
   ) {}
 
   onModuleInit() {
@@ -1738,37 +1741,125 @@ export class RabbitmqService {
       await this.syncYangoDriverProfiles()
       this.logger.log('Yango data sync completed')
     } catch (error) {
-      this.logger.error(`Yango data sync failed: ${error.message}`)
+      this.logger.error(
+        `Yango data sync failed: ${this.extractErrorMessage(error)}`,
+      )
     }
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron('0 */8 * * *')
   async syncYangoOrders() {
-    this.logger.log('Starting Yango orders sync...')
+    const lookbackDays = this.getYangoOrderSyncLookbackDays()
+
+    this.logger.log(
+      `Starting Yango orders sync for ${lookbackDays} closed day(s)...`,
+    )
+
     try {
-      const now = new Date()
-      const oneHourAgo = subHours(now, 1)
-      const from = oneHourAgo.toISOString()
-      const to = now.toISOString()
+      for (let dayOffset = lookbackDays; dayOffset >= 1; dayOffset -= 1) {
+        await this.syncYangoOrdersForClosedDay(dayOffset)
+      }
 
-      let offset = 0
-      const limit = 500
-      let hasMore = true
+      this.logger.log('Yango orders sync completed')
+    } catch (error) {
+      this.logger.error(
+        `Yango orders sync failed: ${this.extractErrorMessage(error)}`,
+      )
+    }
+  }
 
-      while (hasMore) {
+  private extractErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message
+    }
+
+    return String(error)
+  }
+
+  private getYangoOrderSyncLookbackDays(): number {
+    const rawLookbackDays = Number(
+      process.env.YANGO_ORDER_SYNC_LOOKBACK_DAYS ?? 3,
+    )
+
+    if (!Number.isInteger(rawLookbackDays) || rawLookbackDays < 1) {
+      this.logger.warn(
+        'Invalid YANGO_ORDER_SYNC_LOOKBACK_DAYS value. Falling back to 3.',
+      )
+      return 3
+    }
+
+    return rawLookbackDays
+  }
+
+  private getClosedUtcDayWindow(daysAgo: number) {
+    const now = new Date()
+    const from = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - daysAgo,
+        0,
+        0,
+        0,
+        0,
+      ),
+    )
+    const to = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - daysAgo + 1,
+        0,
+        0,
+        0,
+        0,
+      ),
+    )
+
+    return {
+      label: from.toISOString().slice(0, 10),
+      from: from.toISOString(),
+      to: to.toISOString(),
+    }
+  }
+
+  private async syncYangoOrdersForClosedDay(daysAgo: number) {
+    const { from, to, label } = this.getClosedUtcDayWindow(daysAgo)
+    let offset = 0
+    const limit = 500
+    let page = 0
+    let fetchedOrders = 0
+    let syncedOrders = 0
+    let failedOrders = 0
+    const syncLog = await this.syncJobLogService.create({
+      jobName: 'syncYangoOrders',
+      windowLabel: label,
+      windowFrom: new Date(from),
+      windowTo: new Date(to),
+      status: SyncJobStatus.RUNNING,
+    })
+
+    this.logger.log(`Syncing Yango orders for ${label} (${from} -> ${to})...`)
+
+    try {
+      while (true) {
+        page += 1
+
         const response = await this.yangoService.listOrders(
           from,
           to,
           offset,
           limit,
         )
+        const orders = response.orders ?? []
 
-        if (!response.orders || response.orders.length === 0) {
-          hasMore = false
+        if (orders.length === 0) {
           break
         }
 
-        for (const order of response.orders) {
+        fetchedOrders += orders.length
+
+        for (const order of orders) {
           try {
             const routePoint = order.route_points?.[0]
             await this.driverOrderService.upsertByYangoOrderId({
@@ -1795,23 +1886,48 @@ export class RabbitmqService {
               carLicenseNumber: order.car?.license?.number,
               cancellationDescription: order.cancellation_description,
             })
+            syncedOrders += 1
           } catch (error) {
+            failedOrders += 1
             this.logger.error(
-              `Error syncing order ${order.id}: ${error.message}`,
+              `Error syncing order ${order.id}: ${this.extractErrorMessage(error)}`,
             )
           }
         }
 
-        if (response.orders.length < limit) {
-          hasMore = false
-        } else {
-          offset += limit
+        offset += orders.length
+
+        if (orders.length < limit) {
+          break
         }
       }
 
-      this.logger.log('Yango orders sync completed')
+      const status =
+        failedOrders > 0 ? SyncJobStatus.PARTIAL_FAIL : SyncJobStatus.SUCCESS
+
+      await this.syncJobLogService.update(syncLog.id, {
+        status,
+        finishedAt: new Date(),
+        pages: page,
+        fetchedCount: fetchedOrders,
+        syncedCount: syncedOrders,
+        failedCount: failedOrders,
+      })
+
+      this.logger.log(
+        `Yango orders sync window ${label} completed: pages=${page}, fetched=${fetchedOrders}, synced=${syncedOrders}, failed=${failedOrders}`,
+      )
     } catch (error) {
-      this.logger.error(`Yango orders sync failed: ${error.message}`)
+      await this.syncJobLogService.update(syncLog.id, {
+        status: SyncJobStatus.FAIL,
+        finishedAt: new Date(),
+        pages: page,
+        fetchedCount: fetchedOrders,
+        syncedCount: syncedOrders,
+        failedCount: failedOrders,
+        errorMessage: this.extractErrorMessage(error),
+      })
+      throw error
     }
   }
 

@@ -12,16 +12,17 @@ import { ExternalApiModule } from '../external-api/external-api.module'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 import { baseUrl, rabbitmqPort } from '../shared/constants'
 import { StepService } from '../step/step.service'
+import { SyncJobLogModule } from '../sync-job-log/sync-job-log.module'
 import { UserService } from '../user/user.service'
 import {
-  CREATE_YANGO_CAR_SENT_QUEUE_NAME,
-  CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
-  OCR_RECEIVED_QUEUE_NAME,
-  OCR_SENT_QUEUE_NAME,
-  UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
-  WHAPI_RECEIVED_QUEUE_NAME,
-  WHAPI_SENT_IMAGE_QUEUE_NAME,
-  WHAPI_SENT_QUEUE_NAME,
+    CREATE_YANGO_CAR_SENT_QUEUE_NAME,
+    CREATE_YANGO_PROFILE_SENT_QUEUE_NAME,
+    OCR_RECEIVED_QUEUE_NAME,
+    OCR_SENT_QUEUE_NAME,
+    UPDATE_YANGO_DRIVER_INFO_SENT_QUEUE_NAME,
+    WHAPI_RECEIVED_QUEUE_NAME,
+    WHAPI_SENT_IMAGE_QUEUE_NAME,
+    WHAPI_SENT_QUEUE_NAME,
 } from './constants'
 import { RabbitmqController } from './rabbitmq.controller'
 import { RabbitmqService } from './rabbitmq.service'
@@ -119,6 +120,7 @@ import { RabbitmqService } from './rabbitmq.service'
       },
     ]),
     ExternalApiModule,
+    SyncJobLogModule,
   ],
   controllers: [RabbitmqController],
   providers: [

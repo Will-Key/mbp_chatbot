@@ -20,6 +20,7 @@ import { SeederModule } from './seeder/seeder.module'
 import { SeederService } from './seeder/seeder.service'
 import { StepBadResponseMessageModule } from './step-bad-response-message/step-bad-response-message.module'
 import { StepModule } from './step/step.module'
+import { SyncJobLogModule } from './sync-job-log/sync-job-log.module'
 import { UserModule } from './user/user.module'
 import { WebhookModule } from './webhook/webhook.module'
 
@@ -42,6 +43,7 @@ import { WebhookModule } from './webhook/webhook.module'
     StepBadResponseMessageModule,
     HistoryConversationModule,
     ScheduleModule.forRoot(),
+    SyncJobLogModule,
     OtpVerificationModule,
     UserModule,
   ],

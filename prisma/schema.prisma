@@ -23,6 +23,13 @@ enum RequestStatus {
   FAIL
 }
 
+enum SyncJobStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL_FAIL
+  FAIL
+}
+
 enum RequestInitiator {
   MBP
   WHAPI
@@ -155,6 +162,27 @@ model RequestLog {
   data      String
   response  String?
   status    RequestStatus
+}
+
+model SyncJobLog {
+  id           Int           @id @default(autoincrement())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  jobName      String
+  windowLabel  String?
+  windowFrom   DateTime?
+  windowTo     DateTime?
+  status       SyncJobStatus
+  startedAt    DateTime      @default(now())
+  finishedAt   DateTime?
+  pages        Int           @default(0)
+  fetchedCount Int           @default(0)
+  syncedCount  Int           @default(0)
+  failedCount  Int           @default(0)
+  errorMessage String?
+
+  @@index([jobName, startedAt])
+  @@index([status, createdAt])
 }
 
 model DocumentFile {

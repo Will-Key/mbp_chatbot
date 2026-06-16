@@ -14,6 +14,7 @@ import {
 } from '@prisma/client'
 import { subMinutes } from 'date-fns'
 import { isValidPhoneNumber } from 'libphonenumber-js'
+import process from 'process'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -1389,7 +1390,7 @@ export class RabbitmqService {
         hire_date: new Date().toISOString().split('T')[0],
       },
       account: {
-        balance_limit: '100',
+        balance_limit: process.env.YANGO_BALANCE_LIMIT,
         work_rule_id: process.env.YANGO_WORK_RULE_ID,
       },
       carId,

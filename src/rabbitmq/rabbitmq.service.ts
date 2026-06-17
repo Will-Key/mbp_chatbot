@@ -123,6 +123,7 @@ export class RabbitmqService {
   private async handleNewConversation(newMessage: NewMessageWebhookDto) {
     const initialStep = await this.stepService.findOneByLevel(0)
     const message = newMessage.messages[0].text.body
+    console.log('message', message)
     if (message.toLowerCase() === 'start') {
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
@@ -1390,8 +1391,9 @@ export class RabbitmqService {
         hire_date: new Date().toISOString().split('T')[0],
       },
       account: {
-        balance_limit: process.env.YANGO_BALANCE_LIMIT,
-        work_rule_id: process.env.YANGO_WORK_RULE_ID,
+        balance_limit: process.env.YANGO_BALANCE_LIMIT || '500',
+        work_rule_id:
+          process.env.YANGO_WORK_RULE_ID || 'edeffddd637a4126a00a3eacf18021d3',
       },
       carId,
     }

@@ -14,7 +14,6 @@ import {
 } from '@prisma/client'
 import { subMinutes } from 'date-fns'
 import { isValidPhoneNumber } from 'libphonenumber-js'
-import process from 'process'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -1781,7 +1780,7 @@ export class RabbitmqService {
 
   private getYangoOrderSyncLookbackDays(): number {
     const rawLookbackDays = Number(
-      process.env.YANGO_ORDER_SYNC_LOOKBACK_DAYS ?? 3,
+      globalThis.process?.env?.YANGO_ORDER_SYNC_LOOKBACK_DAYS ?? 3,
     )
 
     if (!Number.isInteger(rawLookbackDays) || rawLookbackDays < 1) {
@@ -2123,7 +2122,7 @@ export class RabbitmqService {
   }
 
   private delay(
-    ms: number = Number(process.env.DELAY_TIME) || 20000,
+    ms: number = Number(globalThis.process?.env?.DELAY_TIME ?? 20000),
   ): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms / 2))
   }

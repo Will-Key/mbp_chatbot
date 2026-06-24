@@ -28,6 +28,7 @@ class DriverInfo {
 class Account {
   balance_limit: string
   work_rule_id: string
+  block_orders_on_balance_below_limit: boolean
 }
 
 class Profile {

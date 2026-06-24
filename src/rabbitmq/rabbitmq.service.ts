@@ -1391,9 +1391,9 @@ export class RabbitmqService {
         hire_date: new Date().toISOString().split('T')[0],
       },
       account: {
-        balance_limit: process.env.YANGO_BALANCE_LIMIT || '500',
-        work_rule_id:
-          process.env.YANGO_WORK_RULE_ID || 'edeffddd637a4126a00a3eacf18021d3',
+        balance_limit: '500',
+        work_rule_id: 'edeffddd637a4126a00a3eacf18021d3',
+        block_orders_on_balance_below_limit: true,
       },
       carId,
     }

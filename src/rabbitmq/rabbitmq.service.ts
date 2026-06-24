@@ -1991,11 +1991,13 @@ export class RabbitmqService {
     do {
       const response = await this.yangoService.listDriverProfiles(offset, limit)
       total = response.total
-
       for (const item of response.driver_profiles) {
         try {
           const profile = item.driver_profile
           const car = item.car
+
+          const phoneNumber = profile.phones?.[0]?.replace('+', '') || ''
+          if (!phoneNumber) continue
 
           const existingDriver =
             await this.driverPersonalInfoService.findDriverPersonnalInfoByYangoProfileID(
@@ -2003,14 +2005,19 @@ export class RabbitmqService {
             )
           if (existingDriver) {
             // Driver exists — just ensure car association is up to date
+            await this.driverPersonalInfoService.update(existingDriver.id, {
+              lastName: profile.last_name,
+              firstName: profile.first_name,
+              phoneNumber,
+              whaPhoneNumber: phoneNumber,
+              licenseNumber: profile.driver_license?.number,
+              yangoProfileId: profile.id,
+            })
             if (car?.id) {
               await this.ensureDriverCarAssociation(existingDriver.id, car.id)
             }
             continue
           }
-
-          const phoneNumber = profile.phones?.[0]?.replace('+', '') || ''
-          if (!phoneNumber) continue
 
           // Check if driver exists by phone number
           const existingByPhone =
@@ -2019,6 +2026,11 @@ export class RabbitmqService {
             )
           if (existingByPhone) {
             await this.driverPersonalInfoService.update(existingByPhone.id, {
+              lastName: profile.last_name,
+              firstName: profile.first_name,
+              phoneNumber,
+              whaPhoneNumber: phoneNumber,
+              licenseNumber: profile.driver_license?.number,
               yangoProfileId: profile.id,
             })
             if (car?.id) {
@@ -2034,6 +2046,11 @@ export class RabbitmqService {
             )
           if (existingByLicense) {
             await this.driverPersonalInfoService.update(existingByLicense.id, {
+              lastName: profile.last_name,
+              firstName: profile.first_name,
+              phoneNumber,
+              whaPhoneNumber: phoneNumber,
+              licenseNumber: profile.driver_license?.number,
               yangoProfileId: profile.id,
             })
             if (car?.id) {

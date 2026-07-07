@@ -14,7 +14,6 @@ import {
 } from '@prisma/client'
 import { subMinutes } from 'date-fns'
 import { isValidPhoneNumber } from 'libphonenumber-js'
-import process from 'process'
 import { firstValueFrom } from 'rxjs'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
@@ -1391,9 +1390,9 @@ export class RabbitmqService {
         hire_date: new Date().toISOString().split('T')[0],
       },
       account: {
-        balance_limit: process.env.YANGO_BALANCE_LIMIT || '500',
-        work_rule_id:
-          process.env.YANGO_WORK_RULE_ID || 'edeffddd637a4126a00a3eacf18021d3',
+        balance_limit: '500',
+        work_rule_id: 'edeffddd637a4126a00a3eacf18021d3',
+        block_orders_on_balance_below_limit: true,
       },
       carId,
     }
@@ -1781,7 +1780,7 @@ export class RabbitmqService {
 
   private getYangoOrderSyncLookbackDays(): number {
     const rawLookbackDays = Number(
-      process.env.YANGO_ORDER_SYNC_LOOKBACK_DAYS ?? 3,
+      globalThis.process?.env?.YANGO_ORDER_SYNC_LOOKBACK_DAYS ?? 3,
     )
 
     if (!Number.isInteger(rawLookbackDays) || rawLookbackDays < 1) {
@@ -1992,11 +1991,13 @@ export class RabbitmqService {
     do {
       const response = await this.yangoService.listDriverProfiles(offset, limit)
       total = response.total
-
       for (const item of response.driver_profiles) {
         try {
           const profile = item.driver_profile
           const car = item.car
+
+          const phoneNumber = profile.phones?.[0]?.replace('+', '') || ''
+          if (!phoneNumber) continue
 
           const existingDriver =
             await this.driverPersonalInfoService.findDriverPersonnalInfoByYangoProfileID(
@@ -2004,14 +2005,19 @@ export class RabbitmqService {
             )
           if (existingDriver) {
             // Driver exists — just ensure car association is up to date
+            await this.driverPersonalInfoService.update(existingDriver.id, {
+              lastName: profile.last_name,
+              firstName: profile.first_name,
+              phoneNumber,
+              whaPhoneNumber: phoneNumber,
+              licenseNumber: profile.driver_license?.number,
+              yangoProfileId: profile.id,
+            })
             if (car?.id) {
               await this.ensureDriverCarAssociation(existingDriver.id, car.id)
             }
             continue
           }
-
-          const phoneNumber = profile.phones?.[0]?.replace('+', '') || ''
-          if (!phoneNumber) continue
 
           // Check if driver exists by phone number
           const existingByPhone =
@@ -2020,6 +2026,11 @@ export class RabbitmqService {
             )
           if (existingByPhone) {
             await this.driverPersonalInfoService.update(existingByPhone.id, {
+              lastName: profile.last_name,
+              firstName: profile.first_name,
+              phoneNumber,
+              whaPhoneNumber: phoneNumber,
+              licenseNumber: profile.driver_license?.number,
               yangoProfileId: profile.id,
             })
             if (car?.id) {
@@ -2035,6 +2046,11 @@ export class RabbitmqService {
             )
           if (existingByLicense) {
             await this.driverPersonalInfoService.update(existingByLicense.id, {
+              lastName: profile.last_name,
+              firstName: profile.first_name,
+              phoneNumber,
+              whaPhoneNumber: phoneNumber,
+              licenseNumber: profile.driver_license?.number,
               yangoProfileId: profile.id,
             })
             if (car?.id) {
@@ -2123,7 +2139,7 @@ export class RabbitmqService {
   }
 
   private delay(
-    ms: number = Number(process.env.DELAY_TIME) || 20000,
+    ms: number = Number(globalThis.process?.env?.DELAY_TIME ?? 20000),
   ): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms / 2))
   }

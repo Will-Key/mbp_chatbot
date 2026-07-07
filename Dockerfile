@@ -2,7 +2,7 @@
 FROM node:18-alpine AS builder
 
 # Résout l'erreur openssl (utile pour certaines libs Node.js)
-RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+RUN ln -sf /usr/lib/libssl.so.3 /lib/libssl.so.3
 
 # Dossier de travail
 WORKDIR /app
@@ -26,19 +26,18 @@ RUN npm run build
 # Stage 2: Création de l'image de production
 FROM node:18-alpine AS runner
 
-RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+RUN ln -sf /usr/lib/libssl.so.3 /lib/libssl.so.3
 
 WORKDIR /app
 
-# Copie uniquement les dépendances de production
+# package.json requis au runtime (npx prisma, metadata)
 COPY package*.json ./
-RUN npm ci --only=production
 
 # Copie des fichiers nécessaires depuis le builder
+# (node_modules du builder inclut le client Prisma généré)
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/.env .env
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 
 # Donne les droits d'exécution au script
@@ -57,7 +56,7 @@ CMD ["sh", "./entrypoint.sh"]
 # # Stage 1: Build the application
 # FROM node:18-alpine AS builder
 
-# RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+# RUN ln -sf /usr/lib/libssl.so.3 /lib/libssl.so.3
 
 # WORKDIR /app
 
@@ -80,7 +79,7 @@ CMD ["sh", "./entrypoint.sh"]
 # # Stage 2: Production image
 # FROM node:18-alpine AS runner
 
-# RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+# RUN ln -sf /usr/lib/libssl.so.3 /lib/libssl.so.3
 
 # WORKDIR /usr/src/app
 

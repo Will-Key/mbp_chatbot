@@ -1,6 +1,6 @@
 services:
   mbp_chatbot_db_test:
-    image: postgres:latest
+    image: postgres:16 # pinned (was `latest`, which silently jumped to v18 and broke the data layout)
     container_name: mbp_chatbot_db_test
     restart: always
     environment:

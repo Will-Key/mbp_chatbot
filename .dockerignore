@@ -1,0 +1,36 @@
+# Dependencies (reinstalled inside the image via `npm ci`)
+node_modules
+npm-debug.log*
+
+# Build output (rebuilt inside the image via `npm run build`)
+dist
+coverage
+.nyc_output
+
+# Env files (provided at runtime via compose env_file / environment)
+.env
+.env.*
+.env-example
+
+# Git / CI
+.git
+.gitignore
+.gitattributes
+
+# Editors / OS
+.vscode
+.idea
+.DS_Store
+
+# Docker / deploy tooling (not needed inside the image)
+docker-compose*.yml
+Dockerfile
+.dockerignore
+deploy-*.sh
+check-status.sh
+
+# Logs & misc
+*.log
+logs
+ngrok-code.txt
+README.md

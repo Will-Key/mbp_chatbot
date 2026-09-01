@@ -12,6 +12,8 @@ export class OtpService {
   private readonly smsApiKey: string
   private readonly smsApiUrl: string
   private readonly smsApiSender: string
+  private readonly whapiUrl: string
+  private readonly whapiOtpToken: string
 
   constructor(
     private readonly httpService: HttpService,
@@ -21,6 +23,8 @@ export class OtpService {
     this.smsApiKey = process.env.SMS_API_KEY
     this.smsApiUrl = process.env.SMS_API_URL
     this.smsApiSender = process.env.SMS_API_SENDER
+    this.whapiUrl = process.env.WHAPI_URL
+    this.whapiOtpToken = process.env.WHAPI_OTP_TOKEN
   }
 
   async generateAndSendOtp(phoneNumber: string): Promise<string> {
@@ -32,16 +36,27 @@ export class OtpService {
       expiresAt: addMinutes(new Date(), 3),
     })
 
-    try {
-      await this.sendSms(
-        phoneNumber,
-        `Votre code de verification MbpGroup est: ${otp}. Il expire dans 2 minutes.`,
+    const content = `Votre code de verification MbpGroup est: ${otp}. Il expire dans 2 minutes.`
+
+    const [smsResult, whatsappResult] = await Promise.allSettled([
+      this.sendSms(phoneNumber, content),
+      this.sendWhatsAppMessage(phoneNumber, content),
+    ])
+
+    if (smsResult.status === 'rejected')
+      this.logger.error(
+        `Erreur lors de l'envoi du SMS: ${smsResult.reason?.message}`,
       )
-      return 'OTP envoyé avec succès'
-    } catch (error) {
-      this.logger.error(`Erreur lors de l'envoi du SMS: ${error.message}`)
-      throw new Error("Impossible d'envoyer le SMS")
-    }
+
+    if (whatsappResult.status === 'rejected')
+      this.logger.error(
+        `Erreur lors de l'envoi du message WhatsApp: ${whatsappResult.reason?.message}`,
+      )
+
+    if (smsResult.status === 'rejected' && whatsappResult.status === 'rejected')
+      throw new Error("Impossible d'envoyer le code OTP")
+
+    return 'OTP envoyé avec succès'
   }
 
   async verifyOtp(phoneNumber: string, _otpCode: string): Promise<string> {
@@ -99,6 +114,57 @@ export class OtpService {
     } catch (error) {
       console.log(error)
       this.logger.error(`Erreur lors de l'envoi du SMS: ${error.message}`)
+      throw error
+    }
+  }
+
+  private async sendWhatsAppMessage(
+    phoneNumber: string,
+    content: string,
+  ): Promise<void> {
+    const message = {
+      to: `${phoneNumber}@s.whatsapp.net`,
+      body: content,
+      typing_time: 0,
+    }
+
+    try {
+      await lastValueFrom(
+        this.httpService
+          .post(this.whapiUrl, message, {
+            headers: {
+              Authorization: `Bearer ${this.whapiOtpToken}`,
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            timeout: 15000,
+          })
+          .pipe(
+            map(async (response) => {
+              await this.requestLogService.create({
+                direction: 'OUT',
+                status: 'SUCCESS',
+                initiator: 'OTP',
+                data: JSON.stringify(message),
+                response: response.statusText,
+              })
+            }),
+            catchError(async (error) => {
+              await this.requestLogService.create({
+                direction: 'OUT',
+                status: 'FAIL',
+                initiator: 'OTP',
+                data: JSON.stringify(message),
+                response: JSON.stringify(error),
+              })
+              throw error
+            }),
+          ),
+      )
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de l'envoi du message WhatsApp: ${error.message}`,
+      )
       throw error
     }
   }

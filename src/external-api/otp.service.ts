@@ -122,8 +122,9 @@ export class OtpService {
     phoneNumber: string,
     content: string,
   ): Promise<void> {
+    const whaPhoneNumber = phoneNumber.slice(0, 3) + phoneNumber.slice(5)
     const message = {
-      to: `${phoneNumber}@s.whatsapp.net`,
+      to: `${whaPhoneNumber}@s.whatsapp.net`,
       body: content,
       typing_time: 0,
     }

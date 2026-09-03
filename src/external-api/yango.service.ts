@@ -330,15 +330,9 @@ export class YangoService {
           ),
         ),
       )
-      await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
       return response.data
     } catch (error) {
       console.error('Error listing driver profiles:', error)
-      await this.logRequest(
-        RequestStatus.FAIL,
-        { action: 'listDriverProfiles', offset, limit },
-        error,
-      )
       throw error
     }
   }
@@ -371,15 +365,9 @@ export class YangoService {
           ),
         ),
       )
-      await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
       return response.data
     } catch (error) {
       console.error('Error listing cars:', error)
-      await this.logRequest(
-        RequestStatus.FAIL,
-        { action: 'listCars', offset, limit },
-        error,
-      )
       throw error
     }
   }
@@ -423,15 +411,9 @@ export class YangoService {
           ),
         ),
       )
-      await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
       return response.data
     } catch (error) {
       console.error('Error listing orders:', error)
-      await this.logRequest(
-        RequestStatus.FAIL,
-        { action: 'listOrders', from, to, offset, limit },
-        error,
-      )
       throw error
     }
   }

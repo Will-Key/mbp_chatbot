@@ -211,6 +211,9 @@ model DriverPersonnalInfo {
   yangoProfileId    String?            @unique
   driverLicenseInfo DriverLicenseInfo?
   DocumentFile      DocumentFile[]
+  referralCodeOwned ReferralCode?      @relation("ReferralCodeOwner")
+  referredAs        Referral?          @relation("ReferredDriver")
+  loyaltyBonuses    LoyaltyBonus[]
 }
 
 model DriverLicenseInfo {
@@ -327,4 +330,56 @@ model DriverOrder {
 
   @@index([driverProfileId])
   @@index([bookedAt])
+}
+
+enum LoyaltyBonusStatus {
+  NOT_ELIGIBLE
+  PENDING
+  CREDITED
+  FAILED
+}
+
+model LoyaltyBonus {
+  id                    Int                 @id @default(autoincrement())
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  driverPersonnalInfoId Int
+  driverPersonnalInfo   DriverPersonnalInfo @relation(fields: [driverPersonnalInfoId], references: [id])
+  periodFrom            DateTime
+  periodTo              DateTime
+  ridesCount            Int
+  bonusAmount           Int
+  status                LoyaltyBonusStatus  @default(NOT_ELIGIBLE)
+  yangoTransactionId    String?
+  failureReason         String?
+
+  @@unique([driverPersonnalInfoId, periodFrom, periodTo])
+}
+
+enum ReferralStatus {
+  PENDING_REGISTRATION
+  REGISTERED
+  ACTIVATED
+}
+
+model ReferralCode {
+  id                    Int                 @id @default(autoincrement())
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  code                  String              @unique
+  driverPersonnalInfoId Int                 @unique
+  driverPersonnalInfo   DriverPersonnalInfo @relation("ReferralCodeOwner", fields: [driverPersonnalInfoId], references: [id])
+  referrals             Referral[]
+}
+
+model Referral {
+  id                  Int                  @id @default(autoincrement())
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  referralCodeId      Int
+  referralCode        ReferralCode         @relation(fields: [referralCodeId], references: [id])
+  referredPhoneNumber String               @unique
+  referredDriverId    Int?                 @unique
+  referredDriver      DriverPersonnalInfo? @relation("ReferredDriver", fields: [referredDriverId], references: [id])
+  status              ReferralStatus       @default(PENDING_REGISTRATION)
 }

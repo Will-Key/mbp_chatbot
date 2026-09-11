@@ -26,6 +26,8 @@ Veuillez sélectionner l'un des services suivant :
 1-Ouverture de compte MBP
 2-Changement de véhicule
 3-Modification du numéro de téléphone
+4-Consulter mes courses et mon bonus fidélité
+5-Parrainer un chauffeur
             `,
     mediaUrl:
       process.env.WELCOME_IMAGE ||

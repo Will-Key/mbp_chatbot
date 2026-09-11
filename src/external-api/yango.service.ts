@@ -436,6 +436,56 @@ export class YangoService {
     }
   }
 
+  async createTransaction(
+    contractorProfileId: string,
+    amount: number,
+    description: string,
+    ordersCount: number,
+  ): Promise<{
+    id: string
+    status: 'in_progress' | 'success' | 'fail'
+    status_description?: string
+  }> {
+    const payload = {
+      park_id: process.env.YANGO_PARK_ID,
+      contractor_profile_id: contractorProfileId,
+      amount: amount.toFixed(4),
+      data: {
+        kind: 'bonus',
+        orders_count: ordersCount,
+        receipt_condition: description,
+      },
+      version: 1,
+      description,
+    }
+    try {
+      const response = await this.executeWithRetry('createTransaction', () =>
+        lastValueFrom(
+          this.httpService.post(
+            `${process.env.YANGO_API_URL_V3}/driver-profiles/transactions`,
+            payload,
+            {
+              headers: {
+                'X-API-Key': process.env.YANGO_API_KEY,
+                'X-Client-ID': process.env.YANGO_CLIENT_ID,
+                'X-Idempotency-Token': uuidv4(),
+                accept: 'application/json',
+                'content-type': 'application/json',
+              },
+              timeout: 15000,
+            },
+          ),
+        ),
+      )
+      await this.logRequest(RequestStatus.SUCCESS, payload, response.data)
+      return response.data
+    } catch (error) {
+      console.error('Error creating Yango transaction:', error)
+      await this.logRequest(RequestStatus.FAIL, payload, error)
+      throw error
+    }
+  }
+
   private async executeWithRetry<T>(
     action: string,
     request: () => Promise<T>,
@@ -446,7 +496,10 @@ export class YangoService {
       try {
         return await request()
       } catch (error) {
-        if (!this.shouldRetryRequest(error) || attempt >= this.MAX_TRANSIENT_RETRIES) {
+        if (
+          !this.shouldRetryRequest(error) ||
+          attempt >= this.MAX_TRANSIENT_RETRIES
+        ) {
           throw error
         }
 

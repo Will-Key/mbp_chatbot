@@ -33,4 +33,18 @@ export class DriverOrderService {
       update: createDriverOrderDto,
     })
   }
+
+  countCompletedByDriverAndPeriod(
+    driverProfileId: string,
+    from: Date,
+    to: Date,
+  ) {
+    return this.prismaService.driverOrder.count({
+      where: {
+        driverProfileId,
+        status: 'complete',
+        bookedAt: { gte: from, lt: to },
+      },
+    })
+  }
 }

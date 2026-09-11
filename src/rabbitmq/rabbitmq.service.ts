@@ -8,6 +8,8 @@ import {
   DocumentFile,
   HistoryConversationReasonForEnding,
   HistoryConversationStatus,
+  LoyaltyBonusStatus,
+  Prisma,
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
   SyncJobStatus,
@@ -37,6 +39,8 @@ import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
 import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
+import { LoyaltyBonusService } from '../loyalty-bonus/loyalty-bonus.service'
+import { ReferralService } from '../referral/referral.service'
 import { getOcrErrorMessage, OcrErrorCode } from '../shared/constants'
 import { ConversationType } from '../shared/types'
 import { StepService } from '../step/step.service'
@@ -76,6 +80,8 @@ export class RabbitmqService {
     private readonly userService: UserService,
     private readonly driverOrderService: DriverOrderService,
     private readonly syncJobLogService: SyncJobLogService,
+    private readonly referralService: ReferralService,
+    private readonly loyaltyBonusService: LoyaltyBonusService,
   ) {}
 
   onModuleInit() {
@@ -123,7 +129,20 @@ export class RabbitmqService {
     const initialStep = await this.stepService.findOneByLevel(0)
     const message = newMessage.messages[0].text.body
     console.log('message', message)
-    if (message.toLowerCase() === 'start') {
+
+    const referralMatch = message.match(/^parrain[\s-]+(\S+)/i)
+    if (referralMatch) {
+      try {
+        await this.referralService.registerReferralAttempt(
+          referralMatch[1].toUpperCase(),
+          newMessage.messages[0].from,
+        )
+      } catch (error) {
+        this.logger.error(`Error registering referral attempt: ${error}`)
+      }
+    }
+
+    if (message.toLowerCase() === 'start' || referralMatch) {
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
         convMessage: newMessage.messages[0].text.body,
@@ -147,6 +166,10 @@ export class RabbitmqService {
         await this.startFlow(newMessage, 'Changement de véhicule')
       } else if (newMessage.messages[0].text.body.includes('3')) {
         await this.startFlow(newMessage, 'Modification de numéro de téléphone')
+      } else if (newMessage.messages[0].text.body.includes('4')) {
+        await this.handleLoyaltyBonusQuery(newMessage)
+      } else if (newMessage.messages[0].text.body.includes('5')) {
+        await this.handleReferralCodeQuery(newMessage)
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -228,6 +251,89 @@ export class RabbitmqService {
       nextMessage: nextStep.message,
       stepId: nextStep.id,
     })
+  }
+
+  private async handleLoyaltyBonusQuery(newMessage: NewMessageWebhookDto) {
+    const whaPhoneNumber = newMessage.messages[0].from
+    const driver =
+      await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
+        whaPhoneNumber,
+      )
+
+    if (!driver?.yangoProfileId) {
+      await this.handleMessageToSent({
+        to: whaPhoneNumber,
+        body: "Vous devez d'abord finaliser votre inscription pour consulter vos courses.",
+        typing_time: 5,
+      })
+      return
+    }
+
+    const { from } = this.getCurrentFortnightWindow()
+    const ridesCount =
+      await this.driverOrderService.countCompletedByDriverAndPeriod(
+        driver.yangoProfileId,
+        from,
+        new Date(),
+      )
+    const bonusAmount = this.computeLoyaltyBonusAmount(ridesCount)
+    const periodStartLabel = from.toLocaleDateString('fr-FR', {
+      timeZone: 'UTC',
+    })
+
+    const body =
+      bonusAmount > 0
+        ? `Vous avez réalisé ${ridesCount} course(s) depuis le ${periodStartLabel}. Vous êtes en ligne pour un bonus fidélité de ${bonusAmount} FCFA sur cette période.`
+        : `Vous avez réalisé ${ridesCount} course(s) depuis le ${periodStartLabel}. Il vous manque ${Math.max(150 - ridesCount, 0)} course(s) pour atteindre le seuil de 3 000 FCFA.`
+
+    await this.handleMessageToSent({ to: whaPhoneNumber, body, typing_time: 5 })
+  }
+
+  private async handleReferralCodeQuery(newMessage: NewMessageWebhookDto) {
+    const whaPhoneNumber = newMessage.messages[0].from
+    const driver =
+      await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
+        whaPhoneNumber,
+      )
+
+    if (!driver?.yangoProfileId) {
+      await this.handleMessageToSent({
+        to: whaPhoneNumber,
+        body: "Vous devez d'abord finaliser votre inscription pour parrainer un nouveau chauffeur.",
+        typing_time: 5,
+      })
+      return
+    }
+
+    const referralCode = await this.referralService.getOrCreateCodeForDriver(
+      driver.id,
+    )
+
+    await this.handleMessageToSent({
+      to: whaPhoneNumber,
+      body: `Votre code de parrainage : PARRAIN ${referralCode.code}\nPartagez ce message à un nouveau chauffeur : il doit l'envoyer tel quel à ce numéro WhatsApp pour démarrer son inscription.`,
+      typing_time: 5,
+    })
+  }
+
+  private computeLoyaltyBonusAmount(ridesCount: number): number {
+    if (ridesCount >= 200) return 5000
+    if (ridesCount >= 150) return 3000
+    return 0
+  }
+
+  private getCurrentFortnightWindow(): { from: Date; to: Date } {
+    const now = new Date()
+    const year = now.getUTCFullYear()
+    const month = now.getUTCMonth()
+    const day = now.getUTCDate()
+
+    const from =
+      day <= 15
+        ? new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+        : new Date(Date.UTC(year, month, 16, 0, 0, 0, 0))
+
+    return { from, to: now }
   }
 
   private async getOfferFlowSteps(
@@ -1287,6 +1393,8 @@ export class RabbitmqService {
         yangoProfileId: profileId,
       })
 
+      await this.referralService.markActivated(driverInfo.id)
+
       await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
 
       //await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
@@ -1768,6 +1876,133 @@ export class RabbitmqService {
         `Yango orders sync failed: ${this.extractErrorMessage(error)}`,
       )
     }
+  }
+
+  @Cron('0 5 1,16 * *')
+  async processLoyaltyBonuses() {
+    this.logger.log('Starting loyalty bonus processing...')
+    const { from, to } = this.getClosedFortnightWindow()
+    const drivers = await this.driverPersonalInfoService.findAll()
+
+    for (const driver of drivers) {
+      if (!driver.yangoProfileId) continue
+      try {
+        await this.processLoyaltyBonusForDriver(driver, from, to)
+      } catch (error) {
+        this.logger.error(
+          `Loyalty bonus processing failed for driver ${driver.id}: ${this.extractErrorMessage(error)}`,
+        )
+      }
+    }
+
+    this.logger.log('Loyalty bonus processing completed')
+  }
+
+  private async processLoyaltyBonusForDriver(
+    driver: { id: number; yangoProfileId: string; whaPhoneNumber: string },
+    from: Date,
+    to: Date,
+  ) {
+    const ridesCount =
+      await this.driverOrderService.countCompletedByDriverAndPeriod(
+        driver.yangoProfileId,
+        from,
+        to,
+      )
+    const bonusAmount = this.computeLoyaltyBonusAmount(ridesCount)
+    const status =
+      bonusAmount > 0
+        ? LoyaltyBonusStatus.PENDING
+        : LoyaltyBonusStatus.NOT_ELIGIBLE
+
+    let bonusRecord: { id: number }
+    try {
+      bonusRecord = await this.loyaltyBonusService.create({
+        driverPersonnalInfoId: driver.id,
+        periodFrom: from,
+        periodTo: to,
+        ridesCount,
+        bonusAmount,
+        status,
+      })
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        this.logger.log(
+          `Loyalty bonus already processed for driver ${driver.id} for this period`,
+        )
+        return
+      }
+      throw error
+    }
+
+    if (bonusAmount <= 0) {
+      await this.handleMessageToSent({
+        to: driver.whaPhoneNumber,
+        body: `Vous avez réalisé ${ridesCount} course(s) durant la période écoulée. Il vous manque ${Math.max(150 - ridesCount, 0)} course(s) pour atteindre le seuil de 3 000 FCFA.`,
+        typing_time: 5,
+      })
+      return
+    }
+
+    if (process.env.LOYALTY_BONUS_AUTO_CREDIT !== 'true') {
+      await this.handleMessageToSent({
+        to: driver.whaPhoneNumber,
+        body: `Vous avez réalisé ${ridesCount} courses durant la période écoulée. Vous êtes éligible à un bonus fidélité de ${bonusAmount} FCFA. Il sera crédité prochainement sur votre compte.`,
+        typing_time: 5,
+      })
+      return
+    }
+
+    try {
+      const transaction = await this.yangoService.createTransaction(
+        driver.yangoProfileId,
+        bonusAmount,
+        `Bonus fidélité - ${ridesCount} courses`,
+        ridesCount,
+      )
+      await this.loyaltyBonusService.updateStatus(
+        bonusRecord.id,
+        LoyaltyBonusStatus.CREDITED,
+        { yangoTransactionId: transaction.id },
+      )
+      await this.handleMessageToSent({
+        to: driver.whaPhoneNumber,
+        body: `Félicitations ! Vous avez réalisé ${ridesCount} courses durant la période écoulée. Un bonus de ${bonusAmount} FCFA a été crédité sur votre compte Yango.`,
+        typing_time: 5,
+      })
+    } catch (error) {
+      await this.loyaltyBonusService.updateStatus(
+        bonusRecord.id,
+        LoyaltyBonusStatus.FAILED,
+        { failureReason: this.extractErrorMessage(error) },
+      )
+      await this.handleMessageToSent({
+        to: driver.whaPhoneNumber,
+        body: `Vous avez réalisé ${ridesCount} courses durant la période écoulée et êtes éligible à un bonus de ${bonusAmount} FCFA. Le rechargement a rencontré un problème, notre équipe va le régulariser.`,
+        typing_time: 5,
+      })
+    }
+  }
+
+  private getClosedFortnightWindow(): { from: Date; to: Date } {
+    const now = new Date()
+    const year = now.getUTCFullYear()
+    const month = now.getUTCMonth()
+    const day = now.getUTCDate()
+
+    const from =
+      day === 1
+        ? new Date(Date.UTC(year, month - 1, 16, 0, 0, 0, 0))
+        : new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+    const to =
+      day === 1
+        ? new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+        : new Date(Date.UTC(year, month, 16, 0, 0, 0, 0))
+
+    return { from, to }
   }
 
   private extractErrorMessage(error: unknown): string {

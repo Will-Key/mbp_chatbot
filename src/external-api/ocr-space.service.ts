@@ -7,7 +7,6 @@ import { ConversationService } from '../conversation/conversation.service'
 import { DriverCarService } from '../driver-car/driver-car.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
-import { ReferralService } from '../referral/referral.service'
 import { RequestLogService } from '../request-log/request-log.service'
 import { OcrErrorCode } from '../shared/constants'
 import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front.dto'
@@ -28,7 +27,6 @@ export class OcrSpaceService {
     private readonly carInfoService: CarInfoService,
     private readonly openAiService: OpenAIService,
     private readonly driverCarService: DriverCarService,
-    private readonly referralService: ReferralService,
   ) {}
 
   async sendFile(file: DocumentFile, idFlow: string) {
@@ -234,10 +232,6 @@ export class OcrSpaceService {
         collectMethod: 'OCR',
       })
       console.log('driverPersonalInfo', driverPersonalInfo?.id)
-      await this.referralService.markRegistered(
-        whaPhoneNumber,
-        driverPersonalInfo.id,
-      )
       await this.driverLicenseInfoService.create({
         countryCode: 'CIV',
         expiryDate: addYears(deliveryDate, 10).toISOString(),

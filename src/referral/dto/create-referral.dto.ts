@@ -1,8 +1,8 @@
 import { ReferralStatus } from '@prisma/client'
 
 export class CreateReferralDto {
-  referralCodeId: number
-  referredPhoneNumber: string
-  referredDriverId?: number
+  sponsorDriverId: number
+  referredDriverId: number
+  bonusAmount: number
   status?: ReferralStatus
 }

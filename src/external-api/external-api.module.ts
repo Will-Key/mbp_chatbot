@@ -8,7 +8,6 @@ import { ConversationService } from '../conversation/conversation.service'
 import { DriverLicenseInfoService } from '../driver-license-info/driver-license-info.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { OtpVerificationService } from '../otp-verification/otp-verification.service'
-import { ReferralService } from '../referral/referral.service'
 import { RequestLogModule } from '../request-log/request-log.module'
 import { OcrSpaceService } from './ocr-space.service'
 import { OpenAIService } from './openai.service'
@@ -38,7 +37,6 @@ import { YangoService } from './yango.service'
     OpenAIService,
     DriverCarService,
     FlowService,
-    ReferralService,
   ],
   exports: [
     WhapiService,

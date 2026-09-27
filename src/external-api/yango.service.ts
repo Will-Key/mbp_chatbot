@@ -12,6 +12,12 @@ import { YangoCarListResponseDto } from './dto/yango-car-list.dto'
 import { YangoDriverProfileListResponseDto } from './dto/yango-driver-profile-list.dto'
 import { YangoOrderListResponseDto } from './dto/yango-order-list.dto'
 
+type YangoTransactionResponse = {
+  id: string
+  status: 'in_progress' | 'success' | 'fail'
+  status_description?: string
+}
+
 @Injectable()
 export class YangoService {
   private readonly logger = new Logger(YangoService.name)
@@ -436,25 +442,47 @@ export class YangoService {
     }
   }
 
-  async createTransaction(
+  async createBonusTransaction(
     contractorProfileId: string,
     amount: number,
     description: string,
     ordersCount: number,
-  ): Promise<{
-    id: string
-    status: 'in_progress' | 'success' | 'fail'
-    status_description?: string
-  }> {
+  ): Promise<YangoTransactionResponse> {
+    return this.postTransaction(contractorProfileId, amount, description, {
+      kind: 'bonus',
+      orders_count: ordersCount,
+      receipt_condition: description,
+    })
+  }
+
+  async createDepositTransaction(
+    contractorProfileId: string,
+    amount: number,
+    description: string,
+    objectId: string,
+    objectName: string,
+  ): Promise<YangoTransactionResponse> {
+    return this.postTransaction(contractorProfileId, amount, description, {
+      kind: 'deposit',
+      object: {
+        object_id: objectId,
+        object_type: 'other',
+        object_name: objectName,
+      },
+    })
+  }
+
+  private async postTransaction(
+    contractorProfileId: string,
+    amount: number,
+    description: string,
+    data: Record<string, unknown>,
+  ): Promise<YangoTransactionResponse> {
     const payload = {
       park_id: process.env.YANGO_PARK_ID,
       contractor_profile_id: contractorProfileId,
       amount: amount.toFixed(4),
-      data: {
-        kind: 'bonus',
-        orders_count: ordersCount,
-        receipt_condition: description,
-      },
+      data,
       version: 1,
       description,
     }

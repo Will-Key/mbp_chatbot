@@ -10,6 +10,7 @@ import {
   HistoryConversationStatus,
   LoyaltyBonusStatus,
   Prisma,
+  ReferralStatus,
   StepBadResponseMessageErrorType,
   StepExpectedResponseType,
   SyncJobStatus,
@@ -40,7 +41,10 @@ import { YangoService } from '../external-api/yango.service'
 import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
 import { LoyaltyBonusService } from '../loyalty-bonus/loyalty-bonus.service'
-import { ReferralService } from '../referral/referral.service'
+import {
+  REFERRAL_BONUS_AMOUNT,
+  ReferralService,
+} from '../referral/referral.service'
 import { getOcrErrorMessage, OcrErrorCode } from '../shared/constants'
 import { ConversationType } from '../shared/types'
 import { StepService } from '../step/step.service'
@@ -130,19 +134,7 @@ export class RabbitmqService {
     const message = newMessage.messages[0].text.body
     console.log('message', message)
 
-    const referralMatch = message.match(/^parrain[\s-]+(\S+)/i)
-    if (referralMatch) {
-      try {
-        await this.referralService.registerReferralAttempt(
-          referralMatch[1].toUpperCase(),
-          newMessage.messages[0].from,
-        )
-      } catch (error) {
-        this.logger.error(`Error registering referral attempt: ${error}`)
-      }
-    }
-
-    if (message.toLowerCase() === 'start' || referralMatch) {
+    if (message.toLowerCase() === 'start') {
       await this.saveMessage({
         whaPhoneNumber: newMessage.messages[0].from,
         convMessage: newMessage.messages[0].text.body,
@@ -169,7 +161,7 @@ export class RabbitmqService {
       } else if (newMessage.messages[0].text.body.includes('4')) {
         await this.handleLoyaltyBonusQuery(newMessage)
       } else if (newMessage.messages[0].text.body.includes('5')) {
-        await this.handleReferralCodeQuery(newMessage)
+        await this.handleReferralQuery(newMessage)
       } else {
         const errorMessage = this.getErrorMessage(
           lastConversation,
@@ -289,7 +281,7 @@ export class RabbitmqService {
     await this.handleMessageToSent({ to: whaPhoneNumber, body, typing_time: 5 })
   }
 
-  private async handleReferralCodeQuery(newMessage: NewMessageWebhookDto) {
+  private async handleReferralQuery(newMessage: NewMessageWebhookDto) {
     const whaPhoneNumber = newMessage.messages[0].from
     const driver =
       await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
@@ -305,15 +297,69 @@ export class RabbitmqService {
       return
     }
 
-    const referralCode = await this.referralService.getOrCreateCodeForDriver(
-      driver.id,
+    const referrals = await this.referralService.findHistoryBySponsor(driver.id)
+    const creditedReferrals = referrals.filter((r) => r.status === 'CREDITED')
+    const totalEarned = creditedReferrals.reduce(
+      (total, referral) => total + referral.bonusAmount,
+      0,
     )
 
-    await this.handleMessageToSent({
-      to: whaPhoneNumber,
-      body: `Votre code de parrainage : PARRAIN ${referralCode.code}\nPartagez ce message à un nouveau chauffeur : il doit l'envoyer tel quel à ce numéro WhatsApp pour démarrer son inscription.`,
-      typing_time: 5,
-    })
+    const body = [
+      `Programme de parrainage MBP : vous recevez ${REFERRAL_BONUS_AMOUNT} FCFA sur votre solde Yango pour chaque chauffeur que vous parrainez.`,
+      `Communiquez votre numéro ${driver.phoneNumber.replace(/^225/, '')} au nouveau chauffeur : il devra le renseigner pendant son inscription.`,
+      `Vos parrainages : ${referrals.length} chauffeur(s) enregistré(s), dont ${creditedReferrals.length} crédité(s), pour un total de ${totalEarned} FCFA.`,
+    ].join('\n\n')
+
+    await this.handleMessageToSent({ to: whaPhoneNumber, body, typing_time: 5 })
+  }
+
+  private async creditReferralSponsor(
+    referredDriver: { id: number; firstName: string; lastName: string },
+    referredYangoProfileId: string,
+  ) {
+    const referral = await this.referralService
+      .findByReferredDriver(referredDriver.id)
+      .catch(() => null)
+    if (!referral || referral.status !== 'REGISTERED') return
+
+    // A failure here must never interrupt the new driver's onboarding.
+    try {
+      const sponsor = await this.driverPersonalInfoService.findOne(
+        referral.sponsorDriverId,
+      )
+      if (!sponsor?.yangoProfileId) {
+        throw new Error("Le parrain n'a pas de profil Yango actif")
+      }
+
+      const referredDriverName = `${referredDriver.firstName} ${referredDriver.lastName}`
+      const transaction = await this.yangoService.createDepositTransaction(
+        sponsor.yangoProfileId,
+        referral.bonusAmount,
+        `Bonus de parrainage - ${referredDriverName}`,
+        referredYangoProfileId,
+        'Bonus de parrainage',
+      )
+
+      await this.referralService.updateStatus(
+        referral.id,
+        ReferralStatus.CREDITED,
+        { yangoTransactionId: transaction.id },
+      )
+
+      await this.handleMessageToSent({
+        to: sponsor.whaPhoneNumber,
+        body: `Bonne nouvelle ! ${referredDriverName}, que vous avez parrainé, vient de finaliser son inscription MBP. Votre solde Yango a été crédité de ${referral.bonusAmount} FCFA. Merci de faire grandir la communauté MBP !`,
+        typing_time: 5,
+      })
+    } catch (error) {
+      const failureReason = this.extractErrorMessage(error)
+      this.logger.error(
+        `Error crediting referral sponsor for driver ${referredDriver.id}: ${failureReason}`,
+      )
+      await this.referralService
+        .updateStatus(referral.id, ReferralStatus.FAILED, { failureReason })
+        .catch(() => null)
+    }
   }
 
   private computeLoyaltyBonusAmount(ridesCount: number): number {
@@ -416,6 +462,9 @@ export class RabbitmqService {
         break
       case 5:
         await this.handleCarRegistrationUpload(lastConversation, newMessage)
+        break
+      case 6:
+        await this.handleSponsorPhoneNumberStep(lastConversation, newMessage)
         break
       default:
         this.updateMessage(lastConversation, newMessage.messages[0].text.body)
@@ -604,6 +653,90 @@ export class RabbitmqService {
   //     .message
   // }
 
+  private async handleSponsorPhoneNumberStep(
+    lastConversation: ConversationType,
+    newMessage: NewMessageWebhookDto,
+  ) {
+    const idFlow = 'Inscription'
+    const whaPhoneNumber = newMessage.messages[0].from
+
+    if (newMessage.messages[0].type !== StepExpectedResponseType.text) {
+      await this.updateMessage(
+        lastConversation,
+        this.getErrorMessage(lastConversation, 'equalLength'),
+      )
+      return
+    }
+
+    const answer = this.removeAllSpaces(newMessage.messages[0].text.body)
+
+    if (answer !== '0') {
+      // An unexpected failure here falls through to the submission below: the
+      // registration must never be lost over the sponsor step.
+      try {
+        const sponsorPhoneNumber = `225${answer}`
+
+        if (!isValidPhoneNumber(`+${sponsorPhoneNumber}`)) {
+          await this.updateMessage(
+            lastConversation,
+            this.getErrorMessage(lastConversation, 'equalLength'),
+          )
+          return
+        }
+
+        const sponsor =
+          await this.driverPersonalInfoService.findDriverPersonalInfoByPhoneNumber(
+            sponsorPhoneNumber,
+          )
+
+        // Only an already activated driver can be a sponsor, so the bonus never
+        // goes to an account that does not exist on Yango.
+        if (!sponsor?.yangoProfileId) {
+          await this.updateMessage(
+            lastConversation,
+            this.getErrorMessage(lastConversation, 'isNotExist'),
+          )
+          return
+        }
+
+        const referredDriver =
+          await this.driverPersonalInfoService.findDriverPersonalInfoByWhaPhoneNumber(
+            whaPhoneNumber,
+          )
+
+        if (sponsor.id === referredDriver?.id) {
+          await this.updateMessage(
+            lastConversation,
+            this.getErrorMessage(lastConversation, 'incorrectChoice'),
+          )
+          return
+        }
+
+        if (referredDriver) {
+          await this.referralService.create({
+            sponsorDriverId: sponsor.id,
+            referredDriverId: referredDriver.id,
+            bonusAmount: REFERRAL_BONUS_AMOUNT,
+          })
+        }
+      } catch (error) {
+        this.logger.error(
+          `Error recording referral for ${whaPhoneNumber}: ${this.extractErrorMessage(error)}`,
+        )
+      }
+    }
+
+    const nextStep = await this.stepService.findOneBylevelAndidFlow(19, idFlow)
+    await this.saveMessage({
+      whaPhoneNumber,
+      convMessage: answer,
+      nextMessage: nextStep.message,
+      stepId: nextStep.id,
+    })
+    await this.delay()
+    await this.sendDataToYango(lastConversation, newMessage)
+  }
+
   private async handleDriverLicenseFrontUpload(
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
@@ -636,22 +769,21 @@ export class RabbitmqService {
     idFlow: string = 'Inscription',
   ) {
     try {
-      const stepId = idFlow === 'Inscription' ? 19 : 6
       const success = await this.handleDocumentUpload(
         lastConversation,
         newMessage,
         'FRONT',
         'CAR_REGISTRATION',
-        stepId,
+        6,
         idFlow,
       )
 
       if (!success) return
 
       await this.delay()
-      if (idFlow === 'Inscription') {
-        await this.sendDataToYango(lastConversation, newMessage)
-      } else {
+      // For 'Inscription', level 6 asks for the sponsor's phone number and that
+      // step submits the file to Yango once answered.
+      if (idFlow !== 'Inscription') {
         await this.sendSecondFlowDataToYango(lastConversation, newMessage)
       }
     } catch (error) {
@@ -1393,8 +1525,6 @@ export class RabbitmqService {
         yangoProfileId: profileId,
       })
 
-      await this.referralService.markActivated(driverInfo.id)
-
       await this.carInfoService.update(carInfo.id, { yangoCarId: carId })
 
       //await this.makeAssociationBetweenDriverAndCar(driverInfo.id, carInfo.id)
@@ -1416,6 +1546,10 @@ export class RabbitmqService {
       })
 
       this.deleteAllConversations(lastConversation)
+
+      // Last, so a slow or failing sponsor credit never delays the new
+      // driver's own confirmation.
+      await this.creditReferralSponsor(driverInfo, profileId)
     } catch (error) {
       await this.abortConversation(
         abortData,
@@ -1957,7 +2091,7 @@ export class RabbitmqService {
     }
 
     try {
-      const transaction = await this.yangoService.createTransaction(
+      const transaction = await this.yangoService.createBonusTransaction(
         driver.yangoProfileId,
         bonusAmount,
         `Bonus fidélité - ${ridesCount} courses`,

@@ -211,7 +211,7 @@ model DriverPersonnalInfo {
   yangoProfileId    String?            @unique
   driverLicenseInfo DriverLicenseInfo?
   DocumentFile      DocumentFile[]
-  referralCodeOwned ReferralCode?      @relation("ReferralCodeOwner")
+  referralsGiven    Referral[]         @relation("ReferralSponsor")
   referredAs        Referral?          @relation("ReferredDriver")
   loyaltyBonuses    LoyaltyBonus[]
 }
@@ -357,29 +357,23 @@ model LoyaltyBonus {
 }
 
 enum ReferralStatus {
-  PENDING_REGISTRATION
   REGISTERED
-  ACTIVATED
-}
-
-model ReferralCode {
-  id                    Int                 @id @default(autoincrement())
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  code                  String              @unique
-  driverPersonnalInfoId Int                 @unique
-  driverPersonnalInfo   DriverPersonnalInfo @relation("ReferralCodeOwner", fields: [driverPersonnalInfoId], references: [id])
-  referrals             Referral[]
+  CREDITED
+  FAILED
 }
 
 model Referral {
-  id                  Int                  @id @default(autoincrement())
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  referralCodeId      Int
-  referralCode        ReferralCode         @relation(fields: [referralCodeId], references: [id])
-  referredPhoneNumber String               @unique
-  referredDriverId    Int?                 @unique
-  referredDriver      DriverPersonnalInfo? @relation("ReferredDriver", fields: [referredDriverId], references: [id])
-  status              ReferralStatus       @default(PENDING_REGISTRATION)
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  sponsorDriverId    Int
+  sponsorDriver      DriverPersonnalInfo @relation("ReferralSponsor", fields: [sponsorDriverId], references: [id])
+  referredDriverId   Int                 @unique
+  referredDriver     DriverPersonnalInfo @relation("ReferredDriver", fields: [referredDriverId], references: [id])
+  status             ReferralStatus      @default(REGISTERED)
+  bonusAmount        Int
+  yangoTransactionId String?
+  failureReason      String?
+
+  @@index([sponsorDriverId])
 }

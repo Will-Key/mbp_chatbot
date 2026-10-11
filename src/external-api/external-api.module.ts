@@ -12,6 +12,7 @@ import { RequestLogModule } from '../request-log/request-log.module'
 import { OcrSpaceService } from './ocr-space.service'
 import { OpenAIService } from './openai.service'
 import { OtpService } from './otp.service'
+import { SmsService } from './sms.service'
 import { WhapiService } from './whapi.service'
 import { YangoService } from './yango.service'
 
@@ -37,9 +38,11 @@ import { YangoService } from './yango.service'
     OpenAIService,
     DriverCarService,
     FlowService,
+    SmsService,
   ],
   exports: [
     WhapiService,
+    SmsService,
     OcrSpaceService,
     YangoService,
     OtpService,

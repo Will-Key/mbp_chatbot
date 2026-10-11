@@ -47,4 +47,10 @@ export class DriverOrderService {
       },
     })
   }
+
+  countCompletedByDriver(driverProfileId: string) {
+    return this.prismaService.driverOrder.count({
+      where: { driverProfileId, status: 'complete' },
+    })
+  }
 }

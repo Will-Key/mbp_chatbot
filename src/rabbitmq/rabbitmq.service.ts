@@ -36,15 +36,24 @@ import {
 } from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
 import { OtpService } from '../external-api/otp.service'
+import { SmsService } from '../external-api/sms.service'
 import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
 import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
-import { LoyaltyBonusService } from '../loyalty-bonus/loyalty-bonus.service'
 import {
-  REFERRAL_BONUS_AMOUNT,
-  ReferralService,
-} from '../referral/referral.service'
+  findNextLoyaltyBonusTier,
+  LoyaltyBonusService,
+  LoyaltyBonusTierRow,
+  resolveLoyaltyBonusAmount,
+} from '../loyalty-bonus/loyalty-bonus.service'
+import {
+  NOTIFICATION_CHANNELS,
+  NotificationChannel,
+  REFERRAL_TRIGGERS,
+} from '../app-parameter/app-parameter.constants'
+import { AppParameterService } from '../app-parameter/app-parameter.service'
+import { ReferralService } from '../referral/referral.service'
 import { getOcrErrorMessage, OcrErrorCode } from '../shared/constants'
 import { ConversationType } from '../shared/types'
 import { StepService } from '../step/step.service'
@@ -86,6 +95,8 @@ export class RabbitmqService {
     private readonly syncJobLogService: SyncJobLogService,
     private readonly referralService: ReferralService,
     private readonly loyaltyBonusService: LoyaltyBonusService,
+    private readonly appParameterService: AppParameterService,
+    private readonly smsService: SmsService,
   ) {}
 
   onModuleInit() {
@@ -261,24 +272,60 @@ export class RabbitmqService {
       return
     }
 
-    const { from } = this.getCurrentFortnightWindow()
+    const cutoffDays =
+      await this.appParameterService.getLoyaltyPeriodCutoffDays()
+    const now = new Date()
+    const { from } = this.getPeriodWindow(cutoffDays, now)
     const ridesCount =
       await this.driverOrderService.countCompletedByDriverAndPeriod(
         driver.yangoProfileId,
         from,
-        new Date(),
+        now,
       )
-    const bonusAmount = this.computeLoyaltyBonusAmount(ridesCount)
+
+    const tiers = await this.loyaltyBonusService.findActiveTiers()
+    const bonusAmount = resolveLoyaltyBonusAmount(ridesCount, tiers)
+    const nextTier = findNextLoyaltyBonusTier(ridesCount, tiers)
     const periodStartLabel = from.toLocaleDateString('fr-FR', {
       timeZone: 'UTC',
     })
 
-    const body =
-      bonusAmount > 0
-        ? `Vous avez réalisé ${ridesCount} course(s) depuis le ${periodStartLabel}. Vous êtes en ligne pour un bonus fidélité de ${bonusAmount} FCFA sur cette période.`
-        : `Vous avez réalisé ${ridesCount} course(s) depuis le ${periodStartLabel}. Il vous manque ${Math.max(150 - ridesCount, 0)} course(s) pour atteindre le seuil de 3 000 FCFA.`
+    const lines = [
+      `Vous avez réalisé ${ridesCount} course(s) depuis le ${periodStartLabel}.`,
+    ]
 
-    await this.handleMessageToSent({ to: whaPhoneNumber, body, typing_time: 5 })
+    lines.push(
+      bonusAmount > 0
+        ? `Palier atteint : bonus de fidélité de ${bonusAmount} FCFA sur cette quinzaine.`
+        : `Vous n'avez pas encore atteint le premier palier de bonus.`,
+    )
+
+    if (nextTier) {
+      lines.push(
+        `Il vous manque ${nextTier.minRides - ridesCount} course(s) pour atteindre ${nextTier.minRides} courses et un bonus de ${nextTier.bonusAmount} FCFA.`,
+      )
+    }
+
+    const history = await this.loyaltyBonusService.findHistoryByDriver(
+      driver.id,
+      3,
+    )
+    const creditedHistory = history.filter(
+      (bonus) => bonus.status === LoyaltyBonusStatus.CREDITED,
+    )
+    if (creditedHistory.length) {
+      const historyLines = creditedHistory.map(
+        (bonus) =>
+          `- ${bonus.periodFrom.toLocaleDateString('fr-FR', { timeZone: 'UTC' })} : ${bonus.ridesCount} course(s), ${bonus.bonusAmount} FCFA`,
+      )
+      lines.push(['Vos derniers bonus versés :', ...historyLines].join('\n'))
+    }
+
+    await this.handleMessageToSent({
+      to: whaPhoneNumber,
+      body: lines.join('\n\n'),
+      typing_time: 5,
+    })
   }
 
   private async handleReferralQuery(newMessage: NewMessageWebhookDto) {
@@ -297,33 +344,152 @@ export class RabbitmqService {
       return
     }
 
+    const campaign = await this.referralService.findActiveCampaign()
+    const bonusAmount =
+      campaign?.bonusAmount ??
+      (await this.appParameterService.getReferralBonusAmount())
+    const trigger = await this.appParameterService.getReferralTrigger()
+
+    const lines = [
+      `Programme de parrainage MBP : vous recevez ${bonusAmount} FCFA sur votre solde Yango pour chaque chauffeur que vous parrainez.`,
+      `Communiquez votre numéro ${driver.phoneNumber.replace(/^225/, '')} au nouveau chauffeur : il devra le renseigner pendant son inscription.`,
+    ]
+
+    if (trigger === REFERRAL_TRIGGERS.onFilleulRides) {
+      const threshold =
+        await this.appParameterService.getReferralFilleulRidesThreshold()
+      lines.push(
+        `Le bonus est versé dès que votre filleul a réalisé ${threshold} courses.`,
+      )
+    }
+
+    if (!campaign) {
+      lines.push(
+        "Aucune campagne de parrainage n'est ouverte actuellement : les parrainages sont enregistrés mais pas encore récompensés.",
+      )
+    }
+
     const referrals = await this.referralService.findHistoryBySponsor(driver.id)
-    const creditedReferrals = referrals.filter((r) => r.status === 'CREDITED')
+    const creditedReferrals = referrals.filter(
+      (referral) => referral.status === ReferralStatus.CREDITED,
+    )
     const totalEarned = creditedReferrals.reduce(
       (total, referral) => total + referral.bonusAmount,
       0,
     )
 
-    const body = [
-      `Programme de parrainage MBP : vous recevez ${REFERRAL_BONUS_AMOUNT} FCFA sur votre solde Yango pour chaque chauffeur que vous parrainez.`,
-      `Communiquez votre numéro ${driver.phoneNumber.replace(/^225/, '')} au nouveau chauffeur : il devra le renseigner pendant son inscription.`,
+    lines.push(
       `Vos parrainages : ${referrals.length} chauffeur(s) enregistré(s), dont ${creditedReferrals.length} crédité(s), pour un total de ${totalEarned} FCFA.`,
-    ].join('\n\n')
+    )
 
-    await this.handleMessageToSent({ to: whaPhoneNumber, body, typing_time: 5 })
+    if (referrals.length) {
+      const filleulLines = referrals
+        .slice(0, 10)
+        .map(
+          (referral) =>
+            `- ${referral.referredDriver.firstName} ${referral.referredDriver.lastName} : ${this.getReferralStatusLabel(referral.status)}`,
+        )
+      lines.push(['Vos filleuls :', ...filleulLines].join('\n'))
+    }
+
+    await this.handleMessageToSent({
+      to: whaPhoneNumber,
+      body: lines.join('\n\n'),
+      typing_time: 5,
+    })
   }
 
-  private async creditReferralSponsor(
-    referredDriver: { id: number; firstName: string; lastName: string },
+  private getReferralStatusLabel(status: ReferralStatus): string {
+    switch (status) {
+      case ReferralStatus.CREDITED:
+        return 'bonus versé'
+      case ReferralStatus.NOT_ELIGIBLE:
+        return 'non éligible'
+      case ReferralStatus.FAILED:
+        return 'versement à régulariser'
+      default:
+        return 'en attente'
+    }
+  }
+
+  private async notifyDriver(
+    driver: { whaPhoneNumber: string; phoneNumber: string },
+    body: string,
+    channel: NotificationChannel,
+  ) {
+    const deliveries: Promise<unknown>[] = []
+
+    if (channel !== NOTIFICATION_CHANNELS.sms) {
+      deliveries.push(
+        this.handleMessageToSent({
+          to: driver.whaPhoneNumber,
+          body,
+          typing_time: 5,
+        }),
+      )
+    }
+    if (channel !== NOTIFICATION_CHANNELS.whatsapp) {
+      deliveries.push(this.smsService.send(driver.phoneNumber, body))
+    }
+
+    const results = await Promise.allSettled(deliveries)
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.logger.error(
+          `Notification failed for ${driver.whaPhoneNumber}: ${this.extractErrorMessage(result.reason)}`,
+        )
+      }
+    }
+  }
+
+  /**
+   * Credits the sponsor of a referral that has become due. Resolves the
+   * campaign and the monthly cap first, so nothing is paid outside an open
+   * campaign. Never throws: the callers are an onboarding flow and a cron.
+   */
+  private async creditReferral(
+    referral: { id: number; sponsorDriverId: number },
+    referredDriver: { firstName: string; lastName: string },
     referredYangoProfileId: string,
   ) {
-    const referral = await this.referralService
-      .findByReferredDriver(referredDriver.id)
-      .catch(() => null)
-    if (!referral || referral.status !== 'REGISTERED') return
-
-    // A failure here must never interrupt the new driver's onboarding.
     try {
+      const campaign = await this.referralService.findActiveCampaign()
+      if (!campaign) {
+        await this.referralService.updateStatus(
+          referral.id,
+          ReferralStatus.NOT_ELIGIBLE,
+          {
+            failureReason:
+              "Aucune campagne de parrainage active à la date d'éligibilité",
+          },
+        )
+        return
+      }
+
+      const monthlyCap =
+        await this.appParameterService.getReferralMonthlyCapPerSponsor()
+      if (monthlyCap !== null) {
+        const now = new Date()
+        const monthStart = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0),
+        )
+        const creditedThisMonth =
+          await this.referralService.countCreditedBySponsorSince(
+            referral.sponsorDriverId,
+            monthStart,
+          )
+        if (creditedThisMonth >= monthlyCap) {
+          await this.referralService.updateStatus(
+            referral.id,
+            ReferralStatus.NOT_ELIGIBLE,
+            {
+              failureReason: `Plafond de ${monthlyCap} parrainage(s) rémunéré(s) par mois atteint`,
+            },
+          )
+          return
+        }
+      }
+
       const sponsor = await this.driverPersonalInfoService.findOne(
         referral.sponsorDriverId,
       )
@@ -334,7 +500,7 @@ export class RabbitmqService {
       const referredDriverName = `${referredDriver.firstName} ${referredDriver.lastName}`
       const transaction = await this.yangoService.createDepositTransaction(
         sponsor.yangoProfileId,
-        referral.bonusAmount,
+        campaign.bonusAmount,
         `Bonus de parrainage - ${referredDriverName}`,
         referredYangoProfileId,
         'Bonus de parrainage',
@@ -343,18 +509,23 @@ export class RabbitmqService {
       await this.referralService.updateStatus(
         referral.id,
         ReferralStatus.CREDITED,
-        { yangoTransactionId: transaction.id },
+        {
+          yangoTransactionId: transaction.id,
+          creditedAt: new Date(),
+          bonusAmount: campaign.bonusAmount,
+          campaignId: campaign.id,
+        },
       )
 
-      await this.handleMessageToSent({
-        to: sponsor.whaPhoneNumber,
-        body: `Bonne nouvelle ! ${referredDriverName}, que vous avez parrainé, vient de finaliser son inscription MBP. Votre solde Yango a été crédité de ${referral.bonusAmount} FCFA. Merci de faire grandir la communauté MBP !`,
-        typing_time: 5,
-      })
+      await this.notifyDriver(
+        sponsor,
+        `Bonne nouvelle ! ${referredDriverName}, que vous avez parrainé, remplit les conditions du parrainage MBP. Votre solde Yango a été crédité de ${campaign.bonusAmount} FCFA. Merci de faire grandir la communauté MBP !`,
+        await this.appParameterService.getNotificationChannel(),
+      )
     } catch (error) {
       const failureReason = this.extractErrorMessage(error)
       this.logger.error(
-        `Error crediting referral sponsor for driver ${referredDriver.id}: ${failureReason}`,
+        `Error crediting referral ${referral.id}: ${failureReason}`,
       )
       await this.referralService
         .updateStatus(referral.id, ReferralStatus.FAILED, { failureReason })
@@ -362,24 +533,76 @@ export class RabbitmqService {
     }
   }
 
-  private computeLoyaltyBonusAmount(ridesCount: number): number {
-    if (ridesCount >= 200) return 5000
-    if (ridesCount >= 150) return 3000
-    return 0
+  /** Credits the sponsor right after the filleul's Yango profile is created. */
+  private async creditReferralOnRegistration(
+    referredDriver: { id: number; firstName: string; lastName: string },
+    referredYangoProfileId: string,
+  ) {
+    const trigger = await this.appParameterService
+      .getReferralTrigger()
+      .catch(() => REFERRAL_TRIGGERS.onRegistration)
+    if (trigger !== REFERRAL_TRIGGERS.onRegistration) return
+
+    const referral = await this.referralService
+      .findByReferredDriver(referredDriver.id)
+      .catch(() => null)
+    if (!referral || referral.status !== ReferralStatus.REGISTERED) return
+
+    await this.creditReferral(referral, referredDriver, referredYangoProfileId)
   }
 
-  private getCurrentFortnightWindow(): { from: Date; to: Date } {
-    const now = new Date()
-    const year = now.getUTCFullYear()
-    const month = now.getUTCMonth()
-    const day = now.getUTCDate()
+  private getPeriodBoundary(year: number, month: number, day: number): Date {
+    return new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+  }
 
+  /** The period containing `at`, delimited by the configured cut-off days. */
+  private getPeriodWindow(
+    cutoffDays: number[],
+    at: Date,
+  ): { from: Date; to: Date } {
+    const year = at.getUTCFullYear()
+    const month = at.getUTCMonth()
+    const day = at.getUTCDate()
+
+    const startDay = [...cutoffDays].reverse().find((cutoff) => cutoff <= day)
     const from =
-      day <= 15
-        ? new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
-        : new Date(Date.UTC(year, month, 16, 0, 0, 0, 0))
+      startDay === undefined
+        ? this.getPeriodBoundary(
+            year,
+            month - 1,
+            cutoffDays[cutoffDays.length - 1],
+          )
+        : this.getPeriodBoundary(year, month, startDay)
 
-    return { from, to: now }
+    const endDay = cutoffDays.find((cutoff) => cutoff > day)
+    const to =
+      endDay === undefined
+        ? this.getPeriodBoundary(year, month + 1, cutoffDays[0])
+        : this.getPeriodBoundary(year, month, endDay)
+
+    return { from, to }
+  }
+
+  /** The period that closes on `at`, which must be a cut-off day. */
+  private getClosedPeriodWindow(
+    cutoffDays: number[],
+    at: Date,
+  ): { from: Date; to: Date } {
+    const year = at.getUTCFullYear()
+    const month = at.getUTCMonth()
+    const day = at.getUTCDate()
+
+    const previousDay = [...cutoffDays].reverse().find((cutoff) => cutoff < day)
+    const from =
+      previousDay === undefined
+        ? this.getPeriodBoundary(
+            year,
+            month - 1,
+            cutoffDays[cutoffDays.length - 1],
+          )
+        : this.getPeriodBoundary(year, month, previousDay)
+
+    return { from, to: this.getPeriodBoundary(year, month, day) }
   }
 
   private async getOfferFlowSteps(
@@ -716,7 +939,8 @@ export class RabbitmqService {
           await this.referralService.create({
             sponsorDriverId: sponsor.id,
             referredDriverId: referredDriver.id,
-            bonusAmount: REFERRAL_BONUS_AMOUNT,
+            bonusAmount:
+              await this.appParameterService.getReferralBonusAmount(),
           })
         }
       } catch (error) {
@@ -1549,7 +1773,7 @@ export class RabbitmqService {
 
       // Last, so a slow or failing sponsor credit never delays the new
       // driver's own confirmation.
-      await this.creditReferralSponsor(driverInfo, profileId)
+      await this.creditReferralOnRegistration(driverInfo, profileId)
     } catch (error) {
       await this.abortConversation(
         abortData,
@@ -2012,16 +2236,34 @@ export class RabbitmqService {
     }
   }
 
-  @Cron('0 5 1,16 * *')
+  // Runs daily and only acts on the configured cut-off days, so the period
+  // boundaries stay editable from the parameter table.
+  @Cron('0 5 * * *')
   async processLoyaltyBonuses() {
+    const cutoffDays =
+      await this.appParameterService.getLoyaltyPeriodCutoffDays()
+    const now = new Date()
+    if (!cutoffDays.includes(now.getUTCDate())) return
+
     this.logger.log('Starting loyalty bonus processing...')
-    const { from, to } = this.getClosedFortnightWindow()
+    const { from, to } = this.getClosedPeriodWindow(cutoffDays, now)
+    const tiers = await this.loyaltyBonusService.findActiveTiers()
+    const autoCredit =
+      await this.appParameterService.isLoyaltyBonusAutoCreditEnabled()
+    const channel = await this.appParameterService.getNotificationChannel()
+    const minDriverAgeDays =
+      await this.appParameterService.getLoyaltyBonusMinDriverAgeDays()
     const drivers = await this.driverPersonalInfoService.findAll()
 
     for (const driver of drivers) {
       if (!driver.yangoProfileId) continue
       try {
-        await this.processLoyaltyBonusForDriver(driver, from, to)
+        await this.processLoyaltyBonusForDriver(driver, from, to, {
+          tiers,
+          autoCredit,
+          channel,
+          minDriverAgeDays,
+        })
       } catch (error) {
         this.logger.error(
           `Loyalty bonus processing failed for driver ${driver.id}: ${this.extractErrorMessage(error)}`,
@@ -2033,17 +2275,35 @@ export class RabbitmqService {
   }
 
   private async processLoyaltyBonusForDriver(
-    driver: { id: number; yangoProfileId: string; whaPhoneNumber: string },
+    driver: {
+      id: number
+      yangoProfileId: string
+      whaPhoneNumber: string
+      phoneNumber: string
+      createdAt: Date
+    },
     from: Date,
     to: Date,
+    options: {
+      tiers: LoyaltyBonusTierRow[]
+      autoCredit: boolean
+      channel: NotificationChannel
+      minDriverAgeDays: number
+    },
   ) {
+    if (options.minDriverAgeDays > 0) {
+      const ageInDays =
+        (to.getTime() - driver.createdAt.getTime()) / (24 * 60 * 60 * 1000)
+      if (ageInDays < options.minDriverAgeDays) return
+    }
+
     const ridesCount =
       await this.driverOrderService.countCompletedByDriverAndPeriod(
         driver.yangoProfileId,
         from,
         to,
       )
-    const bonusAmount = this.computeLoyaltyBonusAmount(ridesCount)
+    const bonusAmount = resolveLoyaltyBonusAmount(ridesCount, options.tiers)
     const status =
       bonusAmount > 0
         ? LoyaltyBonusStatus.PENDING
@@ -2073,20 +2333,24 @@ export class RabbitmqService {
     }
 
     if (bonusAmount <= 0) {
-      await this.handleMessageToSent({
-        to: driver.whaPhoneNumber,
-        body: `Vous avez réalisé ${ridesCount} course(s) durant la période écoulée. Il vous manque ${Math.max(150 - ridesCount, 0)} course(s) pour atteindre le seuil de 3 000 FCFA.`,
-        typing_time: 5,
-      })
+      const nextTier = findNextLoyaltyBonusTier(ridesCount, options.tiers)
+      const missing = nextTier
+        ? ` Il vous manque ${nextTier.minRides - ridesCount} course(s) pour atteindre le palier de ${nextTier.bonusAmount} FCFA.`
+        : ''
+      await this.notifyDriver(
+        driver,
+        `Vous avez réalisé ${ridesCount} course(s) durant la période écoulée.${missing}`,
+        options.channel,
+      )
       return
     }
 
-    if (process.env.LOYALTY_BONUS_AUTO_CREDIT !== 'true') {
-      await this.handleMessageToSent({
-        to: driver.whaPhoneNumber,
-        body: `Vous avez réalisé ${ridesCount} courses durant la période écoulée. Vous êtes éligible à un bonus fidélité de ${bonusAmount} FCFA. Il sera crédité prochainement sur votre compte.`,
-        typing_time: 5,
-      })
+    if (!options.autoCredit) {
+      await this.notifyDriver(
+        driver,
+        `Vous avez réalisé ${ridesCount} courses durant la période écoulée. Vous êtes éligible à un bonus fidélité de ${bonusAmount} FCFA. Il sera crédité prochainement sur votre compte.`,
+        options.channel,
+      )
       return
     }
 
@@ -2102,43 +2366,65 @@ export class RabbitmqService {
         LoyaltyBonusStatus.CREDITED,
         { yangoTransactionId: transaction.id },
       )
-      await this.handleMessageToSent({
-        to: driver.whaPhoneNumber,
-        body: `Félicitations ! Vous avez réalisé ${ridesCount} courses durant la période écoulée. Un bonus de ${bonusAmount} FCFA a été crédité sur votre compte Yango.`,
-        typing_time: 5,
-      })
+      await this.notifyDriver(
+        driver,
+        `Félicitations ! Vous avez réalisé ${ridesCount} courses durant la période écoulée. Un bonus de ${bonusAmount} FCFA a été crédité sur votre compte Yango.`,
+        options.channel,
+      )
     } catch (error) {
       await this.loyaltyBonusService.updateStatus(
         bonusRecord.id,
         LoyaltyBonusStatus.FAILED,
         { failureReason: this.extractErrorMessage(error) },
       )
-      await this.handleMessageToSent({
-        to: driver.whaPhoneNumber,
-        body: `Vous avez réalisé ${ridesCount} courses durant la période écoulée et êtes éligible à un bonus de ${bonusAmount} FCFA. Le rechargement a rencontré un problème, notre équipe va le régulariser.`,
-        typing_time: 5,
-      })
+      await this.notifyDriver(
+        driver,
+        `Vous avez réalisé ${ridesCount} courses durant la période écoulée et êtes éligible à un bonus de ${bonusAmount} FCFA. Le rechargement a rencontré un problème, notre équipe va le régulariser.`,
+        options.channel,
+      )
     }
   }
 
-  private getClosedFortnightWindow(): { from: Date; to: Date } {
-    const now = new Date()
-    const year = now.getUTCFullYear()
-    const month = now.getUTCMonth()
-    const day = now.getUTCDate()
+  // Only does anything when the referral trigger is the filleul's ride count;
+  // with the default trigger the credit already happened at registration.
+  @Cron('0 6 * * *')
+  async processPendingReferrals() {
+    const trigger = await this.appParameterService.getReferralTrigger()
+    if (trigger !== REFERRAL_TRIGGERS.onFilleulRides) return
 
-    const from =
-      day === 1
-        ? new Date(Date.UTC(year, month - 1, 16, 0, 0, 0, 0))
-        : new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
-    const to =
-      day === 1
-        ? new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
-        : new Date(Date.UTC(year, month, 16, 0, 0, 0, 0))
+    const threshold =
+      await this.appParameterService.getReferralFilleulRidesThreshold()
+    const referrals = await this.referralService.findRegistered()
+    if (!referrals.length) return
 
-    return { from, to }
+    this.logger.log(
+      `Evaluating ${referrals.length} pending referral(s) against ${threshold} rides`,
+    )
+
+    for (const referral of referrals) {
+      try {
+        const referredDriver = await this.driverPersonalInfoService.findOne(
+          referral.referredDriverId,
+        )
+        if (!referredDriver?.yangoProfileId) continue
+
+        const ridesCount = await this.driverOrderService.countCompletedByDriver(
+          referredDriver.yangoProfileId,
+        )
+        if (ridesCount < threshold) continue
+
+        await this.creditReferral(
+          referral,
+          referredDriver,
+          referredDriver.yangoProfileId,
+        )
+      } catch (error) {
+        this.logger.error(
+          `Pending referral ${referral.id} could not be processed: ${this.extractErrorMessage(error)}`,
+        )
+      }
+    }
   }
-
   private extractErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       return error.message

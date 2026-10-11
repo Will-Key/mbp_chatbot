@@ -2,6 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common'
 import { ScheduleModule } from '@nestjs/schedule'
 import { PrismaService } from '../prisma/prisma.service'
 import { AppController } from './app.controller'
+import { AppParameterModule } from './app-parameter/app-parameter.module'
 import { AppService } from './app.service'
 import { CarInfoModule } from './car-info/car-info.module'
 import { ConversationModule } from './conversation/conversation.module'
@@ -50,6 +51,7 @@ import { WebhookModule } from './webhook/webhook.module'
     UserModule,
     LoyaltyBonusModule,
     ReferralModule,
+    AppParameterModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

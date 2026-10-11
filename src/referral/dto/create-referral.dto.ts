@@ -4,5 +4,6 @@ export class CreateReferralDto {
   sponsorDriverId: number
   referredDriverId: number
   bonusAmount: number
+  campaignId?: number
   status?: ReferralStatus
 }

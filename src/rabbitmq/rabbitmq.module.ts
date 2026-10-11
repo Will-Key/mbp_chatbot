@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { ClientsModule, Transport } from '@nestjs/microservices'
 import { PrismaService } from 'prisma/prisma.service'
+import { AppParameterService } from '../app-parameter/app-parameter.service'
 import { CarInfoService } from '../car-info/car-info.service'
 import { ConversationService } from '../conversation/conversation.service'
 import { DocumentFileService } from '../document-file/document-file.service'
@@ -140,6 +141,7 @@ import { RabbitmqService } from './rabbitmq.service'
     DriverOrderService,
     ReferralService,
     LoyaltyBonusService,
+    AppParameterService,
   ],
   exports: [RabbitmqService],
 })

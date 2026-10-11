@@ -359,6 +359,7 @@ model LoyaltyBonus {
 enum ReferralStatus {
   REGISTERED
   CREDITED
+  NOT_ELIGIBLE
   FAILED
 }
 
@@ -370,10 +371,44 @@ model Referral {
   sponsorDriver      DriverPersonnalInfo @relation("ReferralSponsor", fields: [sponsorDriverId], references: [id])
   referredDriverId   Int                 @unique
   referredDriver     DriverPersonnalInfo @relation("ReferredDriver", fields: [referredDriverId], references: [id])
+  campaignId         Int?
+  campaign           ReferralCampaign?   @relation(fields: [campaignId], references: [id])
   status             ReferralStatus      @default(REGISTERED)
   bonusAmount        Int
   yangoTransactionId String?
   failureReason      String?
+  creditedAt         DateTime?
 
   @@index([sponsorDriverId])
+  @@index([status])
+}
+
+model ReferralCampaign {
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  name        String
+  startDate   DateTime
+  endDate     DateTime?
+  bonusAmount Int
+  active      Boolean    @default(true)
+  referrals   Referral[]
+}
+
+model LoyaltyBonusTier {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  minRides    Int      @unique
+  bonusAmount Int
+  active      Boolean  @default(true)
+}
+
+model AppParameter {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  key         String   @unique
+  value       String
+  description String?
 }

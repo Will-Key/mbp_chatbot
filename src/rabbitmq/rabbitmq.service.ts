@@ -33,7 +33,10 @@ import {
 } from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
 import { OtpService } from '../external-api/otp.service'
-import { MetaWhatsappService } from '../external-api/meta-whatsapp.service'
+import {
+  isMetaWhatsappProvider,
+  MetaWhatsappService,
+} from '../external-api/meta-whatsapp.service'
 import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
 import { CreateHistoryConversationDto } from '../history-conversation/dto/create-history-conversation.dto'
@@ -1158,13 +1161,9 @@ export class RabbitmqService {
     }
   }
 
-  private isMetaProvider(): boolean {
-    return process.env.WHATSAPP_PROVIDER === 'META'
-  }
-
   async handleMessageToSent(message: SendMessageDto) {
     this.logger.log(`sent message: ${JSON.stringify(message)}`)
-    if (this.isMetaProvider()) {
+    if (isMetaWhatsappProvider()) {
       // Meta addresses the plain wa_id, with no chat suffix.
       await this.metaWhatsappService.sendMessage(message)
       return
@@ -1188,7 +1187,7 @@ export class RabbitmqService {
 
   async handleImageToSent(message: SendImageMessageDto) {
     this.logger.log(`sent image: ${JSON.stringify(message)}`)
-    if (this.isMetaProvider()) {
+    if (isMetaWhatsappProvider()) {
       await this.metaWhatsappService.sendImageMessage(message)
       return
     }

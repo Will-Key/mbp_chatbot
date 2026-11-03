@@ -1,6 +1,6 @@
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
-import { RequestStatus } from '@prisma/client'
+import { RequestInitiator, RequestStatus } from '@prisma/client'
 import { lastValueFrom } from 'rxjs'
 import { RequestLogService } from '../request-log/request-log.service'
 import { SendImageMessageDto, SendMessageDto } from './dto/send-message.dto'
@@ -9,6 +9,10 @@ type MetaMediaMetadata = {
   url: string
   mime_type: string
   file_size: number
+}
+
+export function isMetaWhatsappProvider(): boolean {
+  return process.env.WHATSAPP_PROVIDER === 'META'
 }
 
 @Injectable()
@@ -28,14 +32,20 @@ export class MetaWhatsappService {
     return `${process.env.META_API_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`
   }
 
-  async sendMessage(message: SendMessageDto) {
-    await this.post({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: message.to,
-      type: 'text',
-      text: { preview_url: false, body: message.body },
-    })
+  async sendMessage(
+    message: SendMessageDto,
+    initiator: RequestInitiator = 'MBP',
+  ) {
+    await this.post(
+      {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: message.to,
+        type: 'text',
+        text: { preview_url: false, body: message.body },
+      },
+      initiator,
+    )
   }
 
   async sendImageMessage(message: SendImageMessageDto) {
@@ -48,7 +58,10 @@ export class MetaWhatsappService {
     })
   }
 
-  private async post(payload: Record<string, unknown>) {
+  private async post(
+    payload: Record<string, unknown>,
+    initiator: RequestInitiator = 'MBP',
+  ) {
     try {
       const response = await lastValueFrom(
         this.httpService.post(this.messagesUrl, payload, {
@@ -63,7 +76,7 @@ export class MetaWhatsappService {
       await this.requestLogService.create({
         direction: 'OUT',
         status: RequestStatus.SUCCESS,
-        initiator: 'MBP',
+        initiator,
         data: JSON.stringify(payload),
         response: JSON.stringify(response.data),
       })
@@ -76,7 +89,7 @@ export class MetaWhatsappService {
       await this.requestLogService.create({
         direction: 'OUT',
         status: RequestStatus.FAIL,
-        initiator: 'MBP',
+        initiator,
         data: JSON.stringify(payload),
         response: JSON.stringify(error?.response?.data ?? error?.message),
       })

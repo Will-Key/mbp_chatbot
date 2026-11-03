@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsNotEmptyObject,
   IsNumber,
+  IsOptional,
   IsObject,
   IsString,
   ValidateNested,
@@ -38,21 +39,21 @@ export class MessageImageDto {
   @IsString()
   id: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  link: string
+  link?: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  preview: string
+  preview?: string
 
   @IsNotEmpty()
   @IsString()
   mime_type: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  file_size: number
+  file_size?: number
 }
 
 export class MessageTextDto {
@@ -76,12 +77,11 @@ export class MessageTextDto {
   @IsEnum(MessageType)
   type: MessageType
 
-  @IsDefined()
-  @IsNotEmptyObject()
+  @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => MessageImageDto)
-  image: MessageImageDto
+  image?: MessageImageDto
 
   @IsDefined()
   @IsNotEmptyObject()

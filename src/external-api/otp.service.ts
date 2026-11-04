@@ -5,6 +5,10 @@ import { addMinutes, isAfter } from 'date-fns'
 import { catchError, lastValueFrom, map } from 'rxjs'
 import { OtpVerificationService } from '../otp-verification/otp-verification.service'
 import { RequestLogService } from '../request-log/request-log.service'
+import {
+  isMetaWhatsappProvider,
+  MetaWhatsappService,
+} from './meta-whatsapp.service'
 
 @Injectable()
 export class OtpService {
@@ -19,6 +23,7 @@ export class OtpService {
     private readonly httpService: HttpService,
     private readonly otpVerificationService: OtpVerificationService,
     private readonly requestLogService: RequestLogService,
+    private readonly metaWhatsappService: MetaWhatsappService,
   ) {
     this.smsApiKey = process.env.SMS_API_KEY
     this.smsApiUrl = process.env.SMS_API_URL
@@ -118,11 +123,29 @@ export class OtpService {
     }
   }
 
+  /**
+   * Drivers' WhatsApp accounts still use the pre-2021 national format, so the
+   * operator prefix added by the renumbering is dropped.
+   */
+  private toWhatsappNumber(phoneNumber: string): string {
+    return phoneNumber.slice(0, 3) + phoneNumber.slice(5)
+  }
+
   private async sendWhatsAppMessage(
     phoneNumber: string,
     content: string,
   ): Promise<void> {
-    const whaPhoneNumber = phoneNumber.slice(0, 3) + phoneNumber.slice(5)
+    const whaPhoneNumber = this.toWhatsappNumber(phoneNumber)
+
+    if (isMetaWhatsappProvider()) {
+      // Meta addresses the plain wa_id, with no chat suffix.
+      await this.metaWhatsappService.sendMessage(
+        { to: whaPhoneNumber, body: content, typing_time: 0 },
+        'OTP',
+      )
+      return
+    }
+
     const message = {
       to: `${whaPhoneNumber}@s.whatsapp.net`,
       body: content,

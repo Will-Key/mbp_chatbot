@@ -13,6 +13,7 @@ import { ExtractDriverLicenseFrontDto } from './dto/extract-driver-license-front
 import { ExtractVehiculeRegistrationDto } from './dto/extract-vehicule-registration.dto'
 import { GetOcrResponseDto } from './dto/get-ocr-response.dto'
 import { SendDocDto } from './dto/send-doc.dto'
+import { MetaWhatsappService } from './meta-whatsapp.service'
 import { OpenAIService } from './openai.service'
 
 @Injectable()
@@ -27,6 +28,7 @@ export class OcrSpaceService {
     private readonly carInfoService: CarInfoService,
     private readonly openAiService: OpenAIService,
     private readonly driverCarService: DriverCarService,
+    private readonly metaWhatsappService: MetaWhatsappService,
   ) {}
 
   async sendFile(file: DocumentFile, idFlow: string) {
@@ -40,7 +42,14 @@ export class OcrSpaceService {
     }
 
     try {
-      const response = await ocrSpace(file.dataImageUrl, params)
+      // Whapi stores a public link; Meta stores a media id that must be
+      // downloaded with the access token before OCR can read it.
+      const input = file.dataImageUrl.startsWith('http')
+        ? file.dataImageUrl
+        : await this.metaWhatsappService.downloadMediaAsDataUri(
+            file.dataImageUrl,
+          )
+      const response = await ocrSpace(input, params)
       this.logger.log(`ocrSpace response:`, JSON.stringify(response))
       if (response.ParsedResults.length === 0) {
         await this.requestLogService.create({

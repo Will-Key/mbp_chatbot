@@ -36,6 +36,10 @@ import {
 } from '../external-api/dto/send-message.dto'
 import { OcrSpaceService } from '../external-api/ocr-space.service'
 import { OtpService } from '../external-api/otp.service'
+import {
+  isMetaWhatsappProvider,
+  MetaWhatsappService,
+} from '../external-api/meta-whatsapp.service'
 import { SmsService } from '../external-api/sms.service'
 import { WhapiService } from '../external-api/whapi.service'
 import { YangoService } from '../external-api/yango.service'
@@ -97,6 +101,7 @@ export class RabbitmqService {
     private readonly loyaltyBonusService: LoyaltyBonusService,
     private readonly appParameterService: AppParameterService,
     private readonly smsService: SmsService,
+    private readonly metaWhatsappService: MetaWhatsappService,
   ) {}
 
   onModuleInit() {
@@ -818,7 +823,7 @@ export class RabbitmqService {
       if ((await this.checkImageValidity(lastConversation, newMessage)) === 0)
         throw Error("L'élément partagé n'est pas une image")
 
-      const link = newMessage.messages[0].image.link
+      const link = this.getImageReference(newMessage)
 
       const createDocumentFile: CreateDocumentFileDto = {
         dataImageUrl: link,
@@ -855,7 +860,7 @@ export class RabbitmqService {
 
       await this.saveMessage({
         whaPhoneNumber,
-        convMessage: newMessage.messages[0].image.link,
+        convMessage: this.getImageReference(newMessage),
         nextMessage: nextStep.message,
         stepId: nextStep.id,
       })
@@ -1019,12 +1024,21 @@ export class RabbitmqService {
     lastConversation: ConversationType,
     newMessage: NewMessageWebhookDto,
   ) {
+    const image = newMessage.messages[0].image
     const regex = /^(http|https):\/\/[^ "]+$/
+    // Whapi sends a public link plus a base64 preview; Meta sends only a
+    // media id, so either reference is accepted.
+    const hasUsableReference = image?.link
+      ? regex.test(image.link)
+      : Boolean(image?.id)
+    const previewIsValid = image?.preview
+      ? image.preview.includes('data:image')
+      : true
+
     if (
       newMessage.messages[0].type !== StepExpectedResponseType.image ||
-      !newMessage.messages[0].image.link ||
-      !regex.test(newMessage.messages[0].image.link) ||
-      !newMessage.messages[0].image.preview.includes('data:image')
+      !hasUsableReference ||
+      !previewIsValid
     ) {
       const errorMessage = this.getErrorMessage(
         lastConversation,
@@ -1034,13 +1048,34 @@ export class RabbitmqService {
       return 0
     }
 
-    if (newMessage.messages[0].image.file_size > 1000000) {
+    const fileSize = image.file_size || (await this.getMetaMediaSize(image))
+    if (fileSize > 1000000) {
       const errorMessage = this.getErrorMessage(lastConversation, 'maxSize')
       await this.updateMessage(lastConversation, errorMessage)
       return 0
     }
 
     return 1
+  }
+
+  /** Meta omits the file size from the webhook; it comes with the media. */
+  private async getMetaMediaSize(image: { id?: string; link?: string }) {
+    if (image.link || !image.id) return 0
+    try {
+      return (await this.metaWhatsappService.getMediaMetadata(image.id))
+        .file_size
+    } catch (error) {
+      this.logger.error(
+        `Could not read Meta media size for ${image.id}: ${this.extractErrorMessage(error)}`,
+      )
+      return 0
+    }
+  }
+
+  /** Whapi exposes a public link, Meta only a media id. */
+  private getImageReference(newMessage: NewMessageWebhookDto): string {
+    const image = newMessage.messages[0].image
+    return image?.link || image?.id
   }
 
   private async sendDataToYango(
@@ -1589,7 +1624,12 @@ export class RabbitmqService {
   }
 
   async handleMessageToSent(message: SendMessageDto) {
-    this.logger.log(`sent message to whapi: ${JSON.stringify(message)}`)
+    this.logger.log(`sent message: ${JSON.stringify(message)}`)
+    if (isMetaWhatsappProvider()) {
+      // Meta addresses the plain wa_id, with no chat suffix.
+      await this.metaWhatsappService.sendMessage(message)
+      return
+    }
     await this.whapiService.sendMessage({
       ...message,
       to: `${message.to}@s.whatsapp.net`,
@@ -1608,7 +1648,11 @@ export class RabbitmqService {
   }
 
   async handleImageToSent(message: SendImageMessageDto) {
-    this.logger.log(`sent image to whapi: ${JSON.stringify(message)}`)
+    this.logger.log(`sent image: ${JSON.stringify(message)}`)
+    if (isMetaWhatsappProvider()) {
+      await this.metaWhatsappService.sendImageMessage(message)
+      return
+    }
     await this.whapiService.sendImageMessage({
       ...message,
       to: `${message.to}@s.whatsapp.net`,

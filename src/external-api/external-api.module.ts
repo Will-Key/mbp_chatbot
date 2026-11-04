@@ -9,6 +9,7 @@ import { DriverLicenseInfoService } from '../driver-license-info/driver-license-
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { OtpVerificationService } from '../otp-verification/otp-verification.service'
 import { RequestLogModule } from '../request-log/request-log.module'
+import { MetaWhatsappService } from './meta-whatsapp.service'
 import { OcrSpaceService } from './ocr-space.service'
 import { OpenAIService } from './openai.service'
 import { OtpService } from './otp.service'
@@ -26,6 +27,7 @@ import { YangoService } from './yango.service'
   ],
   providers: [
     WhapiService,
+    MetaWhatsappService,
     OcrSpaceService,
     YangoService,
     OtpService,
@@ -43,6 +45,7 @@ import { YangoService } from './yango.service'
   exports: [
     WhapiService,
     SmsService,
+    MetaWhatsappService,
     OcrSpaceService,
     YangoService,
     OtpService,

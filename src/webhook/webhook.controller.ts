@@ -6,10 +6,12 @@ import {
   Logger,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common'
 import { isMetaWebhook, MetaWebhookDto } from './dto/meta-webhook.dto'
 import { NewMessageWebhookDto } from './dto/new-message-webhook.dto'
 import { mapMetaWebhook } from './meta-webhook.mapper'
+import { MetaSignatureGuard } from './meta-signature.guard'
 import { WebhookService } from './webhook.service'
 
 @Controller('webhook')
@@ -37,6 +39,7 @@ export class WebhookController {
     throw new ForbiddenException()
   }
 
+  @UseGuards(MetaSignatureGuard)
   @Post()
   async newMessage(@Body() payload: NewMessageWebhookDto | MetaWebhookDto) {
     // Always answer 200: Meta retries any non-2xx, which would duplicate

@@ -14,7 +14,9 @@ import {
 import { baseUrl, rabbitmqPort } from './shared/constants'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+  // rawBody is required to verify Meta's X-Hub-Signature-256 over the exact
+  // bytes received; a re-serialised JSON body would not match.
+  const app = await NestFactory.create(AppModule, { rawBody: true })
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {

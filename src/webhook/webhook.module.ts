@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common'
-import { WebhookService } from './webhook.service'
-import { WebhookController } from './webhook.controller'
 import { RabbitmqModule } from 'src/rabbitmq/rabbitmq.module'
+import { AppParameterModule } from '../app-parameter/app-parameter.module'
+import { MetaSignatureGuard } from './meta-signature.guard'
+import { WebhookController } from './webhook.controller'
+import { WebhookService } from './webhook.service'
 
 @Module({
-  imports: [RabbitmqModule],
+  imports: [RabbitmqModule, AppParameterModule],
   controllers: [WebhookController],
-  providers: [WebhookService],
+  providers: [WebhookService, MetaSignatureGuard],
 })
 export class WebhookModule {}

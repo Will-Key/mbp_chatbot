@@ -211,6 +211,9 @@ model DriverPersonnalInfo {
   yangoProfileId    String?            @unique
   driverLicenseInfo DriverLicenseInfo?
   DocumentFile      DocumentFile[]
+  referralsGiven    Referral[]         @relation("ReferralSponsor")
+  referredAs        Referral?          @relation("ReferredDriver")
+  loyaltyBonuses    LoyaltyBonus[]
 }
 
 model DriverLicenseInfo {
@@ -327,4 +330,85 @@ model DriverOrder {
 
   @@index([driverProfileId])
   @@index([bookedAt])
+}
+
+enum LoyaltyBonusStatus {
+  NOT_ELIGIBLE
+  PENDING
+  CREDITED
+  FAILED
+}
+
+model LoyaltyBonus {
+  id                    Int                 @id @default(autoincrement())
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  driverPersonnalInfoId Int
+  driverPersonnalInfo   DriverPersonnalInfo @relation(fields: [driverPersonnalInfoId], references: [id])
+  periodFrom            DateTime
+  periodTo              DateTime
+  ridesCount            Int
+  bonusAmount           Int
+  status                LoyaltyBonusStatus  @default(NOT_ELIGIBLE)
+  yangoTransactionId    String?
+  failureReason         String?
+
+  @@unique([driverPersonnalInfoId, periodFrom, periodTo])
+}
+
+enum ReferralStatus {
+  REGISTERED
+  CREDITED
+  NOT_ELIGIBLE
+  FAILED
+}
+
+model Referral {
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  sponsorDriverId    Int
+  sponsorDriver      DriverPersonnalInfo @relation("ReferralSponsor", fields: [sponsorDriverId], references: [id])
+  referredDriverId   Int                 @unique
+  referredDriver     DriverPersonnalInfo @relation("ReferredDriver", fields: [referredDriverId], references: [id])
+  campaignId         Int?
+  campaign           ReferralCampaign?   @relation(fields: [campaignId], references: [id])
+  status             ReferralStatus      @default(REGISTERED)
+  bonusAmount        Int
+  yangoTransactionId String?
+  failureReason      String?
+  creditedAt         DateTime?
+
+  @@index([sponsorDriverId])
+  @@index([status])
+}
+
+model ReferralCampaign {
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  name        String
+  startDate   DateTime
+  endDate     DateTime?
+  bonusAmount Int
+  active      Boolean    @default(true)
+  referrals   Referral[]
+}
+
+model LoyaltyBonusTier {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  minRides    Int      @unique
+  bonusAmount Int
+  active      Boolean  @default(true)
+}
+
+model AppParameter {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  key         String   @unique
+  value       String
+  description String?
 }

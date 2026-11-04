@@ -26,6 +26,8 @@ Veuillez sélectionner l'un des services suivant :
 1-Ouverture de compte MBP
 2-Changement de véhicule
 3-Modification du numéro de téléphone
+4-Consulter mes courses et mon bonus fidélité
+5-Mon parrainage
             `,
     mediaUrl:
       process.env.WELCOME_IMAGE ||
@@ -165,6 +167,31 @@ Veuillez sélectionner l'un des services suivant :
       {
         message: 'La taille de la photo envoyer trop grande',
         errorType: 'maxSize',
+      },
+    ],
+    idFlow: 'Inscription',
+  },
+  {
+    level: 6,
+    message: `Etape 6 : Avez-vous été parrainé par un chauffeur MBP ?
+Si oui, veuillez entrer les 10 chiffres de son numéro de téléphone.
+Si non, envoyez 0.`,
+    expectedResponseType: StepExpectedResponseType.text,
+    badResponseMessage: [
+      {
+        message:
+          "Veuillez saisir les 10 chiffres du numéro de votre parrain, ou envoyez 0 si vous n'avez pas de parrain.",
+        errorType: 'equalLength',
+      },
+      {
+        message:
+          "Ce numéro ne correspond à aucun chauffeur MBP actif. Vérifiez le numéro auprès de votre parrain, ou envoyez 0 si vous n'avez pas de parrain.",
+        errorType: 'isNotExist',
+      },
+      {
+        message:
+          "Vous ne pouvez pas vous parrainer vous-même. Entrez le numéro de votre parrain, ou envoyez 0 si vous n'avez pas de parrain.",
+        errorType: 'incorrectChoice',
       },
     ],
     idFlow: 'Inscription',

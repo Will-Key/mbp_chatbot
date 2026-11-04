@@ -11,10 +11,6 @@ type MetaMediaMetadata = {
   file_size: number
 }
 
-export function isMetaWhatsappProvider(): boolean {
-  return process.env.WHATSAPP_PROVIDER === 'META'
-}
-
 @Injectable()
 export class MetaWhatsappService {
   private readonly logger = new Logger(MetaWhatsappService.name)

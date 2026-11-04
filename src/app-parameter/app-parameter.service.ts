@@ -6,6 +6,8 @@ import {
   NotificationChannel,
   REFERRAL_TRIGGERS,
   ReferralTrigger,
+  WHATSAPP_PROVIDERS,
+  WhatsappProvider,
 } from './app-parameter.constants'
 
 @Injectable()
@@ -121,5 +123,20 @@ export class AppParameterService {
 
   async getLoyaltyBonusMinDriverAgeDays(): Promise<number> {
     return this.findNumber(APP_PARAMETER_KEYS.loyaltyBonusMinDriverAgeDays, 0)
+  }
+
+  async getWhatsappProvider(): Promise<WhatsappProvider> {
+    const raw = await this.findValue(APP_PARAMETER_KEYS.whatsappProvider)
+    if (raw === WHATSAPP_PROVIDERS.meta) return WHATSAPP_PROVIDERS.meta
+    if (raw !== WHATSAPP_PROVIDERS.whapi) {
+      this.logger.warn(
+        `Unknown WhatsApp provider "${raw}". Using ${WHATSAPP_PROVIDERS.whapi}.`,
+      )
+    }
+    return WHATSAPP_PROVIDERS.whapi
+  }
+
+  async isMetaWhatsappProvider(): Promise<boolean> {
+    return (await this.getWhatsappProvider()) === WHATSAPP_PROVIDERS.meta
   }
 }

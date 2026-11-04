@@ -5,10 +5,8 @@ import { addMinutes, isAfter } from 'date-fns'
 import { catchError, lastValueFrom, map } from 'rxjs'
 import { OtpVerificationService } from '../otp-verification/otp-verification.service'
 import { RequestLogService } from '../request-log/request-log.service'
-import {
-  isMetaWhatsappProvider,
-  MetaWhatsappService,
-} from './meta-whatsapp.service'
+import { AppParameterService } from '../app-parameter/app-parameter.service'
+import { MetaWhatsappService } from './meta-whatsapp.service'
 
 @Injectable()
 export class OtpService {
@@ -24,6 +22,7 @@ export class OtpService {
     private readonly otpVerificationService: OtpVerificationService,
     private readonly requestLogService: RequestLogService,
     private readonly metaWhatsappService: MetaWhatsappService,
+    private readonly appParameterService: AppParameterService,
   ) {
     this.smsApiKey = process.env.SMS_API_KEY
     this.smsApiUrl = process.env.SMS_API_URL
@@ -137,7 +136,7 @@ export class OtpService {
   ): Promise<void> {
     const whaPhoneNumber = this.toWhatsappNumber(phoneNumber)
 
-    if (isMetaWhatsappProvider()) {
+    if (await this.appParameterService.isMetaWhatsappProvider()) {
       // Meta addresses the plain wa_id, with no chat suffix.
       await this.metaWhatsappService.sendMessage(
         { to: whaPhoneNumber, body: content, typing_time: 0 },

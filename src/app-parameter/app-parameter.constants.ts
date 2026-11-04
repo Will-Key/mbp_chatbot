@@ -7,6 +7,7 @@ export const APP_PARAMETER_KEYS = {
   loyaltyPeriodCutoffDays: 'LOYALTY_PERIOD_CUTOFF_DAYS',
   notificationChannel: 'NOTIFICATION_CHANNEL',
   loyaltyBonusMinDriverAgeDays: 'LOYALTY_BONUS_MIN_DRIVER_AGE_DAYS',
+  whatsappProvider: 'WHATSAPP_PROVIDER',
 } as const
 
 export const REFERRAL_TRIGGERS = {
@@ -25,6 +26,14 @@ export const NOTIFICATION_CHANNELS = {
 
 export type NotificationChannel =
   (typeof NOTIFICATION_CHANNELS)[keyof typeof NOTIFICATION_CHANNELS]
+
+export const WHATSAPP_PROVIDERS = {
+  whapi: 'WHAPI',
+  meta: 'META',
+} as const
+
+export type WhatsappProvider =
+  (typeof WHATSAPP_PROVIDERS)[keyof typeof WHATSAPP_PROVIDERS]
 
 export const INITIAL_APP_PARAMETERS: {
   key: string
@@ -69,6 +78,11 @@ export const INITIAL_APP_PARAMETERS: {
     key: APP_PARAMETER_KEYS.notificationChannel,
     value: NOTIFICATION_CHANNELS.both,
     description: `Canal des notifications de bonus et de parrainage : ${NOTIFICATION_CHANNELS.whatsapp}, ${NOTIFICATION_CHANNELS.sms} (letexto) ou ${NOTIFICATION_CHANNELS.both}.`,
+  },
+  {
+    key: APP_PARAMETER_KEYS.whatsappProvider,
+    value: WHATSAPP_PROVIDERS.whapi,
+    description: `Fournisseur WhatsApp sortant : ${WHATSAPP_PROVIDERS.whapi} ou ${WHATSAPP_PROVIDERS.meta} (API Cloud officielle). Bascule tous les envois, OTP compris.`,
   },
   {
     key: APP_PARAMETER_KEYS.loyaltyBonusMinDriverAgeDays,

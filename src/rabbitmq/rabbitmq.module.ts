@@ -11,8 +11,6 @@ import { DriverOrderService } from '../driver-order/driver-order.service'
 import { DriverPersonalInfoService } from '../driver-personal-info/driver-personal-info.service'
 import { ExternalApiModule } from '../external-api/external-api.module'
 import { HistoryConversationService } from '../history-conversation/history-conversation.service'
-import { LoyaltyBonusService } from '../loyalty-bonus/loyalty-bonus.service'
-import { ReferralService } from '../referral/referral.service'
 import { baseUrl, rabbitmqPort } from '../shared/constants'
 import { StepService } from '../step/step.service'
 import { SyncJobLogModule } from '../sync-job-log/sync-job-log.module'
@@ -139,8 +137,6 @@ import { RabbitmqService } from './rabbitmq.service'
     DocumentFileService,
     HistoryConversationService,
     DriverOrderService,
-    ReferralService,
-    LoyaltyBonusService,
     AppParameterService,
   ],
   exports: [RabbitmqService],

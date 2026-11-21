@@ -14,10 +14,8 @@ import { DriverPersonalInfoModule } from './driver-personal-info/driver-personal
 import { ExternalApiModule } from './external-api/external-api.module'
 import { FlowModule } from './flow/flow.module'
 import { HistoryConversationModule } from './history-conversation/history-conversation.module'
-import { LoyaltyBonusModule } from './loyalty-bonus/loyalty-bonus.module'
 import { OtpVerificationModule } from './otp-verification/otp-verification.module'
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module'
-import { ReferralModule } from './referral/referral.module'
 import { RequestLogModule } from './request-log/request-log.module'
 import { SeederModule } from './seeder/seeder.module'
 import { SeederService } from './seeder/seeder.service'
@@ -49,8 +47,6 @@ import { WebhookModule } from './webhook/webhook.module'
     SyncJobLogModule,
     OtpVerificationModule,
     UserModule,
-    LoyaltyBonusModule,
-    ReferralModule,
     AppParameterModule,
   ],
   controllers: [AppController],
